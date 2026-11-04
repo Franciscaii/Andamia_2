@@ -1,6 +1,6 @@
 import { parseISO } from "date-fns";
 import { bd } from "./bd";
-import { COLORES_LISTA, LISTA_BANDEJA, type Carpeta, type Columna, type Etiqueta, type Lista, type Prioridad, type RepetirDesde, type Subtarea, type Tarea } from "../modelos/tipos";
+import { COLORES_LISTA, LISTA_BANDEJA, type Carpeta, type Columna, type EstadoHabito, type Etiqueta, type Habito, type Lista, type Prioridad, type RegistroHabito, type RepetirDesde, type SesionEnfoque, type Subtarea, type Tarea } from "../modelos/tipos";
 import { NOMBRE_COLUMNA_INICIAL } from "../logica/columnas";
 import { siguienteOcurrencia, venceDesde } from "../logica/repeticion";
 import { claveEtiqueta, nuevoId } from "../logica/texto";
@@ -24,14 +24,85 @@ export interface DatosNuevaTarea {
 }
 
 export async function cargarTodo() {
-  const [tareas, listas, carpetas, etiquetas, columnas] = await Promise.all([
+  const [tareas, listas, carpetas, etiquetas, columnas, sesiones, habitos, registros] = await Promise.all([
     bd.tareas.toArray(),
     bd.listas.orderBy("orden").toArray(),
     bd.carpetas.orderBy("orden").toArray(),
     bd.etiquetas.orderBy("orden").toArray(),
     bd.columnas.orderBy("orden").toArray(),
+    bd.sesiones.orderBy("inicio").toArray(),
+    bd.habitos.orderBy("orden").toArray(),
+    bd.registrosHabito.toArray(),
   ]);
-  return { tareas, listas, carpetas, etiquetas, columnas };
+  return { tareas, listas, carpetas, etiquetas, columnas, sesiones, habitos, registros };
+}
+
+/** Guarda una sesión. Con el mismo id no se duplica, aunque dos pestañas la terminen a la vez. */
+export async function guardarSesion(sesion: SesionEnfoque): Promise<SesionEnfoque> {
+  await bd.sesiones.put(sesion);
+  return sesion;
+}
+
+export async function borrarSesion(id: string): Promise<void> {
+  await bd.sesiones.delete(id);
+}
+
+export type DatosHabito = Omit<Habito, "id" | "orden" | "avisosEnviados" | "archivado">;
+
+export async function crearHabito(datos: DatosHabito): Promise<Habito> {
+  const existentes = await bd.habitos.toArray();
+  const habito: Habito = {
+    ...datos,
+    nombre: datos.nombre.trim(),
+    id: nuevoId(),
+    avisosEnviados: [],
+    archivado: false,
+    orden: existentes.reduce((m, h) => Math.max(m, h.orden + 1), 0),
+  };
+  await bd.habitos.put(habito);
+  return habito;
+}
+
+export async function actualizarHabito(id: string, cambios: Partial<Omit<Habito, "id">>): Promise<Habito> {
+  return bd.transaction("rw", bd.habitos, async () => {
+    const actual = await bd.habitos.get(id);
+    if (!actual) throw new Error(`No existe el hábito ${id}`);
+    const habito = { ...actual, ...cambios };
+    await bd.habitos.put(habito);
+    return habito;
+  });
+}
+
+/** Elimina el hábito y su historial. Para conservarlo se debe archivar. */
+export async function borrarHabito(id: string): Promise<void> {
+  await bd.transaction("rw", bd.habitos, bd.registrosHabito, async () => {
+    await bd.registrosHabito.where("habitoId").equals(id).delete();
+    await bd.habitos.delete(id);
+  });
+}
+
+/** Con null borra el registro de ese día. */
+export async function registrarHabito(habitoId: string, fecha: string, datos: { estado: EstadoHabito; valor: number } | null): Promise<RegistroHabito | null> {
+  const id = `${habitoId}|${fecha}`;
+  if (!datos) {
+    await bd.registrosHabito.delete(id);
+    return null;
+  }
+  const registro: RegistroHabito = { id, habitoId, fecha, ...datos };
+  await bd.registrosHabito.put(registro);
+  return registro;
+}
+
+/** Marca un aviso de hábito. Devuelve null si otra pestaña ya lo había enviado. */
+export async function marcarAvisoHabito(id: string, clave: string): Promise<Habito | null> {
+  return bd.transaction("rw", bd.habitos, async () => {
+    const habito = await bd.habitos.get(id);
+    if (!habito || habito.avisosEnviados.includes(clave)) return null;
+    // Solo importa el aviso del día: la lista no crece sin límite.
+    const cambiado = { ...habito, avisosEnviados: [clave] };
+    await bd.habitos.put(cambiado);
+    return cambiado;
+  });
 }
 
 /** Devuelve las etiquetas pedidas, creando las que no existan. */

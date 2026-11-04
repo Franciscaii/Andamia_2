@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Carpeta, Columna, Etiqueta, Lista, Tarea } from "../modelos/tipos";
+import type { Carpeta, Columna, Etiqueta, Habito, Lista, RegistroHabito, SesionEnfoque, Tarea } from "../modelos/tipos";
 
 export class BaseAndamia extends Dexie {
   tareas!: Table<Tarea, string>;
@@ -7,6 +7,9 @@ export class BaseAndamia extends Dexie {
   carpetas!: Table<Carpeta, string>;
   etiquetas!: Table<Etiqueta, string>;
   columnas!: Table<Columna, string>;
+  sesiones!: Table<SesionEnfoque, string>;
+  habitos!: Table<Habito, string>;
+  registrosHabito!: Table<RegistroHabito, string>;
 
   constructor() {
     super("andamia");
@@ -35,6 +38,12 @@ export class BaseAndamia extends Dexie {
           l.modo ??= "lista";
         });
       });
+    // Fase 4: enfoque y hábitos. Solo agrega tablas; las anteriores no cambian.
+    this.version(3).stores({
+      sesiones: "id, inicio, tareaId",
+      habitos: "id, orden",
+      registrosHabito: "id, habitoId, fecha",
+    });
   }
 }
 

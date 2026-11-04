@@ -87,4 +87,53 @@ export interface Etiqueta {
   orden: number;
 }
 
+export type TipoSesion = "pomodoro" | "cronometro";
+
+export interface SesionEnfoque {
+  id: string;
+  tipo: TipoSesion;
+  inicio: string;
+  fin: string;
+  /** Tiempo real de enfoque, sin contar las pausas. */
+  segundos: number;
+  tareaId: string | null;
+  nota: string;
+  manual: boolean;
+}
+
+export type FrecuenciaHabito =
+  | { tipo: "diaria" }
+  /** 0 = lunes … 6 = domingo. */
+  | { tipo: "dias"; dias: number[] }
+  | { tipo: "semanal"; veces: number };
+
+export interface Habito {
+  id: string;
+  nombre: string;
+  icono: string;
+  color: string;
+  frecuencia: FrecuenciaHabito;
+  /** Cantidad por día; 1 significa simplemente hecho o no hecho. */
+  metaDiaria: number;
+  unidad: string;
+  /** "AAAA-MM-DD". */
+  inicio: string;
+  /** "HH:mm" o null si no tiene recordatorio. */
+  recordatorioHora: string | null;
+  avisosEnviados: string[];
+  archivado: boolean;
+  orden: number;
+}
+
+export type EstadoHabito = "hecho" | "parcial" | "no-hecho";
+
+export interface RegistroHabito {
+  /** `${habitoId}|${fecha}`: un registro por hábito y día. */
+  id: string;
+  habitoId: string;
+  fecha: string;
+  estado: EstadoHabito;
+  valor: number;
+}
+
 export const COLORES_LISTA = ["#c2553d", "#d48a2c", "#b7a42e", "#4f8a4c", "#2f8f83", "#3f74b5", "#7a5fb0", "#b65583"];
