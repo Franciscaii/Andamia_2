@@ -144,7 +144,10 @@ El código de la Fase 2 implementa una parte de este modelo. Los tipos reales es
 | Repetición, recordatorios y columnas | Implementados en la Fase 3, con los campos `repeticion`, `repetirDesde`, `repetidaDe`, `recordatorios`, `avisosEnviados` y `columnaId` |
 | `exclusiones` | No existe: aún no se puede saltar una ocurrencia concreta |
 | `descartada`, tareas anidadas, `version` | Aún no implementados |
-| Hábitos y sesiones de enfoque | Aún no implementados |
+| Sesión de enfoque | Implementada en la Fase 4. No guarda las pausas como intervalos: guarda `segundos`, el tiempo real sin pausas, y agrega `manual` |
+| Hábito | Implementado en la Fase 4. `frecuencia` admite cada día, días de la semana o N veces por semana. El recordatorio es una sola hora. `seccionId` no existe aún |
+| Registro de hábito | Implementado en la Fase 4, con un registro por hábito y día, y estados `hecho`, `parcial` y `no-hecho` |
+| Estado del temporizador en curso | En `localStorage`, no en IndexedDB |
 
 ## Decisiones de diseño para Andamia
 

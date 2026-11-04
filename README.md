@@ -39,6 +39,9 @@ Después abre <http://localhost:5173>.
 | Recordatorios | Uno o varios por tarea, con aviso del navegador y dentro de la app |
 | Kanban | Columnas propias por lista, y arrastrar tareas entre ellas |
 | Calendario | Vista de mes y de semana, arrastrar para cambiar la fecha, y panel de tareas sin fecha |
+| Matriz de Eisenhower | Cuatro cuadrantes; arrastrar entre ellos cambia la prioridad |
+| Enfoque | Pomodoro, cronómetro, registro de sesiones y estadísticas |
+| Hábitos | Frecuencias, objetivo por día, rachas, historial, cumplimiento y recordatorio |
 | Papelera | Las tareas borradas se pueden restaurar o eliminar para siempre |
 | Búsqueda | En títulos, notas y subtareas, sin distinguir mayúsculas ni acentos, con filtros |
 | Orden | Arrastrar con el ratón o con el teclado |
@@ -102,6 +105,39 @@ Cada lista puede verse como **Lista** o **Kanban**, y recuerda su modo. Las colu
 - Arrastrar una tarea al panel **Sin fecha** le quita la fecha y la repetición.
 - Las próximas fechas de una tarea repetida se ven atenuadas y no se pueden mover. Mueve la que está activa.
 
+## Matriz de Eisenhower
+
+Cada cuadrante corresponde a una prioridad:
+
+| Cuadrante | Prioridad |
+|---|---|
+| Urgente e importante | Alta |
+| Importante, no urgente | Media |
+| Urgente, no importante | Baja |
+| Ni urgente ni importante | Ninguna |
+
+- Solo muestra tareas pendientes, primero las que vencen antes.
+- Arrastrar una tarea a otro cuadrante cambia su prioridad.
+- Una tarea añadida en un cuadrante toma su prioridad y los filtros activos.
+
+## Enfoque
+
+- **Pomodoro:** 25 minutos de enfoque, 5 de descanso y 15 de descanso largo cada 4. Se configura con el botón de ajustes.
+- **Cronómetro:** corre libremente hasta que lo detienes y lo guardas.
+- **Tarea:** cada sesión puede sumarse a una tarea. También puedes empezar con **Enfocar** en el detalle de la tarea.
+- **Recargar:** el temporizador se calcula con marcas de tiempo, así que sobrevive a recargar o cerrar la página. Una sesión que venció con la app cerrada se registra a su hora prevista.
+- **Saltar:** registra lo trabajado si llega a un minuto. **Abandonar** no registra nada.
+- **Aviso de fin:** suena un tono generado en el navegador y aparece un aviso. Solo llega con la app abierta; si estaba cerrada, verás la sesión registrada al volver.
+
+## Hábitos
+
+- **Frecuencia:** cada día, días de la semana o N veces por semana.
+- **Marcar:** un clic en un día recorre hecho, parcial, no hecho y sin marcar. Con un objetivo por día, como 8 vasos, se escribe la cantidad.
+- **Racha:** un parcial no suma ni la rompe, y hoy sin marcar tampoco la rompe. Con N veces por semana se cuenta en semanas.
+- **Cumplimiento:** un parcial vale la mitad.
+- **Archivar:** oculta el hábito y conserva su historial. **Borrar** elimina también el historial.
+- **Recordatorio:** avisa a la hora elegida si el hábito sigue pendiente ese día, solo con la app abierta.
+
 ## Atajos
 
 | Tecla | Acción |
@@ -124,7 +160,7 @@ Cada lista puede verse como **Lista** o **Kanban**, y recuerda su modo. Las colu
 |---|---|
 | `src/modelos` | Tipos de datos |
 | `src/datos` | Base de datos, repositorio y estado de la app |
-| `src/logica` | Entrada rápida, vistas, búsqueda, fechas, repeticiones, recordatorios, columnas, calendario y rutas |
+| `src/logica` | Entrada rápida, vistas, búsqueda, fechas, repeticiones, recordatorios, columnas, calendario, matriz, enfoque, hábitos y rutas |
 | `src/vistas` | Pantallas |
 | `src/componentes` | Piezas de la interfaz |
 | `tests/unit` | Pruebas de lógica |
@@ -134,6 +170,5 @@ Cada lista puede verse como **Lista** o **Kanban**, y recuerda su modo. Las colu
 
 | Fase | Contenido |
 |---|---|
-| Fase 4 | Matriz de Eisenhower, Pomodoro y hábitos |
 | Fase 5 | Servidor, cuentas, sincronización, PWA y avisos con la app cerrada |
-| Sin fase asignada | Resumen, filtros guardados, renombrar etiquetas, reordenar listas y subtareas, posponer avisos, vistas de día, año y agenda, cronograma y exportar datos |
+| Sin fase asignada | Resumen, filtros guardados, renombrar etiquetas, reordenar listas y subtareas, posponer avisos, vistas de día, año y agenda, cronograma, exportar datos, secciones y días objetivo de hábitos, y criterios personalizados en la matriz |

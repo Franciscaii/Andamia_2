@@ -33,7 +33,9 @@ Todo este contenido es diseño propio, basado en el método de Eisenhower.
 
 ## Decisión
 
-Francisca decidió diseñar la matriz sin observarla en TickTick. Esta ficha es la especificación de partida para implementarla: no hace falta activarla en esa cuenta.
+Francisca decidió diseñar la matriz sin observarla en TickTick, y no hace falta activarla en esa cuenta.
+
+Implementada en la Fase 4 con los criterios de arriba, filtros por lista y etiqueta, y tareas ordenadas por fecha dentro de cada cuadrante. La fecha ordena, pero no decide el cuadrante: la urgencia la define la prioridad. Personalizar los criterios queda pendiente.
 
 ## Atajos
 

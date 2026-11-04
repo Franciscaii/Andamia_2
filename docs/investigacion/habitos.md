@@ -40,6 +40,19 @@ Las secciones existen como entidad. Las preferencias permiten mostrar hábitos e
 | Archivar | Oculta el hábito y conserva su historial |
 | Estadísticas | Racha actual, mejor racha, porcentaje y calendario mensual |
 
+## Implementado en la Fase 4
+
+| Tema | Decisión |
+|---|---|
+| Estados | Hecho, parcial y no hecho. Parcial no suma a la racha, pero tampoco la rompe |
+| Hoy sin marcar | No rompe la racha ni baja el cumplimiento |
+| Días de la semana | Los días no elegidos no se marcan ni rompen la racha |
+| Varias veces por semana | La racha se cuenta en semanas; la semana en curso no la rompe |
+| Cumplimiento | Un parcial vale la mitad |
+| Con objetivo por día | Se registra la cantidad; llegar al objetivo es hecho, y menos es parcial |
+| Recordatorio | Una hora al día, solo si el hábito sigue pendiente |
+| Pendiente | Secciones, días objetivo, y mostrar hábitos en Hoy y en el calendario |
+
 ## Casos límite por decidir
 
 | Caso | Propuesta |

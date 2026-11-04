@@ -40,14 +40,16 @@ stateDiagram-v2
 | Registro manual | Con inicio, fin, tarea y nota |
 | Aviso | Sonido y notificación al terminar |
 
-## Casos límite por decidir
+## Casos límite
 
-| Caso | Propuesta |
+| Caso | Estado en la Fase 4 |
 |---|---|
-| Recargar durante una sesión | Recuperarla del almacenamiento local |
-| Equipo suspendido | Marcar la sesión como terminada a su hora prevista |
-| Sesión muy corta | No registrar las de menos de un minuto |
-| Completar la tarea en curso | Preguntar si termina la sesión |
+| Recargar durante una sesión | Implementado: se recupera con sus marcas de tiempo |
+| Equipo suspendido o app cerrada | Implementado: la sesión termina a su hora prevista |
+| Sesión muy corta | Implementado: no se registran las de menos de un minuto |
+| Saltar un enfoque | Decisión: registra lo trabajado, si llega a un minuto |
+| Abandonar | Implementado: pide confirmación y no registra |
+| Completar la tarea en curso | Pendiente: la sesión sigue sin preguntar |
 
 ## Atajos
 
