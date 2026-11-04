@@ -1,0 +1,65 @@
+export type Prioridad = "ninguna" | "baja" | "media" | "alta";
+export type EstadoTarea = "pendiente" | "completada";
+
+export const LISTA_BANDEJA = "bandeja";
+
+export const PRIORIDADES: { valor: Prioridad; nombre: string }[] = [
+  { valor: "alta", nombre: "Alta" },
+  { valor: "media", nombre: "Media" },
+  { valor: "baja", nombre: "Baja" },
+  { valor: "ninguna", nombre: "Ninguna" },
+];
+
+export interface Subtarea {
+  id: string;
+  titulo: string;
+  estado: EstadoTarea;
+  orden: number;
+}
+
+export interface Tarea {
+  id: string;
+  listaId: string;
+  titulo: string;
+  descripcion: string;
+  estado: EstadoTarea;
+  prioridad: Prioridad;
+  /** "AAAA-MM-DD" si es de todo el día; fecha-hora ISO si lleva hora; null sin fecha. */
+  vence: string | null;
+  todoElDia: boolean;
+  zonaHoraria: string;
+  /** Claves de etiqueta, en minúsculas. */
+  etiquetas: string[];
+  subtareas: Subtarea[];
+  orden: number;
+  completadaEn: string | null;
+  /** Fecha de envío a la papelera; null si no está borrada. */
+  eliminadaEn: string | null;
+  creadaEn: string;
+  modificadaEn: string;
+}
+
+export interface Lista {
+  id: string;
+  nombre: string;
+  color: string | null;
+  carpetaId: string | null;
+  incluirEnTodas: boolean;
+  orden: number;
+}
+
+export interface Carpeta {
+  id: string;
+  nombre: string;
+  orden: number;
+}
+
+export interface Etiqueta {
+  /** Clave en minúsculas. */
+  nombre: string;
+  nombreVisible: string;
+  color: string;
+  orden: number;
+}
+
+export const COLORES_LISTA = ["#c2553d", "#d48a2c", "#b7a42e", "#4f8a4c", "#2f8f83", "#3f74b5", "#7a5fb0", "#b65583"];
