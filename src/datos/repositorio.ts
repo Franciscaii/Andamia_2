@@ -1,5 +1,6 @@
 import { parseISO } from "date-fns";
-import { bd } from "./bd";
+import { bd, TABLAS } from "./bd";
+import type { DatosCopia } from "../logica/copia";
 import { COLORES_LISTA, LISTA_BANDEJA, type Carpeta, type Columna, type EstadoHabito, type Etiqueta, type Habito, type Lista, type Prioridad, type RegistroHabito, type RepetirDesde, type SesionEnfoque, type Subtarea, type Tarea } from "../modelos/tipos";
 import { NOMBRE_COLUMNA_INICIAL } from "../logica/columnas";
 import { siguienteOcurrencia, venceDesde } from "../logica/repeticion";
@@ -35,6 +36,25 @@ export async function cargarTodo() {
     bd.registrosHabito.toArray(),
   ]);
   return { tareas, listas, carpetas, etiquetas, columnas, sesiones, habitos, registros };
+}
+
+export async function exportarTodo(): Promise<DatosCopia> {
+  const entradas = await Promise.all(TABLAS.map(async (t) => [t, await bd.table(t).toArray()] as const));
+  return Object.fromEntries(entradas) as DatosCopia;
+}
+
+/**
+ * Reemplaza todo en una sola transacción: si algo falla, no cambia nada.
+ * Borra uno por uno en vez de vaciar para que, con una cuenta, los cambios se propaguen.
+ */
+export async function reemplazarTodo(datos: DatosCopia): Promise<void> {
+  await bd.transaction("rw", TABLAS.map((t) => bd.table(t)), async () => {
+    for (const t of TABLAS) {
+      const tabla = bd.table(t);
+      await tabla.bulkDelete(await tabla.toCollection().primaryKeys());
+      await tabla.bulkPut(datos[t]);
+    }
+  });
 }
 
 /** Guarda una sesión. Con el mismo id no se duplica, aunque dos pestañas la terminen a la vez. */

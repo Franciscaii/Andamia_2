@@ -1,6 +1,14 @@
 import Dexie, { type Table } from "dexie";
 import type { Carpeta, Columna, Etiqueta, Habito, Lista, RegistroHabito, SesionEnfoque, Tarea } from "../modelos/tipos";
 
+export const BASE_LOCAL = "andamia";
+
+/** Base de una cuenta: sus datos nunca se mezclan con los de quien usa la app sin sesión. */
+export const baseDeCuenta = (uid: string) => `andamia-u-${uid}`;
+
+export const TABLAS = ["tareas", "listas", "carpetas", "etiquetas", "columnas", "sesiones", "habitos", "registrosHabito"] as const;
+export type NombreTabla = (typeof TABLAS)[number];
+
 export class BaseAndamia extends Dexie {
   tareas!: Table<Tarea, string>;
   listas!: Table<Lista, string>;
@@ -11,8 +19,8 @@ export class BaseAndamia extends Dexie {
   habitos!: Table<Habito, string>;
   registrosHabito!: Table<RegistroHabito, string>;
 
-  constructor() {
-    super("andamia");
+  constructor(nombre: string = BASE_LOCAL) {
+    super(nombre);
     this.version(1).stores({
       tareas: "id, listaId, estado, eliminadaEn, vence, orden",
       listas: "id, carpetaId, orden",
@@ -47,4 +55,14 @@ export class BaseAndamia extends Dexie {
   }
 }
 
-export const bd = new BaseAndamia();
+/** La base activa. Se reasigna al entrar o salir de una cuenta; quien la importa ve siempre la vigente. */
+export let bd = new BaseAndamia();
+
+/** Cambia la base activa. */
+export async function usarBase(nombre: string): Promise<BaseAndamia> {
+  if (bd.name === nombre) return bd;
+  bd.close();
+  bd = new BaseAndamia(nombre);
+  await bd.open();
+  return bd;
+}

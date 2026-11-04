@@ -1,0 +1,104 @@
+rules_version = '2';
+
+// Cada persona solo puede leer y escribir dentro de users/{su propio uid}.
+// Todo lo demás queda denegado.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function esDueno(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function texto(campo, maximo) {
+      return request.resource.data[campo] is string && request.resource.data[campo].size() <= maximo;
+    }
+
+    function numero(campo) {
+      return request.resource.data[campo] is number;
+    }
+
+    function tiene(campos) {
+      return request.resource.data.keys().hasAll(campos);
+    }
+
+    function tareaValida() {
+      return tiene(['id', 'listaId', 'titulo', 'descripcion', 'estado', 'prioridad', 'orden'])
+        && texto('id', 200) && texto('listaId', 200) && texto('titulo', 5000) && texto('descripcion', 200000)
+        && request.resource.data.estado in ['pendiente', 'completada']
+        && request.resource.data.prioridad in ['ninguna', 'baja', 'media', 'alta']
+        && numero('orden');
+    }
+
+    function listaValida() {
+      return tiene(['id', 'nombre', 'orden']) && texto('id', 200) && texto('nombre', 200) && numero('orden');
+    }
+
+    function carpetaValida() {
+      return tiene(['id', 'nombre', 'orden']) && texto('id', 200) && texto('nombre', 200) && numero('orden');
+    }
+
+    function etiquetaValida() {
+      return tiene(['nombre', 'nombreVisible', 'color', 'orden'])
+        && texto('nombre', 200) && texto('nombreVisible', 200) && texto('color', 20) && numero('orden');
+    }
+
+    function columnaValida() {
+      return tiene(['id', 'listaId', 'nombre', 'orden'])
+        && texto('id', 200) && texto('listaId', 200) && texto('nombre', 200) && numero('orden');
+    }
+
+    function habitoValido() {
+      return tiene(['id', 'nombre', 'frecuencia', 'metaDiaria', 'inicio', 'orden'])
+        && texto('id', 200) && texto('nombre', 200) && request.resource.data.frecuencia is map
+        && numero('metaDiaria') && texto('inicio', 10) && numero('orden');
+    }
+
+    function registroHabitoValido() {
+      return tiene(['id', 'habitoId', 'fecha', 'estado', 'valor'])
+        && texto('id', 300) && texto('habitoId', 200) && texto('fecha', 10)
+        && request.resource.data.estado in ['hecho', 'parcial', 'no-hecho'] && numero('valor');
+    }
+
+    function sesionValida() {
+      return tiene(['id', 'tipo', 'inicio', 'fin', 'segundos'])
+        && texto('id', 200) && request.resource.data.tipo in ['pomodoro', 'cronometro']
+        && texto('inicio', 40) && texto('fin', 40) && numero('segundos') && request.resource.data.segundos >= 0;
+    }
+
+    match /users/{uid}/tasks/{id} {
+      allow read, delete: if esDueno(uid);
+      allow create, update: if esDueno(uid) && tareaValida();
+    }
+    match /users/{uid}/lists/{id} {
+      allow read, delete: if esDueno(uid);
+      allow create, update: if esDueno(uid) && listaValida();
+    }
+    match /users/{uid}/folders/{id} {
+      allow read, delete: if esDueno(uid);
+      allow create, update: if esDueno(uid) && carpetaValida();
+    }
+    match /users/{uid}/tags/{id} {
+      allow read, delete: if esDueno(uid);
+      allow create, update: if esDueno(uid) && etiquetaValida();
+    }
+    match /users/{uid}/columns/{id} {
+      allow read, delete: if esDueno(uid);
+      allow create, update: if esDueno(uid) && columnaValida();
+    }
+    match /users/{uid}/habits/{id} {
+      allow read, delete: if esDueno(uid);
+      allow create, update: if esDueno(uid) && habitoValido();
+    }
+    match /users/{uid}/habitLogs/{id} {
+      allow read, delete: if esDueno(uid);
+      allow create, update: if esDueno(uid) && registroHabitoValido();
+    }
+    match /users/{uid}/focusSessions/{id} {
+      allow read, delete: if esDueno(uid);
+      allow create, update: if esDueno(uid) && sesionValida();
+    }
+    match /users/{uid}/settings/{id} {
+      allow read, write: if esDueno(uid);
+    }
+  }
+}

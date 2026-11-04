@@ -1,6 +1,13 @@
 node_modules/
 dist/
+dev-dist/
 test-results/
 playwright-report/
 *.log
 Desktop.ini
+
+# Configuración local de Firebase
+.env.local
+.env.*.local
+.firebaserc
+.firebase/
