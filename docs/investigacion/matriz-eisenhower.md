@@ -31,9 +31,9 @@ Todo este contenido es diseño propio, basado en el método de Eisenhower.
 | Tareas sin fecha | Se incluyen |
 | Muchas tareas | Desplazamiento dentro del cuadrante |
 
-## Cómo completar esta ficha
+## Decisión
 
-Si Francisca quiere observarla, debe activar la matriz en los ajustes de TickTick. Después se puede repetir el recorrido en modo lectura.
+Francisca decidió diseñar la matriz sin observarla en TickTick. Esta ficha es la especificación de partida para implementarla: no hace falta activarla en esa cuenta.
 
 ## Atajos
 
