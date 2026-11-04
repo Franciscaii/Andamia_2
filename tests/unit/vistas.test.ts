@@ -21,6 +21,12 @@ function tarea(cambios: Partial<Tarea> = {}): Tarea {
     zonaHoraria: "America/Santiago",
     etiquetas: [],
     subtareas: [],
+    repeticion: null,
+    repetirDesde: "vencimiento",
+    repetidaDe: null,
+    recordatorios: [],
+    avisosEnviados: [],
+    columnaId: null,
     orden: n,
     completadaEn: null,
     eliminadaEn: null,
@@ -69,7 +75,7 @@ describe("vistas inteligentes", () => {
   });
 
   it("una lista excluida no aparece en vistas inteligentes", () => {
-    const lista: Lista = { id: "x", nombre: "X", color: null, carpetaId: null, incluirEnTodas: false, orden: 0 };
+    const lista: Lista = { id: "x", nombre: "X", color: null, carpetaId: null, incluirEnTodas: false, modo: "lista", orden: 0 };
     const oculta = tarea({ titulo: "oculta", listaId: "x", vence: "2026-11-04", todoElDia: true });
     expect(titulos(tareasDeVista([oculta, hoy], "hoy", [lista], AHORA))).toEqual(["hoy"]);
   });

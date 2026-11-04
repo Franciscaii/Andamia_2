@@ -6,5 +6,7 @@ export default defineConfig({
     include: ["tests/unit/**/*.test.ts"],
     setupFiles: ["tests/unit/preparacion.ts"],
     env: { TZ: "America/Santiago" },
+    // rrule se publica como CommonJS para Node; así usa la misma entrada que en el navegador.
+    server: { deps: { inline: ["rrule"] } },
   },
 });

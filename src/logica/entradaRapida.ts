@@ -1,6 +1,7 @@
 import * as chrono from "chrono-node";
 import { addDays, format, set } from "date-fns";
 import type { Prioridad } from "../modelos/tipos";
+import { construirRegla, primeraOcurrencia } from "./repeticion";
 import { normalizar } from "./texto";
 
 export interface ListaConocida {
@@ -17,6 +18,7 @@ export interface EntradaInterpretada {
   etiquetas: string[];
   listaId: string | null;
   listaNombre: string | null;
+  repeticion: string | null;
 }
 
 // Límites de palabra con soporte para letras acentuadas y ñ.
@@ -83,6 +85,46 @@ function extraerLista(texto: string, listas: ListaConocida[]) {
     }
   }
   return { texto, lista: null };
+}
+
+const DIA_ES = "lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bados?|domingos?";
+const NUMEROS: Record<string, number> = { dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6 };
+
+function indiceDia(nombre: string): number {
+  // En la regla, 0 es lunes; en `DIAS`, 0 es domingo.
+  return (DIAS[normalizar(nombre).replace(/(sabado|domingo)s$/, "$1")] + 6) % 7;
+}
+
+/** Solo frases con "cada" o "todos los": "Informe mensual" sigue siendo un título. */
+function extraerRepeticion(texto: string) {
+  const laborables = new RegExp(`${INI}(?:(?:cada|todos\\s+los)\\s+d[ií]as?\\s+(?:laborables?|h[aá]biles?)|de\\s+lunes\\s+a\\s+viernes)${FIN}`, "iu").exec(texto);
+  if (laborables) {
+    return { texto: quitar(texto, laborables.index, laborables[0].length), repeticion: construirRegla({ frecuencia: "semanal", intervalo: 1, diasSemana: [0, 1, 2, 3, 4] }) };
+  }
+
+  const reDias = new RegExp(`${INI}(?:cada|todos\\s+los|todas\\s+las)\\s+(?:(\\d{1,3}|dos|tres|cuatro|cinco|seis)\\s+)?((?:${DIA_ES})(?:(?:\\s*,\\s*|\\s+y\\s+)(?:${DIA_ES}))*)${FIN}`, "iu");
+  const conDias = reDias.exec(texto);
+  if (conDias) {
+    const nombres = conDias[2].split(/\s*,\s*|\s+y\s+/i);
+    const intervalo = conDias[1] ? (NUMEROS[normalizar(conDias[1])] ?? Number(conDias[1])) : 1;
+    return {
+      texto: quitar(texto, conDias.index, conDias[0].length),
+      repeticion: construirRegla({ frecuencia: "semanal", intervalo, diasSemana: nombres.map(indiceDia) }),
+    };
+  }
+
+  const reUnidad = new RegExp(`${INI}(?:cada|todos\\s+los|todas\\s+las)\\s+(?:(\\d{1,3}|dos|tres|cuatro|cinco|seis)\\s+)?(d[ií]as?|semanas?|mes(?:es)?|a[ñn]os?)${FIN}`, "iu");
+  const conUnidad = reUnidad.exec(texto);
+  if (conUnidad) {
+    const unidad = normalizar(conUnidad[2]);
+    const frecuencia = unidad.startsWith("d") ? "diaria" : unidad.startsWith("s") ? "semanal" : unidad.startsWith("m") ? "mensual" : "anual";
+    const intervalo = conUnidad[1] ? (NUMEROS[normalizar(conUnidad[1])] ?? Number(conUnidad[1])) : 1;
+    return {
+      texto: quitar(texto, conUnidad.index, conUnidad[0].length),
+      repeticion: construirRegla({ frecuencia, intervalo, diasSemana: [] }),
+    };
+  }
+  return { texto, repeticion: null as string | null };
 }
 
 interface Hora {
@@ -216,7 +258,10 @@ export function interpretarEntrada(original: string, ahora: Date = new Date(), l
   const conEtiquetas = extraerEtiquetas(conPrioridad.texto);
   const conLista = extraerLista(conEtiquetas.texto, listas);
 
-  const conHora = extraerHora(conLista.texto);
+  // Antes que los días: "cada lunes" no es "el próximo lunes".
+  const conRepeticion = extraerRepeticion(conLista.texto);
+  let repeticion = conRepeticion.repeticion;
+  const conHora = extraerHora(conRepeticion.texto);
   const conDia = extraerDia(conHora.texto, ahora);
   let texto = conDia.texto;
   let dia = conDia.dia;
@@ -241,6 +286,13 @@ export function interpretarEntrada(original: string, ahora: Date = new Date(), l
     titulo = limpiar(conLista.texto);
     dia = null;
     hora = null;
+    repeticion = null;
+  }
+
+  // Una repetición siempre necesita fecha: la primera válida desde el día indicado o desde hoy.
+  if (repeticion) {
+    const base = set(dia ?? ahora, { hours: hora?.horas ?? 0, minutes: hora?.minutos ?? 0, seconds: 0, milliseconds: 0 });
+    dia = primeraOcurrencia(repeticion, base);
   }
 
   let vence: string | null = null;
@@ -258,5 +310,6 @@ export function interpretarEntrada(original: string, ahora: Date = new Date(), l
     etiquetas: conEtiquetas.etiquetas,
     listaId: conLista.lista?.id ?? null,
     listaNombre: conLista.lista?.nombre ?? null,
+    repeticion,
   };
 }

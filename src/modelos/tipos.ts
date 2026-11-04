@@ -17,6 +17,21 @@ export interface Subtarea {
   orden: number;
 }
 
+export type RepetirDesde = "vencimiento" | "completado";
+export type ModoLista = "lista" | "kanban";
+
+export interface Recordatorio {
+  id: string;
+  minutosAntes: number;
+}
+
+export interface Columna {
+  id: string;
+  listaId: string;
+  nombre: string;
+  orden: number;
+}
+
 export interface Tarea {
   id: string;
   listaId: string;
@@ -31,6 +46,15 @@ export interface Tarea {
   /** Claves de etiqueta, en minúsculas. */
   etiquetas: string[];
   subtareas: Subtarea[];
+  /** Regla RRULE sin fecha de inicio, por ejemplo "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO". */
+  repeticion: string | null;
+  repetirDesde: RepetirDesde;
+  /** En la copia completada de una tarea repetida: id de la tarea original. */
+  repetidaDe: string | null;
+  recordatorios: Recordatorio[];
+  /** Avisos ya mostrados, para no repetirlos. */
+  avisosEnviados: string[];
+  columnaId: string | null;
   orden: number;
   completadaEn: string | null;
   /** Fecha de envío a la papelera; null si no está borrada. */
@@ -45,6 +69,7 @@ export interface Lista {
   color: string | null;
   carpetaId: string | null;
   incluirEnTodas: boolean;
+  modo: ModoLista;
   orden: number;
 }
 

@@ -1,5 +1,8 @@
+import { parseISO } from "date-fns";
 import { bd } from "./bd";
-import { COLORES_LISTA, LISTA_BANDEJA, type Carpeta, type Etiqueta, type Lista, type Prioridad, type Subtarea, type Tarea } from "../modelos/tipos";
+import { COLORES_LISTA, LISTA_BANDEJA, type Carpeta, type Columna, type Etiqueta, type Lista, type Prioridad, type RepetirDesde, type Subtarea, type Tarea } from "../modelos/tipos";
+import { NOMBRE_COLUMNA_INICIAL } from "../logica/columnas";
+import { siguienteOcurrencia, venceDesde } from "../logica/repeticion";
 import { claveEtiqueta, nuevoId } from "../logica/texto";
 import { ordenEntre } from "../logica/vistas";
 
@@ -13,16 +16,22 @@ export interface DatosNuevaTarea {
   vence?: string | null;
   todoElDia?: boolean;
   etiquetas?: string[];
+  repeticion?: string | null;
+  repetirDesde?: RepetirDesde;
+  /** Minutos antes del vencimiento de cada recordatorio inicial. */
+  minutosRecordatorios?: number[];
+  columnaId?: string | null;
 }
 
 export async function cargarTodo() {
-  const [tareas, listas, carpetas, etiquetas] = await Promise.all([
+  const [tareas, listas, carpetas, etiquetas, columnas] = await Promise.all([
     bd.tareas.toArray(),
     bd.listas.orderBy("orden").toArray(),
     bd.carpetas.orderBy("orden").toArray(),
     bd.etiquetas.orderBy("orden").toArray(),
+    bd.columnas.orderBy("orden").toArray(),
   ]);
-  return { tareas, listas, carpetas, etiquetas };
+  return { tareas, listas, carpetas, etiquetas, columnas };
 }
 
 /** Devuelve las etiquetas pedidas, creando las que no existan. */
@@ -61,6 +70,12 @@ export async function crearTarea(datos: DatosNuevaTarea): Promise<{ tarea: Tarea
     zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone,
     etiquetas: [...new Set((datos.etiquetas ?? []).map(claveEtiqueta).filter(Boolean))],
     subtareas: [],
+    repeticion: datos.repeticion ?? null,
+    repetirDesde: datos.repetirDesde ?? "vencimiento",
+    repetidaDe: null,
+    recordatorios: (datos.minutosRecordatorios ?? []).map((minutosAntes) => ({ id: nuevoId(), minutosAntes })),
+    avisosEnviados: [],
+    columnaId: datos.columnaId ?? null,
     // Cada tarea nueva queda arriba.
     orden: primera ? primera.orden - 1024 : 0,
     completadaEn: null,
@@ -83,10 +98,55 @@ export async function actualizarTarea(id: string, cambios: Partial<Omit<Tarea, "
   });
 }
 
-export function completarTarea(id: string, completada: boolean): Promise<Tarea> {
-  return actualizarTarea(id, {
-    estado: completada ? "completada" : "pendiente",
-    completadaEn: completada ? ahoraIso() : null,
+/**
+ * Completa o reabre una tarea y devuelve todas las tareas afectadas.
+ * Una tarea repetida deja una copia completada con el historial y avanza a la
+ * fecha siguiente con las subtareas sin marcar.
+ */
+export async function completarTarea(id: string, completada: boolean, ahora: Date = new Date()): Promise<Tarea[]> {
+  return bd.transaction("rw", bd.tareas, async () => {
+    const tarea = await bd.tareas.get(id);
+    if (!tarea) throw new Error(`No existe la tarea ${id}`);
+    const momento = ahora.toISOString();
+
+    const siguiente = completada && tarea.repeticion && tarea.vence ? siguienteOcurrencia(tarea.repeticion, parseISO(tarea.vence), tarea.repetirDesde, ahora) : null;
+    if (!siguiente) {
+      const cambiada: Tarea = { ...tarea, estado: completada ? "completada" : "pendiente", completadaEn: completada ? momento : null, modificadaEn: momento };
+      await bd.tareas.put(cambiada);
+      return [cambiada];
+    }
+
+    const copia: Tarea = {
+      ...tarea,
+      id: nuevoId(),
+      estado: "completada",
+      completadaEn: momento,
+      repeticion: null,
+      repetidaDe: tarea.id,
+      recordatorios: [],
+      avisosEnviados: [],
+      modificadaEn: momento,
+    };
+    const avanzada: Tarea = {
+      ...tarea,
+      vence: venceDesde(siguiente, tarea.todoElDia),
+      subtareas: tarea.subtareas.map((s) => ({ ...s, estado: "pendiente" })),
+      avisosEnviados: [],
+      modificadaEn: momento,
+    };
+    await bd.tareas.bulkPut([avanzada, copia]);
+    return [avanzada, copia];
+  });
+}
+
+/** Marca un aviso. Devuelve false si otra pestaña ya lo había enviado. */
+export async function marcarAviso(id: string, clave: string): Promise<Tarea | null> {
+  return bd.transaction("rw", bd.tareas, async () => {
+    const tarea = await bd.tareas.get(id);
+    if (!tarea || tarea.avisosEnviados.includes(clave)) return null;
+    const cambiada = { ...tarea, avisosEnviados: [...tarea.avisosEnviados, clave] };
+    await bd.tareas.put(cambiada);
+    return cambiada;
   });
 }
 
@@ -141,6 +201,7 @@ export async function crearLista(datos: { nombre: string; color?: string | null;
     color: datos.color ?? null,
     carpetaId: datos.carpetaId ?? null,
     incluirEnTodas: datos.incluirEnTodas ?? true,
+    modo: "lista",
     orden: await bd.listas.count(),
   };
   await bd.listas.put(lista);
@@ -158,15 +219,78 @@ export async function actualizarLista(id: string, cambios: Partial<Omit<Lista, "
 /** Borra la lista y envía sus tareas a la papelera, igual que las pendientes y las completadas. */
 export async function borrarLista(id: string): Promise<void> {
   const momento = ahoraIso();
-  await bd.transaction("rw", bd.listas, bd.tareas, async () => {
+  await bd.transaction("rw", bd.listas, bd.tareas, bd.columnas, async () => {
     await bd.tareas.where("listaId").equals(id).modify((t) => {
       if (t.eliminadaEn === null) {
         t.eliminadaEn = momento;
         t.modificadaEn = momento;
       }
+      t.columnaId = null;
     });
+    await bd.columnas.where("listaId").equals(id).delete();
     await bd.listas.delete(id);
   });
+}
+
+/** Una lista en Kanban siempre tiene al menos una columna. */
+export async function asegurarColumnas(listaId: string): Promise<Columna[]> {
+  return bd.transaction("rw", bd.columnas, async () => {
+    const existentes = await bd.columnas.where("listaId").equals(listaId).sortBy("orden");
+    if (existentes.length) return existentes;
+    const inicial: Columna = { id: nuevoId(), listaId, nombre: NOMBRE_COLUMNA_INICIAL, orden: 0 };
+    await bd.columnas.put(inicial);
+    return [inicial];
+  });
+}
+
+export async function crearColumna(listaId: string, nombre: string): Promise<Columna> {
+  const existentes = await bd.columnas.where("listaId").equals(listaId).toArray();
+  const columna: Columna = {
+    id: nuevoId(),
+    listaId,
+    nombre: nombre.trim(),
+    orden: existentes.reduce((m, c) => Math.max(m, c.orden + 1), 0),
+  };
+  await bd.columnas.put(columna);
+  return columna;
+}
+
+export async function renombrarColumna(id: string, nombre: string): Promise<void> {
+  await bd.columnas.update(id, { nombre: nombre.trim() });
+}
+
+export async function reordenarColumnas(idsEnOrden: string[]): Promise<void> {
+  await bd.transaction("rw", bd.columnas, async () => {
+    await Promise.all(idsEnOrden.map((id, orden) => bd.columnas.update(id, { orden })));
+  });
+}
+
+/** Borra una columna moviendo sus tareas a otra de la misma lista. */
+export async function borrarColumna(id: string, destinoId: string): Promise<void> {
+  await bd.transaction("rw", bd.columnas, bd.tareas, async () => {
+    const [columna, destino] = await Promise.all([bd.columnas.get(id), bd.columnas.get(destinoId)]);
+    if (!columna || !destino || columna.listaId !== destino.listaId || id === destinoId) {
+      throw new Error("La columna de destino no es válida");
+    }
+    const hermanas = await bd.columnas.where("listaId").equals(columna.listaId).sortBy("orden");
+    const primera = hermanas[0]?.id;
+    const momento = ahoraIso();
+    await bd.tareas.where("listaId").equals(columna.listaId).modify((t) => {
+      // Las tareas sin columna asignada se ven en la primera.
+      if (t.columnaId === id || (t.columnaId === null && primera === id)) {
+        t.columnaId = destinoId;
+        t.modificadaEn = momento;
+      }
+    });
+    await bd.columnas.delete(id);
+  });
+}
+
+/** Lleva una tarea a una columna y la ubica según la secuencia final de esa columna. */
+export async function moverTareaAColumna(idsEnOrdenNuevo: string[], idMovida: string, columnaId: string): Promise<Tarea[]> {
+  const movida = await actualizarTarea(idMovida, { columnaId });
+  const cambiadas = idsEnOrdenNuevo.length > 1 ? await reordenarTarea(idsEnOrdenNuevo, idMovida) : [movida];
+  return cambiadas.some((t) => t.id === idMovida) ? cambiadas : [movida, ...cambiadas];
 }
 
 export async function crearCarpeta(nombre: string): Promise<Carpeta> {

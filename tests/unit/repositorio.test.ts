@@ -33,10 +33,10 @@ describe("tareas", () => {
 
   it("completa y descompleta", async () => {
     const { tarea } = await repo.crearTarea({ titulo: "T" });
-    const hecha = await repo.completarTarea(tarea.id, true);
+    const [hecha] = await repo.completarTarea(tarea.id, true);
     expect(hecha.estado).toBe("completada");
     expect(hecha.completadaEn).not.toBeNull();
-    const deshecha = await repo.completarTarea(tarea.id, false);
+    const [deshecha] = await repo.completarTarea(tarea.id, false);
     expect(deshecha.estado).toBe("pendiente");
     expect(deshecha.completadaEn).toBeNull();
   });
