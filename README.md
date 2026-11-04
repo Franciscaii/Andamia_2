@@ -26,7 +26,10 @@ Después abre <http://localhost:5173>.
 | `npm run build` | Revisa los tipos y genera la versión final en `dist/` |
 | `npm run preview` | Sirve la versión de `dist/` |
 | `npm test` | Ejecuta las pruebas de lógica |
-| `npm run test:e2e` | Ejecuta los flujos de punta a punta; requiere Google Chrome instalado |
+| `npm run test:e2e` | Ejecuta los flujos de punta a punta; requiere Google Chrome instalado, y Java para los de Firebase |
+| `npm run test:reglas` | Prueba las reglas de seguridad en el emulador de Firestore; requiere Java |
+| `npm run emuladores` | Inicia los emuladores de Firebase |
+| `npm run deploy` | Publica en Firebase Hosting; requiere tu proyecto configurado |
 
 ## Funciones
 
@@ -85,7 +88,14 @@ En el detalle puedes elegir si la siguiente fecha se calcula desde la fecha de l
 
 ## Recordatorios
 
-**Los avisos solo funcionan con la app abierta en una pestaña del navegador.** Para recibirlos con la app cerrada hace falta un service worker con notificaciones push, previsto para la Fase 5.
+**Los avisos solo son fiables con la app abierta en una pestaña o ventana.** Con la app cerrada no están garantizados:
+
+| Mecanismo | Cuándo funciona |
+|---|---|
+| Revisión periódica en segundo plano | Solo con la app instalada en Chrome o Edge. El navegador decide cuándo revisa, y puede tardar horas o no hacerlo |
+| Avisos programados en el navegador | Solo en navegadores con esa función experimental, hoy casi ninguno |
+| Al volver a abrir | Muestra lo vencido en las últimas 24 horas |
+| Push con Cloud Messaging | El código está listo, pero el envío programado requiere Cloud Functions, que no están en el plan gratuito |
 
 - La app revisa los recordatorios cada 20 segundos y al volver a su pestaña.
 - El aviso siempre aparece dentro de la app. Para recibirlo también como notificación del navegador, pulsa **Activar avisos del navegador** en la barra lateral. El permiso solo se pide al pulsar ese botón.
@@ -149,17 +159,61 @@ Cada cuadrante corresponde a una prioridad:
 
 ## Tus datos
 
+**Sin cuenta:**
+
 - Se guardan en IndexedDB, solo en este navegador y en este equipo.
 - Borrar los datos del sitio en el navegador también borra tus tareas.
-- Otro navegador u otro puerto ven una base de datos distinta.
-- Aún no hay copia de seguridad ni exportación.
+- Otro navegador u otra dirección, incluido otro puerto, ven una base de datos distinta.
+
+**Con cuenta** (requiere configurar Firebase; la guía está en [docs/firebase-paso-a-paso.md](docs/firebase-paso-a-paso.md)):
+
+- Firestore guarda tus datos bajo `users/{uid}`, y solo tu cuenta puede leerlos o escribirlos.
+- La app sigue funcionando sin conexión y envía los cambios al reconectar.
+- Si dos dispositivos cambian la misma tarea, **gana la última escritura que recibe el servidor, para la tarea completa**. No se combinan los campos.
+- Los cambios se envían agrupados, 1,5 segundos después de dejar de editar.
+- La primera vez que entras, la app ofrece copiar a la cuenta los datos que tenías sin cuenta. La copia original sigue en el navegador.
+- Cerrar sesión deja de mostrar los datos de la cuenta. Puedes pedir que también se borre su copia en ese navegador.
+- El tema y los ajustes del temporizador se sincronizan. El temporizador en curso no: es de cada dispositivo.
+
+**Copia de seguridad:** en **Cuenta y ajustes** puedes descargar todo en un archivo JSON y restaurarlo. Restaurar reemplaza todos los datos, después de validar el archivo y pedir confirmación.
+
+## Instalar como app
+
+Andamia es una PWA: funciona sin conexión y se puede instalar. El service worker solo se activa en la versión final, no con `npm run dev`:
+
+```bash
+npm run build
+```
+
+```bash
+npm run preview
+```
+
+Después abre <http://localhost:4173>. Esa dirección tiene su propia base de datos: para llevar tus datos de `localhost:5173`, usa la copia de seguridad.
+
+## Arquitectura de datos
+
+```mermaid
+flowchart LR
+    UI[Interfaz] --> R[Repositorio]
+    R --> D[(Dexie)]
+    D <-->|Espejo, solo con sesión| F[(Firestore)]
+```
+
+- La interfaz y el repositorio siempre trabajan sobre Dexie, con o sin cuenta.
+- Cada cuenta tiene su propia base (`andamia-u-{uid}`), separada de la base sin cuenta (`andamia`).
+- Con sesión, `src/datos/espejo.ts` mantiene esa base igual a Firestore en ambos sentidos. **Firestore manda**: lo que confirma el servidor siempre se aplica.
+- Sin Firebase configurado, ese código ni siquiera se descarga.
 
 ## Estructura
 
 | Carpeta | Contenido |
 |---|---|
 | `src/modelos` | Tipos de datos |
-| `src/datos` | Base de datos, repositorio y estado de la app |
+| `src/datos` | Base de datos, repositorio, estado de la app, espejo y conexión con Firebase |
+| `src/sw.ts` | Service worker |
+| `tests/reglas` | Pruebas de las reglas de seguridad |
+| `firestore.rules` | Reglas de seguridad de Firestore |
 | `src/logica` | Entrada rápida, vistas, búsqueda, fechas, repeticiones, recordatorios, columnas, calendario, matriz, enfoque, hábitos y rutas |
 | `src/vistas` | Pantallas |
 | `src/componentes` | Piezas de la interfaz |
@@ -170,5 +224,5 @@ Cada cuadrante corresponde a una prioridad:
 
 | Fase | Contenido |
 |---|---|
-| Fase 5 | Servidor, cuentas, sincronización, PWA y avisos con la app cerrada |
+| Requiere el plan de pago de Firebase | Avisos garantizados con la app cerrada, mediante Cloud Functions |
 | Sin fase asignada | Resumen, filtros guardados, renombrar etiquetas, reordenar listas y subtareas, posponer avisos, vistas de día, año y agenda, cronograma, exportar datos, secciones y días objetivo de hábitos, y criterios personalizados en la matriz |

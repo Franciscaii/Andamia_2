@@ -11,3 +11,4 @@ Desktop.ini
 .env.*.local
 .firebaserc
 .firebase/
+dist-pruebas/

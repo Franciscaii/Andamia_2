@@ -109,7 +109,8 @@ test("reordenar con el teclado y borrar una lista con sus tareas", async ({ page
   await asa.focus();
   await page.keyboard.press("Space");
   await page.keyboard.press("ArrowDown");
-  await page.waitForTimeout(250);
+  // dnd-kit anima el movimiento; soltar antes lo cancela.
+  await page.waitForTimeout(600);
   await page.keyboard.press("Space");
   await expect.poll(async () => (await textos()).map((x) => x.trim())).toEqual(["Segunda", "Primera", "Tercera"]);
 
