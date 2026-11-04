@@ -19,6 +19,7 @@ interface Estado {
   cargar: () => Promise<void>;
   cerrarError: () => void;
   alternarTema: () => void;
+  fijarTema: (tema: Tema) => void;
   crearTarea: (datos: repo.DatosNuevaTarea) => Promise<Tarea | null>;
   actualizarTarea: (id: string, cambios: Partial<Omit<Tarea, "id" | "creadaEn">>) => void;
   agregarEtiquetaATarea: (tarea: Tarea, nombre: string) => Promise<void>;
@@ -100,8 +101,9 @@ export const useTienda = create<Estado>((set, get) => {
 
     cerrarError: () => set({ error: null }),
 
-    alternarTema: () => {
-      const tema: Tema = get().tema === "oscuro" ? "claro" : "oscuro";
+    alternarTema: () => get().fijarTema(get().tema === "oscuro" ? "claro" : "oscuro"),
+
+    fijarTema: (tema) => {
       document.documentElement.classList.toggle("dark", tema === "oscuro");
       localStorage.setItem("andamia-tema", tema);
       set({ tema });

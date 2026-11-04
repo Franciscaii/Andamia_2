@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, Flame, Grid2x2, Timer, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, Timer, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { useCuenta } from "../datos/cuenta";
 import { textoTemporizador, useAhora, useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
@@ -53,6 +54,35 @@ function Marca() {
       <rect width="32" height="32" rx="8" fill="var(--acento)" />
       <path d="M9 6v20M23 6v20M9 12h14M9 20h14M9 20l14-8" stroke="var(--sobre-acento)" strokeWidth="2.4" strokeLinecap="round" fill="none" />
     </svg>
+  );
+}
+
+function FilaAjustes({ activa }: { activa: boolean }) {
+  const usuario = useCuenta((s) => s.usuario);
+  const enLinea = useCuenta((s) => s.enLinea);
+  const sinConfirmar = useCuenta((s) => s.sinConfirmar);
+  let icono = <Settings size={17} />;
+  let estado = "";
+  if (usuario) {
+    if (!enLinea) {
+      icono = <CloudOff size={17} />;
+      estado = "Sin conexión";
+    } else if (sinConfirmar) {
+      icono = <RefreshCw size={17} className="animate-spin" />;
+      estado = "Sincronizando";
+    } else {
+      icono = <Cloud size={17} />;
+      estado = "Sincronizado";
+    }
+  }
+  return (
+    <div className={claseFila(activa)}>
+      <a href={hashDe({ tipo: "ajustes" })} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="shrink-0 text-tenue">{icono}</span>
+        <span className="truncate">Cuenta y ajustes</span>
+        {estado && <span data-testid="estado-sync" className="ml-auto pl-1 text-xs text-tenue">{estado}</span>}
+      </a>
+    </div>
   );
 }
 
@@ -228,6 +258,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
             <Fila key={v.id} href={hashDe({ tipo: "vista", vista: v.id })} activa={seccion.tipo === "vista" && seccion.vista === v.id} icono={ICONOS[v.id]} nombre={v.nombre} />
           ))}
           <BotonAvisos />
+          <FilaAjustes activa={seccion.tipo === "ajustes"} />
         </div>
       </nav>
 

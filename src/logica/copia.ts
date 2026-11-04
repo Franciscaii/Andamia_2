@@ -23,6 +23,19 @@ export const NOMBRES_TABLA: Record<NombreTabla, string> = {
   registrosHabito: "registros de hábitos",
 };
 
+const SINGULARES: Record<NombreTabla, string> = {
+  tareas: "tarea",
+  listas: "lista",
+  carpetas: "carpeta",
+  etiquetas: "etiqueta",
+  columnas: "columna",
+  sesiones: "sesión de enfoque",
+  habitos: "hábito",
+  registrosHabito: "registro de hábito",
+};
+
+export const cantidadDe = (tabla: NombreTabla, n: number) => `${n} ${n === 1 ? SINGULARES[tabla] : NOMBRES_TABLA[tabla]}`;
+
 type Campo = "texto" | "numero" | "booleano" | "lista" | "texto?" | "color";
 
 const COLOR = /^#[0-9a-f]{3,8}$/i;

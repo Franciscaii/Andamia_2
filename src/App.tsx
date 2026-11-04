@@ -5,7 +5,10 @@ import { DetalleTarea } from "./componentes/DetalleTarea";
 import { useTienda } from "./datos/tienda";
 import { irA, useRuta } from "./logica/ruta";
 import { PanelAvisos } from "./componentes/Avisos";
+import { DialogoMigracion } from "./componentes/DialogoMigracion";
+import { iniciarCuenta } from "./datos/cuenta";
 import { useMotorEnfoque } from "./datos/enfoque";
+import { VistaAjustes } from "./vistas/VistaAjustes";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
 import { VistaCalendario } from "./vistas/VistaCalendario";
 import { VistaEnfoque } from "./vistas/VistaEnfoque";
@@ -32,7 +35,8 @@ export default function App() {
   const [lateralAbierta, setLateralAbierta] = useState(false);
 
   useEffect(() => {
-    void cargar();
+    // Primero se sabe quién usa la app; así no se ven por un instante datos de otra sesión.
+    void iniciarCuenta().then(cargar);
   }, [cargar]);
 
   // Al navegar en pantallas angostas la barra lateral se cierra sola.
@@ -98,6 +102,8 @@ export default function App() {
           <VistaEnfoque />
         ) : ruta.seccion.tipo === "habitos" ? (
           <VistaHabitos />
+        ) : ruta.seccion.tipo === "ajustes" ? (
+          <VistaAjustes />
         ) : (
           <VistaTareas seccion={ruta.seccion} tareaAbierta={ruta.tareaId} />
         )}
@@ -106,6 +112,7 @@ export default function App() {
       {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}
       <PanelAvisos seccion={ruta.seccion} />
       <MotorEnfoque />
+      <DialogoMigracion />
     </div>
   );
 }

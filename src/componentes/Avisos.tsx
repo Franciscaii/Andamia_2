@@ -5,7 +5,8 @@ import { useTienda } from "../datos/tienda";
 import { etiquetaFecha } from "../logica/fechas";
 import { avisosDeHabitos } from "../logica/habitos";
 import { avisosPendientes } from "../logica/recordatorios";
-import { irA, type Seccion } from "../logica/ruta";
+import { mostrarNotificacion, programarAvisos } from "../logica/pwa";
+import { hashDe, irA, type Seccion } from "../logica/ruta";
 
 const INTERVALO_COMPROBACION_MS = 20_000;
 
@@ -19,14 +20,8 @@ interface AvisoVisible {
 
 const hayNotificaciones = () => typeof window !== "undefined" && "Notification" in window;
 
-function notificar(titulo: string, cuerpo: string, clave: string, alPulsar: () => void) {
-  if (!hayNotificaciones() || Notification.permission !== "granted") return;
-  const n = new Notification(titulo, { body: cuerpo, tag: clave });
-  n.onclick = () => {
-    window.focus();
-    alPulsar();
-    n.close();
-  };
+function notificar(titulo: string, cuerpo: string, clave: string, seccion: Seccion, tareaId: string | null) {
+  void mostrarNotificacion(titulo, cuerpo, clave, `/${hashDe(seccion, tareaId)}`, () => irA(seccion, tareaId));
 }
 
 /** Comprueba los recordatorios mientras la app está abierta y los muestra dentro de ella. */
@@ -54,12 +49,12 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
         const fecha = etiquetaFecha(aviso.tarea);
         const { id, titulo } = aviso.tarea;
         setAvisos((a) => [...a, { clave: aviso.clave, tareaId: id, titulo, fecha }]);
-        notificar(titulo, `Recordatorio: ${fecha}`, aviso.clave, () => irA(seccionActual.current, id));
+        notificar(titulo, `Recordatorio: ${fecha}`, aviso.clave, seccionActual.current, id);
       }
       for (const { habito, clave } of avisosDeHabitos(estado.habitos, estado.registros, ahora)) {
         if (!(await marcarAvisoHabito(habito.id, clave))) continue;
         setAvisos((a) => [...a, { clave, tareaId: null, titulo: habito.nombre, fecha: "Hábito de hoy" }]);
-        notificar(habito.nombre, "Hábito pendiente de hoy", clave, () => irA({ tipo: "habitos" }));
+        notificar(habito.nombre, "Hábito pendiente de hoy", clave, { tipo: "habitos" }, null);
       }
     } finally {
       comprobando.current = false;
@@ -82,6 +77,8 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
   // También al cambiar los datos: un recordatorio nuevo puede vencer de inmediato.
   useEffect(() => {
     void comprobar();
+    // Donde el navegador lo permita, deja los avisos programados por si se cierra la app.
+    void programarAvisos(tareas);
   }, [tareas, habitos, comprobar]);
 
   if (!avisos.length && !mensajes.length) return null;

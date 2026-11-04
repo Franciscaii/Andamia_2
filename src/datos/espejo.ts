@@ -42,7 +42,12 @@ interface OpcionesEspejo {
   alAplicar: () => void;
   alEscribir: (promesa: Promise<void>) => void;
   alFallar: (e: unknown) => void;
+  /** Espera antes de enviar. Evita una escritura por cada tecla: el plan gratuito limita las escrituras diarias. */
+  retardoMs?: number;
 }
+
+const RETARDO_ENVIO_MS = 1500;
+const ESPERA_MAXIMA_ENVIO_MS = 6000;
 
 /**
  * Mantiene una base local igual a la nube, en ambos sentidos. La nube manda:
@@ -71,13 +76,76 @@ export function iniciarEspejo(db: BaseAndamia, remoto: AlmacenRemoto, opciones: 
       mapa = new Map();
       pendientes.set(r, mapa);
       const lote = mapa;
-      (r as { on: (e: string, f: () => void) => void }).on("complete", () => void enviar(lote));
+      (r as { on: (e: string, f: () => void) => void }).on("complete", () => encolar(lote));
     }
     mapa.set(`${tabla}|${String(id)}`, { tabla, id: String(id) });
   };
 
+  // Solo lo confirmado localmente pasa a la cola; varias ediciones seguidas salen como una.
+  let cola = new Map<string, { tabla: NombreTabla; id: string }>();
+  // Ya salió de la cola, pero Firestore aún no lo tiene.
+  const enviando = new Map<string, number>();
+  let temporizador: ReturnType<typeof setTimeout> | undefined;
+  let primeraEspera = 0;
+  const retardo = opciones.retardoMs ?? RETARDO_ENVIO_MS;
+  const clavePendientes = `andamia-pendientes-${db.name}`;
+
+  // La cola también se guarda aquí: localStorage es síncrono y sobrevive a recargar o cerrar la pestaña.
+  const leerPendientes = (): { tabla: NombreTabla; id: string }[] => {
+    if (typeof localStorage === "undefined") return [];
+    try {
+      const crudo = JSON.parse(localStorage.getItem(clavePendientes) ?? "[]") as { tabla: NombreTabla; id: string }[];
+      return Array.isArray(crudo) ? crudo.filter((p) => TABLAS.includes(p.tabla) && typeof p.id === "string") : [];
+    } catch {
+      return [];
+    }
+  };
+  const guardarPendientes = () => {
+    if (typeof localStorage === "undefined") return;
+    try {
+      const todos = [...cola.values(), ...[...enviando.keys()].map((k) => ({ tabla: k.slice(0, k.indexOf("|")) as NombreTabla, id: k.slice(k.indexOf("|") + 1) }))];
+      if (todos.length) localStorage.setItem(clavePendientes, JSON.stringify(todos));
+      else localStorage.removeItem(clavePendientes);
+    } catch {
+      // Sin almacenamiento solo se pierde la protección ante un cierre repentino.
+    }
+  };
+
+  /** Hay un cambio local que la nube aún no conoce: lo que llegue de ella no debe pisarlo. */
+  const pendienteLocal = (tabla: NombreTabla, id: string) => {
+    const k = `${tabla}|${id}`;
+    return cola.has(k) || enviando.has(k);
+  };
+
+  const vaciarCola = () => {
+    clearTimeout(temporizador);
+    temporizador = undefined;
+    primeraEspera = 0;
+    if (!cola.size) return;
+    const lote = cola;
+    cola = new Map();
+    for (const k of lote.keys()) enviando.set(k, (enviando.get(k) ?? 0) + 1);
+    void enviar(lote);
+  };
+
+  const encolar = (lote: Map<string, { tabla: NombreTabla; id: string }>) => {
+    for (const [k, v] of lote) cola.set(k, v);
+    guardarPendientes();
+    const ahora = Date.now();
+    primeraEspera ||= ahora;
+    clearTimeout(temporizador);
+    // Escribir sin parar no debe retrasar el envío indefinidamente.
+    const espera = Math.min(retardo, Math.max(0, primeraEspera + ESPERA_MAXIMA_ENVIO_MS - ahora));
+    temporizador = setTimeout(vaciarCola, espera);
+  };
+
+  // Al salir de la pestaña se envía de inmediato, por si se cierra.
+  const alOcultar = () => {
+    if (document.visibilityState === "hidden") vaciarCola();
+  };
+  if (typeof document !== "undefined") document.addEventListener("visibilitychange", alOcultar);
+
   const enviar = async (lote: Map<string, { tabla: NombreTabla; id: string }>) => {
-    if (!activo) return;
     try {
       const cambios: CambioLocal[] = [];
       for (const { tabla, id } of lote.values()) {
@@ -86,11 +154,23 @@ export function iniciarEspejo(db: BaseAndamia, remoto: AlmacenRemoto, opciones: 
         cambios.push({ tabla, id, datos: datos ?? null });
       }
       const promesa = remoto.escribir(cambios);
+      // Desde aquí la cola persistente de Firestore se hace cargo, también sin conexión.
+      soltar(lote);
       opciones.alEscribir(promesa);
       await promesa;
     } catch (e) {
+      soltar(lote);
       opciones.alFallar(e);
     }
+  };
+
+  const soltar = (lote: Map<string, unknown>) => {
+    for (const k of lote.keys()) {
+      const n = (enviando.get(k) ?? 0) - 1;
+      if (n > 0) enviando.set(k, n);
+      else enviando.delete(k);
+    }
+    guardarPendientes();
   };
 
   const claveDe = (tabla: NombreTabla, d: Record<string, unknown>) => String(d[db.table(tabla).schema.primKey.keyPath as string]);
@@ -105,6 +185,7 @@ export function iniciarEspejo(db: BaseAndamia, remoto: AlmacenRemoto, opciones: 
         // Lo propio sin confirmar ya está aquí y puede ser más nuevo que esta foto.
         if (c.pendiente) continue;
         const id = claveDe(tabla, c.datos);
+        if (pendienteLocal(tabla, id)) continue;
         const actual = await t.get(id);
         if (c.tipo === "borrado") {
           if (actual) {
@@ -119,7 +200,8 @@ export function iniciarEspejo(db: BaseAndamia, remoto: AlmacenRemoto, opciones: 
       if (foto.completa) {
         // Quita lo que la nube ya no tiene y aquí sigue, por ejemplo si se borró con este dispositivo sin conexión larga.
         const enNube = new Set(foto.completa.map((d) => claveDe(tabla, d)));
-        const sobran = (await t.toCollection().primaryKeys()).filter((k) => !enNube.has(String(k)));
+        // Lo que aún no se envía no está en la nube, pero no sobra: es nuevo.
+        const sobran = (await t.toCollection().primaryKeys()).filter((k) => !enNube.has(String(k)) && !pendienteLocal(tabla, String(k)));
         if (sobran.length) {
           await t.bulkDelete(sobran);
           hubo = true;
@@ -128,6 +210,10 @@ export function iniciarEspejo(db: BaseAndamia, remoto: AlmacenRemoto, opciones: 
     });
     if (hubo && activo) opciones.alAplicar();
   };
+
+  // Lo que quedó sin enviar la última vez vuelve a la cola antes de escuchar a la nube.
+  const heredados = leerPendientes();
+  if (heredados.length) encolar(new Map(heredados.map((p) => [`${p.tabla}|${p.id}`, p])));
 
   const ganchos: { tabla: NombreTabla; creando: (...a: never[]) => void; actualizando: (...a: never[]) => void; borrando: (...a: never[]) => void }[] = [];
 
@@ -155,6 +241,9 @@ export function iniciarEspejo(db: BaseAndamia, remoto: AlmacenRemoto, opciones: 
   }
 
   return () => {
+    // Lo pendiente se envía antes de detenerse: cerrar sesión no debe perder cambios.
+    vaciarCola();
+    if (typeof document !== "undefined") document.removeEventListener("visibilitychange", alOcultar);
     activo = false;
     desuscribir.forEach((d) => d());
     for (const g of ganchos) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { CONFIG_INICIAL, detener, formatoTiempo, iniciar, leerTemporizador, pausar, ponerAlDia, reanudar, restanteMs, saltar, temporizadorListo, transcurridoMs, type ConfigEnfoque, type Fase, type SesionNueva, type Temporizador } from "../logica/enfoque";
+import { mostrarNotificacion } from "../logica/pwa";
 import { reproducirFin } from "../logica/sonido";
 import type { TipoSesion } from "../modelos/tipos";
 import { useTienda } from "./tienda";
@@ -70,14 +71,9 @@ const TEXTO_FIN: Record<Fase, MensajeEnfoque["titulo"]> = {
 };
 
 function notificarNavegador(titulo: string, cuerpo: string, clave: string): void {
-  if ("Notification" in window && Notification.permission === "granted") {
-    const n = new Notification(titulo, { body: cuerpo, tag: clave });
-    n.onclick = () => {
-      window.focus();
-      window.location.hash = "#/enfoque";
-      n.close();
-    };
-  }
+  void mostrarNotificacion(titulo, cuerpo, clave, "/#/enfoque", () => {
+    window.location.hash = "#/enfoque";
+  });
 }
 
 export const useEnfoque = create<EstadoEnfoque>((set, get) => {

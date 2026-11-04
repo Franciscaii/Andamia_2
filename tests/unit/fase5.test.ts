@@ -110,7 +110,7 @@ describe("espejo con la nube", () => {
   function conEspejo() {
     const nube = nubeFalsa();
     const estado = { aplicados: 0, fallos: [] as unknown[] };
-    const detener = iniciarEspejo(bd, nube.remoto, { alAplicar: () => (estado.aplicados += 1), alEscribir: () => undefined, alFallar: (e) => estado.fallos.push(e) });
+    const detener = iniciarEspejo(bd, nube.remoto, { alAplicar: () => (estado.aplicados += 1), alEscribir: () => undefined, alFallar: (e) => estado.fallos.push(e), retardoMs: 0 });
     return { nube, estado, detener };
   }
   const ids = (cambios: CambioLocal[]) => cambios.map((c) => `${c.tabla}:${c.datos ? "guardar" : "borrar"}`);
@@ -229,6 +229,71 @@ describe("espejo con la nube", () => {
     detener();
   });
 
+  it("agrupa las ediciones seguidas en una sola escritura, con la última versión", async () => {
+    const nube = nubeFalsa();
+    const detener = iniciarEspejo(bd, nube.remoto, { alAplicar: () => undefined, alEscribir: () => undefined, alFallar: () => undefined, retardoMs: 40 });
+    const { tarea } = await repo.crearTarea({ titulo: "H" });
+    for (const titulo of ["Ho", "Hol", "Hola"]) await repo.actualizarTarea(tarea.id, { titulo });
+    expect(nube.escrituras).toEqual([]);
+    await new Promise((r) => setTimeout(r, 120));
+    expect(nube.escrituras).toHaveLength(1);
+    expect(nube.escrituras[0][0].datos).toMatchObject({ titulo: "Hola" });
+    detener();
+  });
+
+  it("al detenerse envía lo que estaba esperando", async () => {
+    const nube = nubeFalsa();
+    const detener = iniciarEspejo(bd, nube.remoto, { alAplicar: () => undefined, alEscribir: () => undefined, alFallar: () => undefined, retardoMs: 60_000 });
+    await repo.crearTarea({ titulo: "Antes de salir" });
+    await reposo();
+    expect(nube.escrituras).toEqual([]);
+    detener();
+    await reposo();
+    expect(nube.escrituras.flat()[0].datos).toMatchObject({ titulo: "Antes de salir" });
+  });
+
+  it("lo que aún espera envío no se borra ni se pisa con lo que llega de la nube", async () => {
+    const nube = nubeFalsa();
+    const detener = iniciarEspejo(bd, nube.remoto, { alAplicar: () => undefined, alEscribir: () => undefined, alFallar: () => undefined, retardoMs: 60_000 });
+    const { tarea } = await repo.crearTarea({ titulo: "Recién creada" });
+    await reposo();
+    // La primera foto del servidor no la conoce todavía.
+    nube.emitir("tareas", { completa: [] });
+    await reposo();
+    expect(await bd.tareas.get(tarea.id)).toBeDefined();
+    nube.emitir("tareas", { cambios: [{ tipo: "guardado", datos: { ...tarea, titulo: "Versión vieja" }, pendiente: false }] });
+    await reposo();
+    expect((await bd.tareas.get(tarea.id))?.titulo).toBe("Recién creada");
+    detener();
+    await reposo();
+    expect(nube.escrituras.flat()[0].datos).toMatchObject({ titulo: "Recién creada" });
+  });
+
+  it("si la pestaña se cierra antes de enviar, lo envía al volver", async () => {
+    const guardado = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = { getItem: (k: string) => guardado.get(k) ?? null, setItem: (k: string, v: string) => guardado.set(k, v), removeItem: (k: string) => guardado.delete(k) };
+    try {
+      const antes = nubeFalsa();
+      // Sin detener: así queda una pestaña que se cierra de golpe.
+      iniciarEspejo(bd, antes.remoto, { alAplicar: () => undefined, alEscribir: () => undefined, alFallar: () => undefined, retardoMs: 60_000 });
+      const { tarea } = await repo.crearTarea({ titulo: "Antes de cerrar" });
+      await reposo();
+      expect(antes.escrituras).toEqual([]);
+      expect(guardado.size).toBe(1);
+
+      const despues = nubeFalsa();
+      const detener = iniciarEspejo(bd, despues.remoto, { alAplicar: () => undefined, alEscribir: () => undefined, alFallar: () => undefined, retardoMs: 0 });
+      despues.emitir("tareas", { completa: [] });
+      await reposo();
+      expect(despues.escrituras.flat()[0]).toMatchObject({ id: tarea.id, datos: { titulo: "Antes de cerrar" } });
+      expect(await bd.tareas.get(tarea.id)).toBeDefined();
+      expect(guardado.size).toBe(0);
+      detener();
+    } finally {
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
+  });
+
   it("al detenerse deja de enviar y de escuchar", async () => {
     const { nube, detener } = conEspejo();
     expect(nube.oyentes()).toBe(8);
@@ -245,7 +310,7 @@ describe("espejo con la nube", () => {
     nube.remoto.escribir = async () => {
       throw new Error("permiso denegado");
     };
-    const detener = iniciarEspejo(bd, nube.remoto, { alAplicar: () => undefined, alEscribir: () => undefined, alFallar: (e) => fallos.push(e) });
+    const detener = iniciarEspejo(bd, nube.remoto, { alAplicar: () => undefined, alEscribir: () => undefined, alFallar: (e) => fallos.push(e), retardoMs: 0 });
     const { tarea } = await repo.crearTarea({ titulo: "Local" });
     await reposo();
     expect(fallos).toHaveLength(1);
@@ -282,7 +347,7 @@ describe("bases por cuenta", () => {
     await repo.crearTarea({ titulo: "Ya en la cuenta" });
     await bd.tareas.put({ ...tarea, titulo: "Versión de la cuenta" });
     const nube = nubeFalsa();
-    const detener = iniciarEspejo(bd, nube.remoto, { alAplicar: () => undefined, alEscribir: () => undefined, alFallar: () => undefined });
+    const detener = iniciarEspejo(bd, nube.remoto, { alAplicar: () => undefined, alEscribir: () => undefined, alFallar: () => undefined, retardoMs: 0 });
 
     expect(await copiarDatos(local, bd)).toBe(1);
     await reposo();
