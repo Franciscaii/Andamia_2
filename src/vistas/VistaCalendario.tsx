@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
-import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { addMonths, addWeeks, format, isSameDay, isSameMonth, parseISO, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
+import { colisionPunteroOTeclado } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
 import { COLOR_PRIORIDAD } from "../componentes/FilaTarea";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
@@ -195,7 +196,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
 
       <DndContext
         sensors={sensores}
-        collisionDetection={pointerWithin}
+        collisionDetection={colisionPunteroOTeclado}
         onDragStart={({ active }) => setActiva(tareas.find((t) => PREFIJO_TAREA + t.id === active.id) ?? null)}
         onDragEnd={alSoltar}
         onDragCancel={() => setActiva(null)}

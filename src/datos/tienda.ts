@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Carpeta, Columna, Etiqueta, Lista, ModoLista, Tarea } from "../modelos/tipos";
+import type { Carpeta, Columna, EstadoHabito, Etiqueta, Habito, Lista, ModoLista, RegistroHabito, SesionEnfoque, Tarea } from "../modelos/tipos";
 import * as repo from "./repositorio";
 
 export type Tema = "claro" | "oscuro";
@@ -12,6 +12,9 @@ interface Estado {
   carpetas: Carpeta[];
   etiquetas: Etiqueta[];
   columnas: Columna[];
+  sesiones: SesionEnfoque[];
+  habitos: Habito[];
+  registros: RegistroHabito[];
   tema: Tema;
   cargar: () => Promise<void>;
   cerrarError: () => void;
@@ -39,6 +42,13 @@ interface Estado {
   reordenarColumnas: (ids: string[]) => Promise<void>;
   borrarColumna: (id: string, destinoId: string) => Promise<void>;
   moverTareaAColumna: (ids: string[], idMovida: string, columnaId: string) => Promise<void>;
+  guardarSesion: (sesion: SesionEnfoque) => Promise<void>;
+  borrarSesion: (id: string) => Promise<void>;
+  crearHabito: (datos: repo.DatosHabito) => Promise<void>;
+  actualizarHabito: (id: string, cambios: Partial<Omit<Habito, "id">>) => Promise<void>;
+  borrarHabito: (id: string) => Promise<void>;
+  registrarHabito: (habitoId: string, fecha: string, datos: { estado: EstadoHabito; valor: number } | null) => Promise<void>;
+  marcarAvisoHabito: (id: string, clave: string) => Promise<boolean>;
 }
 
 function temaInicial(): Tema {
@@ -74,6 +84,9 @@ export const useTienda = create<Estado>((set, get) => {
     carpetas: [],
     etiquetas: [],
     columnas: [],
+    sesiones: [],
+    habitos: [],
+    registros: [],
     tema: typeof document === "undefined" ? "claro" : temaInicial(),
 
     cargar: async () => {
@@ -228,6 +241,45 @@ export const useTienda = create<Estado>((set, get) => {
     moverTareaAColumna: async (ids, idMovida, columnaId) => {
       const cambiadas = await guardar(() => repo.moverTareaAColumna(ids, idMovida, columnaId));
       if (cambiadas) set((s) => ({ tareas: reemplazar(s.tareas, cambiadas) }));
+    },
+
+    guardarSesion: async (sesion) => {
+      const guardada = await guardar(() => repo.guardarSesion(sesion));
+      if (guardada) set((s) => ({ sesiones: [...s.sesiones.filter((x) => x.id !== guardada.id), guardada] }));
+    },
+
+    borrarSesion: async (id) => {
+      await guardar(() => repo.borrarSesion(id));
+      set((s) => ({ sesiones: s.sesiones.filter((x) => x.id !== id) }));
+    },
+
+    crearHabito: async (datos) => {
+      const h = await guardar(() => repo.crearHabito(datos));
+      if (h) set((s) => ({ habitos: [...s.habitos, h] }));
+    },
+
+    actualizarHabito: async (id, cambios) => {
+      const h = await guardar(() => repo.actualizarHabito(id, cambios));
+      if (h) set((s) => ({ habitos: s.habitos.map((x) => (x.id === id ? h : x)) }));
+    },
+
+    borrarHabito: async (id) => {
+      await guardar(() => repo.borrarHabito(id));
+      set((s) => ({ habitos: s.habitos.filter((x) => x.id !== id), registros: s.registros.filter((r) => r.habitoId !== id) }));
+    },
+
+    registrarHabito: async (habitoId, fecha, datos) => {
+      const id = `${habitoId}|${fecha}`;
+      // Se aplica de inmediato: marcar días seguidos no debe sentirse lento.
+      set((s) => ({ registros: [...s.registros.filter((r) => r.id !== id), ...(datos ? [{ id, habitoId, fecha, ...datos }] : [])] }));
+      await guardar(() => repo.registrarHabito(habitoId, fecha, datos));
+    },
+
+    marcarAvisoHabito: async (id, clave) => {
+      const h = await guardar(() => repo.marcarAvisoHabito(id, clave));
+      if (!h) return false;
+      set((s) => ({ habitos: s.habitos.map((x) => (x.id === id ? h : x)) }));
+      return true;
     },
   };
 });

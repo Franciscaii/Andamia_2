@@ -6,20 +6,20 @@ import { interpretarEntrada, type EntradaInterpretada } from "../logica/entradaR
 import { diaRelativo, etiquetaFecha } from "../logica/fechas";
 import { describirRegla } from "../logica/repeticion";
 import type { Seccion } from "../logica/ruta";
-import { LISTA_BANDEJA } from "../modelos/tipos";
+import { LISTA_BANDEJA, type Prioridad } from "../modelos/tipos";
 import { COLOR_PRIORIDAD } from "./FilaTarea";
 
 /** Lo escrito manda; lo demás lo aporta el lugar donde se crea la tarea. */
 export function datosDesdeEntrada(
   lectura: EntradaInterpretada,
-  destino: { listaId?: string; etiqueta?: string; vence?: string; todoElDia?: boolean; columnaId?: string },
+  destino: { listaId?: string; etiqueta?: string; vence?: string; todoElDia?: boolean; columnaId?: string; prioridad?: Prioridad },
 ): DatosNuevaTarea {
   const vence = lectura.vence ?? destino.vence ?? null;
   const todoElDia = lectura.vence ? lectura.todoElDia : vence !== null && (destino.todoElDia ?? true);
   return {
     titulo: lectura.titulo,
     listaId: lectura.listaId ?? destino.listaId ?? LISTA_BANDEJA,
-    prioridad: lectura.prioridad ?? "ninguna",
+    prioridad: lectura.prioridad ?? destino.prioridad ?? "ninguna",
     vence,
     todoElDia,
     etiquetas: [...lectura.etiquetas, ...(destino.etiqueta ? [destino.etiqueta] : [])],

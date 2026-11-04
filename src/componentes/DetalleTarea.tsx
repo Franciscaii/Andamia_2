@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { Check, Flag, RotateCcw, Trash2, X } from "lucide-react";
+import { Check, Flag, RotateCcw, Timer, Trash2, X } from "lucide-react";
+import { useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
+import { formatoMinutos, minutosDeTarea } from "../logica/enfoque";
 import { aFechaInput, aHoraInput, componerVence } from "../logica/fechas";
 import { describirRecordatorio, OPCIONES_RECORDATORIO } from "../logica/recordatorios";
 import { construirRegla, describirRegla, INICIALES_DIA, leerRegla, NOMBRES_DIA, venceParaRegla, type Frecuencia, type OpcionesRepeticion } from "../logica/repeticion";
@@ -185,6 +187,29 @@ function EditorRecordatorios({ tarea }: { tarea: Tarea }) {
             Añadir
           </button>
         </form>
+      )}
+    </section>
+  );
+}
+
+function EnfoqueDeTarea({ tarea }: { tarea: Tarea }) {
+  const sesiones = useTienda((s) => s.sesiones);
+  const enfocarEnTarea = useEnfoque((s) => s.enfocarEnTarea);
+  const minutos = minutosDeTarea(sesiones, tarea.id);
+  return (
+    <section className="flex items-center justify-between gap-2">
+      <span className="text-xs text-tenue">{minutos > 0 ? `Enfoque acumulado: ${formatoMinutos(minutos)}` : "Sin tiempo de enfoque"}</span>
+      {tarea.estado === "pendiente" && (
+        <button
+          type="button"
+          className={`${claseBoton} flex shrink-0 items-center gap-1.5`}
+          onClick={() => {
+            enfocarEnTarea(tarea.id);
+            irA({ tipo: "enfoque" });
+          }}
+        >
+          <Timer size={14} /> Enfocar
+        </button>
       )}
     </section>
   );
@@ -403,6 +428,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
 
           <Subtareas tarea={tarea} />
           <Etiquetas tarea={tarea} />
+          <EnfoqueDeTarea tarea={tarea} />
         </fieldset>
       </div>
 

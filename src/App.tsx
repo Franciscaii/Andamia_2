@@ -5,9 +5,19 @@ import { DetalleTarea } from "./componentes/DetalleTarea";
 import { useTienda } from "./datos/tienda";
 import { irA, useRuta } from "./logica/ruta";
 import { PanelAvisos } from "./componentes/Avisos";
+import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
 import { VistaCalendario } from "./vistas/VistaCalendario";
+import { VistaEnfoque } from "./vistas/VistaEnfoque";
+import { VistaHabitos } from "./vistas/VistaHabitos";
+import { VistaMatriz } from "./vistas/VistaMatriz";
 import { VistaTareas } from "./vistas/VistaTareas";
+
+function MotorEnfoque() {
+  // Espera a que los datos carguen para no perder la sesión al registrarla.
+  useMotorEnfoque();
+  return null;
+}
 
 function esCampoDeTexto(el: EventTarget | null): boolean {
   return el instanceof HTMLElement && (["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || el.isContentEditable);
@@ -82,6 +92,12 @@ export default function App() {
           <VistaBusqueda />
         ) : ruta.seccion.tipo === "calendario" ? (
           <VistaCalendario modo={ruta.seccion.modo} tareaAbierta={ruta.tareaId} />
+        ) : ruta.seccion.tipo === "matriz" ? (
+          <VistaMatriz tareaAbierta={ruta.tareaId} />
+        ) : ruta.seccion.tipo === "enfoque" ? (
+          <VistaEnfoque />
+        ) : ruta.seccion.tipo === "habitos" ? (
+          <VistaHabitos />
         ) : (
           <VistaTareas seccion={ruta.seccion} tareaAbierta={ruta.tareaId} />
         )}
@@ -89,6 +105,7 @@ export default function App() {
 
       {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}
       <PanelAvisos seccion={ruta.seccion} />
+      <MotorEnfoque />
     </div>
   );
 }

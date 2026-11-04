@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, Flame, Grid2x2, Timer, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { textoTemporizador, useAhora, useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
 import { hashDe, irA, type Seccion } from "../logica/ruta";
@@ -52,6 +53,23 @@ function Marca() {
       <rect width="32" height="32" rx="8" fill="var(--acento)" />
       <path d="M9 6v20M23 6v20M9 12h14M9 20h14M9 20l14-8" stroke="var(--sobre-acento)" strokeWidth="2.4" strokeLinecap="round" fill="none" />
     </svg>
+  );
+}
+
+/** Muestra el tiempo que queda desde cualquier pantalla. */
+function FilaEnfoque({ activa }: { activa: boolean }) {
+  const t = useEnfoque((s) => s.temporizador);
+  const ahora = useAhora(t.estado === "corriendo");
+  return (
+    <div className={claseFila(activa)}>
+      <a href={hashDe({ tipo: "enfoque" })} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="shrink-0 text-tenue">
+          <Timer size={17} />
+        </span>
+        <span className="truncate">Enfoque</span>
+        {t.estado !== "listo" && <span data-testid="tiempo-lateral" className="ml-auto pl-1 text-xs font-medium text-acento tabular-nums">{textoTemporizador(t, ahora)}</span>}
+      </a>
+    </div>
   );
 }
 
@@ -146,6 +164,9 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
           />
         ))}
         <Fila href={hashDe({ tipo: "calendario", modo: seccion.tipo === "calendario" ? seccion.modo : "mes" })} activa={seccion.tipo === "calendario"} icono={<CalendarRange size={17} />} nombre="Calendario" />
+        <Fila href={hashDe({ tipo: "matriz" })} activa={seccion.tipo === "matriz"} icono={<Grid2x2 size={17} />} nombre="Matriz" />
+        <FilaEnfoque activa={seccion.tipo === "enfoque"} />
+        <Fila href={hashDe({ tipo: "habitos" })} activa={seccion.tipo === "habitos"} icono={<Flame size={17} />} nombre="Hábitos" />
 
         {titulo(
           "Listas",

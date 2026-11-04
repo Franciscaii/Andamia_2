@@ -10,7 +10,7 @@ import { agruparPorFecha, estaActiva, tareasDeVista, VISTAS_INTELIGENTES, type G
 import type { Tarea } from "../modelos/tipos";
 import { VistaKanban } from "./VistaKanban";
 
-type SeccionTareas = Exclude<Seccion, { tipo: "buscar" | "calendario" }>;
+type SeccionTareas = Extract<Seccion, { tipo: "vista" | "lista" | "etiqueta" }>;
 
 function GrupoPlegable({ nombre, cantidad, inicialAbierto = true, children }: { nombre: string; cantidad: number; inicialAbierto?: boolean; children: ReactNode }) {
   const [abierto, setAbierto] = useState(inicialAbierto);

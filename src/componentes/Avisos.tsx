@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BellOff, X } from "lucide-react";
+import { useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { etiquetaFecha } from "../logica/fechas";
+import { avisosDeHabitos } from "../logica/habitos";
 import { avisosPendientes } from "../logica/recordatorios";
 import { irA, type Seccion } from "../logica/ruta";
 
@@ -9,17 +11,32 @@ const INTERVALO_COMPROBACION_MS = 20_000;
 
 interface AvisoVisible {
   clave: string;
-  tareaId: string;
+  /** null en los avisos de hábitos, que abren su pantalla. */
+  tareaId: string | null;
   titulo: string;
   fecha: string;
 }
 
 const hayNotificaciones = () => typeof window !== "undefined" && "Notification" in window;
 
+function notificar(titulo: string, cuerpo: string, clave: string, alPulsar: () => void) {
+  if (!hayNotificaciones() || Notification.permission !== "granted") return;
+  const n = new Notification(titulo, { body: cuerpo, tag: clave });
+  n.onclick = () => {
+    window.focus();
+    alPulsar();
+    n.close();
+  };
+}
+
 /** Comprueba los recordatorios mientras la app está abierta y los muestra dentro de ella. */
 export function PanelAvisos({ seccion }: { seccion: Seccion }) {
   const tareas = useTienda((s) => s.tareas);
+  const habitos = useTienda((s) => s.habitos);
   const marcarAviso = useTienda((s) => s.marcarAviso);
+  const marcarAvisoHabito = useTienda((s) => s.marcarAvisoHabito);
+  const mensajes = useEnfoque((s) => s.mensajes);
+  const cerrarMensaje = useEnfoque((s) => s.cerrarMensaje);
   const [avisos, setAvisos] = useState<AvisoVisible[]>([]);
   const comprobando = useRef(false);
   const seccionActual = useRef(seccion);
@@ -29,25 +46,25 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
     if (comprobando.current) return;
     comprobando.current = true;
     try {
-      for (const aviso of avisosPendientes(useTienda.getState().tareas, new Date())) {
+      const estado = useTienda.getState();
+      const ahora = new Date();
+      for (const aviso of avisosPendientes(estado.tareas, ahora)) {
         // Si otra pestaña ya lo envió, aquí no se repite.
         if (!(await marcarAviso(aviso.tarea.id, aviso.clave))) continue;
         const fecha = etiquetaFecha(aviso.tarea);
         const { id, titulo } = aviso.tarea;
         setAvisos((a) => [...a, { clave: aviso.clave, tareaId: id, titulo, fecha }]);
-        if (hayNotificaciones() && Notification.permission === "granted") {
-          const n = new Notification(titulo, { body: `Recordatorio: ${fecha}`, tag: aviso.clave });
-          n.onclick = () => {
-            window.focus();
-            irA(seccionActual.current, id);
-            n.close();
-          };
-        }
+        notificar(titulo, `Recordatorio: ${fecha}`, aviso.clave, () => irA(seccionActual.current, id));
+      }
+      for (const { habito, clave } of avisosDeHabitos(estado.habitos, estado.registros, ahora)) {
+        if (!(await marcarAvisoHabito(habito.id, clave))) continue;
+        setAvisos((a) => [...a, { clave, tareaId: null, titulo: habito.nombre, fecha: "Hábito de hoy" }]);
+        notificar(habito.nombre, "Hábito pendiente de hoy", clave, () => irA({ tipo: "habitos" }));
       }
     } finally {
       comprobando.current = false;
     }
-  }, [marcarAviso]);
+  }, [marcarAviso, marcarAvisoHabito]);
 
   useEffect(() => {
     void comprobar();
@@ -62,16 +79,33 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
     };
   }, [comprobar]);
 
-  // También al cambiar una tarea: un recordatorio nuevo puede vencer de inmediato.
+  // También al cambiar los datos: un recordatorio nuevo puede vencer de inmediato.
   useEffect(() => {
     void comprobar();
-  }, [tareas, comprobar]);
+  }, [tareas, habitos, comprobar]);
 
-  if (!avisos.length) return null;
+  if (!avisos.length && !mensajes.length) return null;
   const cerrar = (clave: string) => setAvisos((a) => a.filter((x) => x.clave !== clave));
+  const abrir = (a: AvisoVisible) => {
+    if (a.tareaId === null) irA({ tipo: "habitos" });
+    else irA(seccion.tipo === "buscar" ? { tipo: "vista", vista: "hoy" } : seccion, a.tareaId);
+    cerrar(a.clave);
+  };
 
   return (
     <div role="status" aria-label="Recordatorios" className="fixed right-4 bottom-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2">
+      {mensajes.map((m) => (
+        <div key={m.id} data-testid="aviso-enfoque" className="flex items-start gap-2 rounded-lg border border-borde bg-panel p-3 shadow-lg">
+          <Bell size={16} className="mt-0.5 shrink-0 text-acento" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">{m.titulo}</p>
+            <p className="text-xs text-tenue">{m.detalle}</p>
+          </div>
+          <button type="button" aria-label={`Cerrar aviso: ${m.titulo}`} className="text-tenue hover:text-texto" onClick={() => cerrarMensaje(m.id)}>
+            <X size={15} />
+          </button>
+        </div>
+      ))}
       {avisos.map((a) => (
         <div key={a.clave} data-testid="aviso" className="rounded-lg border border-borde bg-panel p-3 shadow-lg">
           <div className="flex items-start gap-2">
@@ -84,15 +118,8 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
               <X size={15} />
             </button>
           </div>
-          <button
-            type="button"
-            className="mt-2 text-xs font-medium text-acento hover:underline"
-            onClick={() => {
-              irA(seccion.tipo === "buscar" ? { tipo: "vista", vista: "hoy" } : seccion, a.tareaId);
-              cerrar(a.clave);
-            }}
-          >
-            Abrir tarea
+          <button type="button" className="mt-2 text-xs font-medium text-acento hover:underline" onClick={() => abrir(a)}>
+            {a.tareaId === null ? "Abrir hábitos" : "Abrir tarea"}
           </button>
         </div>
       ))}
