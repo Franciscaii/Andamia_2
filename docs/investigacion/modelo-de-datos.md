@@ -132,6 +132,18 @@ La cuenta no tenía sesiones y no se inició ninguna para no generar datos. Prop
 
 Zona horaria, primer día de la semana, hora de aviso por defecto, prioridad y fecha por defecto, criterio de orden por vista, mostrar u ocultar completadas, visibilidad de cada lista inteligente, pestañas de navegación activas y activación de la entrada en lenguaje natural.
 
+## Diferencias en el MVP
+
+El código de la Fase 2 implementa una parte de este modelo. Los tipos reales están en `src/modelos/tipos.ts`.
+
+| Tema | MVP |
+|---|---|
+| `tipo` | No existe: toda tarea puede tener notas y subtareas a la vez |
+| `inicio` | No existe: solo `vence`, como fecha sola si es de todo el día o como fecha y hora si lleva hora |
+| `eliminadaEn` | Campo nuevo para el borrado suave |
+| `descartada`, repetición, recordatorios, columnas, tareas anidadas, `version` | Aún no implementados |
+| Hábitos y sesiones de enfoque | Aún no implementados |
+
 ## Decisiones de diseño para Andamia
 
 | Tema | Decisión |

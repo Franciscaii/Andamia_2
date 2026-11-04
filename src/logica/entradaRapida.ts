@@ -152,9 +152,11 @@ function extraerDia(texto: string, ahora: Date) {
     // "por la mañana" no es una fecha: ver negativa más abajo.
     { patron: "ma(?:ñ|n)ana", dias: 1 },
     { patron: "hoy", dias: 0 },
+    { patron: "ayer", dias: -1 },
   ];
   for (const { patron, dias } of relativas) {
-    const re = new RegExp(`(?<!(?:la|esta)\\s)${INI}${PREFIJO_FECHA}${patron}${FIN}`, "iu");
+    // Límite de palabra también aquí: "propuesta mañana" no es "esta mañana".
+    const re = new RegExp(`(?<!${INI}(?:la|esta)\\s+)${INI}${PREFIJO_FECHA}${patron}${FIN}`, "iu");
     const m = re.exec(texto);
     if (m) return { texto: quitar(texto, m.index, m[0].length), dia: addDays(ahora, dias) };
   }

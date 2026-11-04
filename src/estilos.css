@@ -75,15 +75,18 @@ body {
   font-size: 15px;
 }
 
-button {
-  cursor: pointer;
-}
+/* En una capa para que los campos con su propio borde de foco puedan anularlo. */
+@layer base {
+  button {
+    cursor: pointer;
+  }
 
-button:disabled {
-  cursor: not-allowed;
-}
+  button:disabled {
+    cursor: not-allowed;
+  }
 
-:focus-visible {
-  outline: 2px solid var(--acento);
-  outline-offset: 1px;
+  :focus-visible {
+    outline: 2px solid var(--acento);
+    outline-offset: 1px;
+  }
 }

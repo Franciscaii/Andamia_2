@@ -151,8 +151,8 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
         </button>
       </header>
 
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4">
-        <fieldset disabled={enPapelera} className="contents">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <fieldset disabled={enPapelera} className="min-w-0 space-y-5">
           <input
             aria-label="Título"
             className="w-full bg-transparent text-lg font-semibold outline-none"

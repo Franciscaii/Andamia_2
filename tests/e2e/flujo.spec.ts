@@ -24,6 +24,7 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
   await expect(fila).toContainText("Mañana 09:00");
   await expect(fila).toContainText("trabajo");
   await expect(fila).not.toContainText("#trabajo");
+  await expect(fila).not.toContainText("propuesta mañana");
   await expect(page.getByRole("navigation").getByRole("link", { name: /^trabajo/ })).toBeVisible();
 
   await navegar(page, "Mañana");

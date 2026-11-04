@@ -19,6 +19,9 @@ describe("fechas relativas", () => {
     ["Llamar manana", "Llamar", "2026-11-05"],
     ["Pagar pasado mañana", "Pagar", "2026-11-06"],
     ["Pagar PASADO MANANA", "Pagar", "2026-11-06"],
+    ["Pagar ayer", "Pagar", "2026-11-03"],
+    ["Enviar propuesta mañana", "Enviar propuesta", "2026-11-05"],
+    ["Hola mañana", "Hola", "2026-11-05"],
     ["Revisar en 3 días", "Revisar", "2026-11-07"],
     ["Revisar en 2 semanas", "Revisar", "2026-11-18"],
   ])("%s", (texto, titulo, vence) => {
