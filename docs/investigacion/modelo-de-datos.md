@@ -141,7 +141,9 @@ El código de la Fase 2 implementa una parte de este modelo. Los tipos reales es
 | `tipo` | No existe: toda tarea puede tener notas y subtareas a la vez |
 | `inicio` | No existe: solo `vence`, como fecha sola si es de todo el día o como fecha y hora si lleva hora |
 | `eliminadaEn` | Campo nuevo para el borrado suave |
-| `descartada`, repetición, recordatorios, columnas, tareas anidadas, `version` | Aún no implementados |
+| Repetición, recordatorios y columnas | Implementados en la Fase 3, con los campos `repeticion`, `repetirDesde`, `repetidaDe`, `recordatorios`, `avisosEnviados` y `columnaId` |
+| `exclusiones` | No existe: aún no se puede saltar una ocurrencia concreta |
+| `descartada`, tareas anidadas, `version` | Aún no implementados |
 | Hábitos y sesiones de enfoque | Aún no implementados |
 
 ## Decisiones de diseño para Andamia
