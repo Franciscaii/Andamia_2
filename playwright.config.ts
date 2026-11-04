@@ -5,6 +5,8 @@ export default defineConfig({
   testDir: "tests/e2e",
   timeout: 45_000,
   fullyParallel: false,
+  // Los arrastres son sensibles al tiempo: en serie no compiten por el equipo.
+  workers: 1,
   reporter: "list",
   use: {
     baseURL: "http://127.0.0.1:5199",
