@@ -5,7 +5,10 @@ export type Seccion =
   | { tipo: "vista"; vista: VistaInteligente }
   | { tipo: "lista"; id: string }
   | { tipo: "etiqueta"; nombre: string }
+  | { tipo: "calendario"; modo: ModoCalendario }
   | { tipo: "buscar" };
+
+export type ModoCalendario = "mes" | "semana";
 
 export interface Ruta {
   seccion: Seccion;
@@ -24,6 +27,7 @@ export function leerRuta(hash: string): Ruta {
   }
   if (a === "listas" && b) return { seccion: { tipo: "lista", id: b }, tareaId };
   if (a === "etiquetas" && b) return { seccion: { tipo: "etiqueta", nombre: b }, tareaId };
+  if (a === "calendario") return { seccion: { tipo: "calendario", modo: b === "semana" ? "semana" : "mes" }, tareaId };
   if (a === "buscar") return { seccion: { tipo: "buscar" }, tareaId };
   return { seccion: INICIO, tareaId };
 }
@@ -39,6 +43,9 @@ export function hashDe(seccion: Seccion, tareaId: string | null = null): string 
       break;
     case "etiqueta":
       base = `#/etiquetas/${encodeURIComponent(seccion.nombre)}`;
+      break;
+    case "calendario":
+      base = `#/calendario/${seccion.modo}`;
       break;
     case "buscar":
       base = "#/buscar";

@@ -4,7 +4,9 @@ import { BarraLateral } from "./componentes/BarraLateral";
 import { DetalleTarea } from "./componentes/DetalleTarea";
 import { useTienda } from "./datos/tienda";
 import { irA, useRuta } from "./logica/ruta";
+import { PanelAvisos } from "./componentes/Avisos";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
+import { VistaCalendario } from "./vistas/VistaCalendario";
 import { VistaTareas } from "./vistas/VistaTareas";
 
 function esCampoDeTexto(el: EventTarget | null): boolean {
@@ -76,10 +78,17 @@ export default function App() {
             </button>
           </div>
         )}
-        {ruta.seccion.tipo === "buscar" ? <VistaBusqueda /> : <VistaTareas seccion={ruta.seccion} tareaAbierta={ruta.tareaId} />}
+        {ruta.seccion.tipo === "buscar" ? (
+          <VistaBusqueda />
+        ) : ruta.seccion.tipo === "calendario" ? (
+          <VistaCalendario modo={ruta.seccion.modo} tareaAbierta={ruta.tareaId} />
+        ) : (
+          <VistaTareas seccion={ruta.seccion} tareaAbierta={ruta.tareaId} />
+        )}
       </main>
 
       {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}
+      <PanelAvisos seccion={ruta.seccion} />
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, CalendarDays, CheckCheck, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
 import { useTienda } from "../datos/tienda";
 import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
 import { hashDe, irA, type Seccion } from "../logica/ruta";
 import type { Carpeta, Lista } from "../modelos/tipos";
+import { BotonAvisos } from "./Avisos";
 import { DialogoCarpeta, DialogoLista } from "./Dialogos";
 import { Confirmar } from "./Modal";
 
@@ -144,6 +145,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
             contador={contarVista(tareas, v.id, listas)}
           />
         ))}
+        <Fila href={hashDe({ tipo: "calendario", modo: seccion.tipo === "calendario" ? seccion.modo : "mes" })} activa={seccion.tipo === "calendario"} icono={<CalendarRange size={17} />} nombre="Calendario" />
 
         {titulo(
           "Listas",
@@ -204,6 +206,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
           {VISTAS_INTELIGENTES.filter((v) => ["completadas", "papelera"].includes(v.id)).map((v) => (
             <Fila key={v.id} href={hashDe({ tipo: "vista", vista: v.id })} activa={seccion.tipo === "vista" && seccion.vista === v.id} icono={ICONOS[v.id]} nombre={v.nombre} />
           ))}
+          <BotonAvisos />
         </div>
       </nav>
 

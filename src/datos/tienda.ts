@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Carpeta, Etiqueta, Lista, Tarea } from "../modelos/tipos";
+import type { Carpeta, Columna, Etiqueta, Lista, ModoLista, Tarea } from "../modelos/tipos";
 import * as repo from "./repositorio";
 
 export type Tema = "claro" | "oscuro";
@@ -11,6 +11,7 @@ interface Estado {
   listas: Lista[];
   carpetas: Carpeta[];
   etiquetas: Etiqueta[];
+  columnas: Columna[];
   tema: Tema;
   cargar: () => Promise<void>;
   cerrarError: () => void;
@@ -30,6 +31,14 @@ interface Estado {
   renombrarCarpeta: (id: string, nombre: string) => Promise<void>;
   borrarCarpeta: (id: string) => Promise<void>;
   borrarEtiqueta: (nombre: string) => Promise<void>;
+  marcarAviso: (id: string, clave: string) => Promise<boolean>;
+  cambiarModoLista: (id: string, modo: ModoLista) => Promise<void>;
+  asegurarColumnas: (listaId: string) => Promise<void>;
+  crearColumna: (listaId: string, nombre: string) => Promise<void>;
+  renombrarColumna: (id: string, nombre: string) => Promise<void>;
+  reordenarColumnas: (ids: string[]) => Promise<void>;
+  borrarColumna: (id: string, destinoId: string) => Promise<void>;
+  moverTareaAColumna: (ids: string[], idMovida: string, columnaId: string) => Promise<void>;
 }
 
 function temaInicial(): Tema {
@@ -38,7 +47,8 @@ function temaInicial(): Tema {
 
 function reemplazar(tareas: Tarea[], cambiadas: Tarea[]): Tarea[] {
   const porId = new Map(cambiadas.map((t) => [t.id, t]));
-  return tareas.map((t) => porId.get(t.id) ?? t);
+  const nuevas = cambiadas.filter((c) => !tareas.some((t) => t.id === c.id));
+  return [...tareas.map((t) => porId.get(t.id) ?? t), ...nuevas];
 }
 
 export const useTienda = create<Estado>((set, get) => {
@@ -63,6 +73,7 @@ export const useTienda = create<Estado>((set, get) => {
     listas: [],
     carpetas: [],
     etiquetas: [],
+    columnas: [],
     tema: typeof document === "undefined" ? "claro" : temaInicial(),
 
     cargar: async () => {
@@ -110,8 +121,8 @@ export const useTienda = create<Estado>((set, get) => {
     },
 
     completarTarea: async (id, completada) => {
-      const t = await guardar(() => repo.completarTarea(id, completada));
-      if (t) set((s) => ({ tareas: reemplazar(s.tareas, [t]) }));
+      const cambiadas = await guardar(() => repo.completarTarea(id, completada));
+      if (cambiadas) set((s) => ({ tareas: reemplazar(s.tareas, cambiadas) }));
     },
 
     enviarAPapelera: async (id) => {
@@ -172,6 +183,51 @@ export const useTienda = create<Estado>((set, get) => {
     borrarEtiqueta: async (nombre) => {
       await guardar(() => repo.borrarEtiqueta(nombre));
       await recargar();
+    },
+
+    marcarAviso: async (id, clave) => {
+      const t = await guardar(() => repo.marcarAviso(id, clave));
+      if (!t) return false;
+      set((s) => ({ tareas: reemplazar(s.tareas, [t]) }));
+      return true;
+    },
+
+    cambiarModoLista: async (id, modo) => {
+      await guardar(async () => {
+        if (modo === "kanban") await repo.asegurarColumnas(id);
+        await repo.actualizarLista(id, { modo });
+      });
+      await recargar();
+    },
+
+    asegurarColumnas: async (listaId) => {
+      await guardar(() => repo.asegurarColumnas(listaId));
+      await recargar();
+    },
+
+    crearColumna: async (listaId, nombre) => {
+      const c = await guardar(() => repo.crearColumna(listaId, nombre));
+      if (c) set((s) => ({ columnas: [...s.columnas, c] }));
+    },
+
+    renombrarColumna: async (id, nombre) => {
+      await guardar(() => repo.renombrarColumna(id, nombre));
+      set((s) => ({ columnas: s.columnas.map((c) => (c.id === id ? { ...c, nombre: nombre.trim() } : c)) }));
+    },
+
+    reordenarColumnas: async (ids) => {
+      set((s) => ({ columnas: s.columnas.map((c) => (ids.includes(c.id) ? { ...c, orden: ids.indexOf(c.id) } : c)) }));
+      await guardar(() => repo.reordenarColumnas(ids));
+    },
+
+    borrarColumna: async (id, destinoId) => {
+      await guardar(() => repo.borrarColumna(id, destinoId));
+      await recargar();
+    },
+
+    moverTareaAColumna: async (ids, idMovida, columnaId) => {
+      const cambiadas = await guardar(() => repo.moverTareaAColumna(ids, idMovida, columnaId));
+      if (cambiadas) set((s) => ({ tareas: reemplazar(s.tareas, cambiadas) }));
     },
   };
 });

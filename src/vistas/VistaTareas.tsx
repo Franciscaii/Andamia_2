@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Columns3, List, RotateCcw, Trash2 } from "lucide-react";
 import { EntradaRapida } from "../componentes/EntradaRapida";
 import { FilaTarea } from "../componentes/FilaTarea";
 import { ListaOrdenable } from "../componentes/ListaOrdenable";
@@ -8,8 +8,9 @@ import { useTienda } from "../datos/tienda";
 import { irA, type Seccion } from "../logica/ruta";
 import { agruparPorFecha, estaActiva, tareasDeVista, VISTAS_INTELIGENTES, type Grupo } from "../logica/vistas";
 import type { Tarea } from "../modelos/tipos";
+import { VistaKanban } from "./VistaKanban";
 
-type SeccionTareas = Exclude<Seccion, { tipo: "buscar" }>;
+type SeccionTareas = Exclude<Seccion, { tipo: "buscar" | "calendario" }>;
 
 function GrupoPlegable({ nombre, cantidad, inicialAbierto = true, children }: { nombre: string; cantidad: number; inicialAbierto?: boolean; children: ReactNode }) {
   const [abierto, setAbierto] = useState(inicialAbierto);
@@ -43,6 +44,7 @@ export function VistaTareas({ seccion, tareaAbierta }: { seccion: SeccionTareas;
   const restaurarTarea = useTienda((s) => s.restaurarTarea);
   const borrarDefinitivamente = useTienda((s) => s.borrarDefinitivamente);
   const vaciarPapelera = useTienda((s) => s.vaciarPapelera);
+  const cambiarModoLista = useTienda((s) => s.cambiarModoLista);
   const [confirmarVaciar, setConfirmarVaciar] = useState(false);
   const [borrando, setBorrando] = useState<Tarea | null>(null);
 
@@ -80,12 +82,25 @@ export function VistaTareas({ seccion, tareaAbierta }: { seccion: SeccionTareas;
   const mostrarLista = seccion.tipo !== "lista";
   const agrupar = seccion.tipo === "vista" && ["todas", "hoy", "semana"].includes(seccion.vista);
   const grupos: Grupo[] = agrupar ? agruparPorFecha(pendientes, ahora) : [];
+  const listaActual = seccion.tipo === "lista" ? listas.find((l) => l.id === seccion.id) : undefined;
+  const enKanban = listaActual?.modo === "kanban";
+  const botonModo = (activo: boolean) => `flex items-center gap-1.5 rounded px-2 py-1 text-xs ${activo ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex items-center gap-2 px-6 pt-5 pb-3">
         {color && <span className="h-3.5 w-3.5 rounded-full" style={{ background: color }} />}
         <h1 className="truncate text-xl font-semibold">{titulo}</h1>
+        {listaActual && (
+          <div role="group" aria-label="Modo de la lista" className="ml-auto flex shrink-0 gap-0.5 rounded-md bg-suave p-0.5">
+            <button type="button" aria-pressed={!enKanban} className={botonModo(!enKanban)} onClick={() => void cambiarModoLista(listaActual.id, "lista")}>
+              <List size={14} /> Lista
+            </button>
+            <button type="button" aria-pressed={enKanban} className={botonModo(enKanban)} onClick={() => void cambiarModoLista(listaActual.id, "kanban")}>
+              <Columns3 size={14} /> Kanban
+            </button>
+          </div>
+        )}
         {esPapelera && pendientes.length > 0 && (
           <button type="button" className={`${claseBoton} ml-auto flex items-center gap-1.5 text-peligro`} onClick={() => setConfirmarVaciar(true)}>
             <Trash2 size={14} /> Vaciar papelera
@@ -93,6 +108,9 @@ export function VistaTareas({ seccion, tareaAbierta }: { seccion: SeccionTareas;
         )}
       </header>
 
+      {listaActual && enKanban ? (
+        <VistaKanban key={listaActual.id} listaId={listaActual.id} tareaAbierta={tareaAbierta} alAbrir={abrir} />
+      ) : (
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-8">
         {conEntrada && <EntradaRapida key={JSON.stringify(seccion)} seccion={seccion} />}
 
@@ -149,6 +167,7 @@ export function VistaTareas({ seccion, tareaAbierta }: { seccion: SeccionTareas;
           </GrupoPlegable>
         )}
       </div>
+      )}
 
       {confirmarVaciar && (
         <Confirmar titulo="¿Vaciar la papelera?" mensaje="Se borrarán para siempre todas las tareas de la papelera. No se puede deshacer." textoAccion="Vaciar papelera" alCerrar={() => setConfirmarVaciar(false)} alConfirmar={() => { void vaciarPapelera(); irA(seccion); }} />

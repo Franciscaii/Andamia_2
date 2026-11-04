@@ -1,11 +1,34 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { AlarmClock, CalendarDays, Flag, ListTodo, Plus, Tag } from "lucide-react";
+import { AlarmClock, CalendarDays, Flag, ListTodo, Plus, Repeat, Tag } from "lucide-react";
+import type { DatosNuevaTarea } from "../datos/repositorio";
 import { useTienda } from "../datos/tienda";
-import { interpretarEntrada } from "../logica/entradaRapida";
+import { interpretarEntrada, type EntradaInterpretada } from "../logica/entradaRapida";
 import { diaRelativo, etiquetaFecha } from "../logica/fechas";
+import { describirRegla } from "../logica/repeticion";
 import type { Seccion } from "../logica/ruta";
 import { LISTA_BANDEJA } from "../modelos/tipos";
 import { COLOR_PRIORIDAD } from "./FilaTarea";
+
+/** Lo escrito manda; lo demás lo aporta el lugar donde se crea la tarea. */
+export function datosDesdeEntrada(
+  lectura: EntradaInterpretada,
+  destino: { listaId?: string; etiqueta?: string; vence?: string; todoElDia?: boolean; columnaId?: string },
+): DatosNuevaTarea {
+  const vence = lectura.vence ?? destino.vence ?? null;
+  const todoElDia = lectura.vence ? lectura.todoElDia : vence !== null && (destino.todoElDia ?? true);
+  return {
+    titulo: lectura.titulo,
+    listaId: lectura.listaId ?? destino.listaId ?? LISTA_BANDEJA,
+    prioridad: lectura.prioridad ?? "ninguna",
+    vence,
+    todoElDia,
+    etiquetas: [...lectura.etiquetas, ...(destino.etiqueta ? [destino.etiqueta] : [])],
+    repeticion: lectura.repeticion,
+    // Una tarea con hora avisa a esa hora; se puede quitar en el detalle.
+    minutosRecordatorios: vence !== null && !todoElDia ? [0] : [],
+    columnaId: lectura.listaId && lectura.listaId !== destino.listaId ? null : destino.columnaId ?? null,
+  };
+}
 
 /** Datos que aporta la vista actual si el texto no dice otra cosa. */
 function datosDeLaVista(seccion: Seccion) {
@@ -37,17 +60,8 @@ export function EntradaRapida({ seccion }: { seccion: Seccion }) {
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
     if (!lectura?.titulo) return;
-    const vence = lectura.vence ?? destino.vence ?? null;
-    const etiquetas = [...lectura.etiquetas, ...(destino.etiqueta ? [destino.etiqueta] : [])];
     setTexto("");
-    await crearTarea({
-      titulo: lectura.titulo,
-      listaId: lectura.listaId ?? destino.listaId ?? LISTA_BANDEJA,
-      prioridad: lectura.prioridad ?? "ninguna",
-      vence,
-      todoElDia: lectura.vence ? lectura.todoElDia : vence !== null,
-      etiquetas,
-    });
+    await crearTarea(datosDesdeEntrada(lectura, destino));
   };
 
   return (
@@ -72,6 +86,7 @@ export function EntradaRapida({ seccion }: { seccion: Seccion }) {
               texto={etiquetaFecha({ vence: lectura.vence, todoElDia: lectura.todoElDia })}
             />
           )}
+          {lectura.repeticion && <Dato icono={<Repeat size={12} />} texto={describirRegla(lectura.repeticion)} />}
           {lectura.prioridad && <Dato icono={<Flag size={12} />} texto={`Prioridad ${lectura.prioridad}`} color={COLOR_PRIORIDAD[lectura.prioridad]} />}
           {lectura.etiquetas.map((e) => (
             <Dato key={e} icono={<Tag size={12} />} texto={e} />
