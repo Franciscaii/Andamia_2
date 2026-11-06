@@ -216,6 +216,7 @@ const MENSAJES: Record<string, string> = {
   "auth/popup-blocked": "El navegador bloqueó la ventana de Google. Permítela e inténtalo de nuevo.",
   "auth/requires-recent-login": "Por seguridad, vuelve a iniciar sesión e inténtalo de nuevo.",
   "auth/operation-not-allowed": "Este método de acceso no está activado en el proyecto de Firebase.",
+  "auth/admin-restricted-operation": "No se pueden crear cuentas nuevas en esta instalación de Andamia.",
   "permission-denied": "Firebase rechazó el cambio. Revisa que las reglas estén publicadas.",
 };
 
