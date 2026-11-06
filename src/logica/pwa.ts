@@ -1,3 +1,4 @@
+import { recordatoriosActivos } from "../config";
 import type { Tarea } from "../modelos/tipos";
 import { claveAviso, momentoDeAviso } from "./recordatorios";
 
@@ -27,7 +28,7 @@ export function registrarPwa(): void {
   });
   // Solo en la versión final: en desarrollo una caché estorbaría los cambios.
   if (import.meta.env.PROD && "serviceWorker" in navigator) {
-    void navigator.serviceWorker.register("/sw.js").then(() => activarRevisionPeriodica());
+    void navigator.serviceWorker.register("/sw.js").then(() => (recordatoriosActivos ? activarRevisionPeriodica() : false));
   }
 }
 

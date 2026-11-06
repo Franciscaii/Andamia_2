@@ -1,5 +1,6 @@
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { AlarmClock, Bell, Check, GripVertical, ListChecks, Repeat, StickyNote } from "lucide-react";
+import { recordatoriosActivos } from "../config";
 import { useTienda } from "../datos/tienda";
 import type { Fragmento } from "../logica/busqueda";
 import { resaltar } from "../logica/busqueda";
@@ -102,7 +103,7 @@ export function FilaTarea({ tarea, abierta, alAbrir, mostrarLista, consulta = ""
               <span className="sr-only">{describirRegla(tarea.repeticion)}</span>
             </span>
           )}
-          {tarea.recordatorios.length > 0 && <Bell size={12} aria-label="Tiene recordatorios" />}
+          {recordatoriosActivos && tarea.recordatorios.length > 0 && <Bell size={12} aria-label="Tiene recordatorios" />}
           {tarea.subtareas.length > 0 && (
             <span className="flex items-center gap-1">
               <ListChecks size={12} />

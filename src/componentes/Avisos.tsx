@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BellOff, X } from "lucide-react";
+import { recordatoriosActivos } from "../config";
 import { useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { etiquetaFecha } from "../logica/fechas";
@@ -38,7 +39,8 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
   seccionActual.current = seccion;
 
   const comprobar = useCallback(async () => {
-    if (comprobando.current) return;
+    // Sin recordatorios el panel solo muestra los avisos del temporizador de enfoque.
+    if (comprobando.current || !recordatoriosActivos) return;
     comprobando.current = true;
     try {
       const estado = useTienda.getState();
@@ -78,7 +80,7 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
   useEffect(() => {
     void comprobar();
     // Donde el navegador lo permita, deja los avisos programados por si se cierra la app.
-    void programarAvisos(tareas);
+    if (recordatoriosActivos) void programarAvisos(tareas);
   }, [tareas, habitos, comprobar]);
 
   if (!avisos.length && !mensajes.length) return null;
@@ -126,6 +128,10 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
 
 /** El permiso se pide solo al pulsar el botón, nunca al cargar. */
 export function BotonAvisos() {
+  return recordatoriosActivos ? <BotonPermiso /> : null;
+}
+
+function BotonPermiso() {
   const [permiso, setPermiso] = useState<NotificationPermission | null>(hayNotificaciones() ? Notification.permission : null);
 
   if (permiso === null) return null;

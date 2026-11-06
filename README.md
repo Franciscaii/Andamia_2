@@ -88,6 +88,8 @@ En el detalle puedes elegir si la siguiente fecha se calcula desde la fecha de l
 
 ## Recordatorios
 
+**Están apagados por defecto.** El código sigue en la app: para mostrarlos, agrega `VITE_RECORDATORIOS=si` a `.env.local` y reinicia la app. El aviso de fin del temporizador de enfoque no depende de esta opción.
+
 **Los avisos solo son fiables con la app abierta en una pestaña o ventana.** Con la app cerrada no están garantizados:
 
 | Mecanismo | Cuándo funciona |

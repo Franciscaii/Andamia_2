@@ -3,6 +3,7 @@ import { addDays, addMonths, format, isSameMonth, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { Archive, ArchiveRestore, Check, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { IconoHabito, ICONOS_HABITO } from "../componentes/IconoHabito";
+import { recordatoriosActivos } from "../config";
 import { claseBoton, claseBotonPrincipal, claseCampo, Confirmar, Modal } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes } from "../logica/calendario";
@@ -30,7 +31,8 @@ function DialogoHabito({ habito, alCerrar }: { habito: Habito | null; alCerrar: 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
     if (!valido) return;
-    const datos = { nombre: nombre.trim(), icono, color, frecuencia, metaDiaria: meta, unidad: unidad.trim(), inicio, recordatorioHora: hora || null };
+    // Con los recordatorios apagados se conserva lo que ya tuviera el hábito.
+    const datos = { nombre: nombre.trim(), icono, color, frecuencia, metaDiaria: meta, unidad: unidad.trim(), inicio, recordatorioHora: recordatoriosActivos ? hora || null : (habito?.recordatorioHora ?? null) };
     if (habito) await actualizarHabito(habito.id, datos);
     else await crearHabito(datos);
     alCerrar();
@@ -115,10 +117,12 @@ function DialogoHabito({ habito, alCerrar }: { habito: Habito | null; alCerrar: 
             <span className="mb-1 block text-tenue">Empieza el</span>
             <input type="date" aria-label="Fecha de inicio" className={claseCampo} value={inicio} onChange={(e) => setInicio(e.target.value)} />
           </label>
-          <label>
-            <span className="mb-1 block text-tenue">Recordatorio (opcional)</span>
-            <input type="time" aria-label="Hora del recordatorio" className={claseCampo} value={hora} onChange={(e) => setHora(e.target.value)} />
-          </label>
+          {recordatoriosActivos && (
+            <label>
+              <span className="mb-1 block text-tenue">Recordatorio (opcional)</span>
+              <input type="time" aria-label="Hora del recordatorio" className={claseCampo} value={hora} onChange={(e) => setHora(e.target.value)} />
+            </label>
+          )}
         </div>
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" className={claseBoton} onClick={alCerrar}>

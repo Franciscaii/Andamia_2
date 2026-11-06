@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Check, Flag, RotateCcw, Timer, Trash2, X } from "lucide-react";
+import { recordatoriosActivos } from "../config";
 import { useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { formatoMinutos, minutosDeTarea } from "../logica/enfoque";
@@ -389,7 +390,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
           </section>
 
           <EditorRepeticion tarea={tarea} />
-          <EditorRecordatorios tarea={tarea} />
+          {recordatoriosActivos && <EditorRecordatorios tarea={tarea} />}
 
           <section>
             <h3 className="mb-1 text-xs font-semibold tracking-wide text-tenue uppercase">Prioridad</h3>

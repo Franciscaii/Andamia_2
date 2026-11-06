@@ -4,7 +4,8 @@ import { entornoConJava } from "./scripts/con-java.mjs";
 const entornoJava = entornoConJava();
 
 // Sin estos valores, las pruebas sin cuenta ignoran un .env.local con el proyecto real.
-const SIN_FIREBASE = { VITE_FIREBASE_API_KEY: "", VITE_FIREBASE_PROJECT_ID: "", VITE_FIREBASE_EMULADORES: "" };
+// Los flujos de las fases 3 y 4 prueban los recordatorios, así que aquí van encendidos.
+const SIN_FIREBASE = { VITE_FIREBASE_API_KEY: "", VITE_FIREBASE_PROJECT_ID: "", VITE_FIREBASE_EMULADORES: "", VITE_RECORDATORIOS: "si" };
 
 const CON_EMULADORES = {
   VITE_FIREBASE_API_KEY: "clave-falsa-de-prueba",
@@ -12,6 +13,8 @@ const CON_EMULADORES = {
   VITE_FIREBASE_AUTH_DOMAIN: "demo-andamia.firebaseapp.com",
   VITE_FIREBASE_APP_ID: "demo",
   VITE_FIREBASE_EMULADORES: "si",
+  // Como en la instalación de Francisca: recordatorios apagados.
+  VITE_RECORDATORIOS: "",
 };
 
 if (!entornoJava) console.warn("Sin Java: se omiten los flujos con los emuladores de Firebase.");

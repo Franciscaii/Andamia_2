@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { AlarmClock, CalendarDays, Flag, ListTodo, Plus, Repeat, Tag } from "lucide-react";
+import { recordatoriosActivos } from "../config";
 import type { DatosNuevaTarea } from "../datos/repositorio";
 import { useTienda } from "../datos/tienda";
 import { interpretarEntrada, type EntradaInterpretada } from "../logica/entradaRapida";
@@ -25,7 +26,7 @@ export function datosDesdeEntrada(
     etiquetas: [...lectura.etiquetas, ...(destino.etiqueta ? [destino.etiqueta] : [])],
     repeticion: lectura.repeticion,
     // Una tarea con hora avisa a esa hora; se puede quitar en el detalle.
-    minutosRecordatorios: vence !== null && !todoElDia ? [0] : [],
+    minutosRecordatorios: recordatoriosActivos && vence !== null && !todoElDia ? [0] : [],
     columnaId: lectura.listaId && lectura.listaId !== destino.listaId ? null : destino.columnaId ?? null,
   };
 }

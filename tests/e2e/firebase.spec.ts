@@ -137,6 +137,22 @@ test("migración única con confirmación, y cerrar sesión oculta los datos", a
   await b.contexto.close();
 });
 
+test("con los recordatorios apagados no se muestran ni se crean", async ({ page }) => {
+  await page.goto("/#/tareas/bandeja");
+  await agregar(page, "Llamar mañana 10:00");
+  await page.getByRole("button", { name: /^Llamar/ }).click();
+  const detalle = page.getByRole("complementary", { name: "Detalle de la tarea" });
+  await expect(detalle.getByLabel("Fecha", { exact: true })).not.toHaveValue("");
+  await expect(detalle.getByText("Recordatorios")).toHaveCount(0);
+  await expect(detalle.getByLabel("Añadir recordatorio")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Activar avisos del navegador" })).toHaveCount(0);
+  await page.goto("/#/ajustes");
+  await expect(page.getByRole("region", { name: "Avisos" })).toHaveCount(0);
+  await page.goto("/#/habitos");
+  await page.getByRole("button", { name: "Nuevo hábito" }).click();
+  await expect(page.getByLabel("Hora del recordatorio")).toHaveCount(0);
+});
+
 test("dos cuentas no comparten datos, y la contraseña incorrecta se informa", async ({ browser }) => {
   const a = await dispositivo(browser);
   const b = await dispositivo(browser);

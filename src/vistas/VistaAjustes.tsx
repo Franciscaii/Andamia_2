@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Cloud, CloudOff, Download, MonitorDown, RefreshCw, Upload } from "lucide-react";
 import { BotonAvisos } from "../componentes/Avisos";
+import { recordatoriosActivos } from "../config";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { registrarDispositivoPush, useCuenta } from "../datos/cuenta";
 import { claveVapid } from "../datos/firebase/config";
@@ -324,10 +325,12 @@ export function VistaAjustes() {
         <Seccion titulo="Instalar la app">
           <Instalacion />
         </Seccion>
-        <Seccion titulo="Avisos">
-          <p className="mb-2 text-sm text-tenue">Los avisos son fiables con la app abierta. Con la app cerrada solo funcionan a veces: el navegador decide cuándo revisar, y solo con la app instalada en Chrome o Edge.</p>
-          <BotonAvisos />
-        </Seccion>
+        {recordatoriosActivos && (
+          <Seccion titulo="Avisos">
+            <p className="mb-2 text-sm text-tenue">Los avisos son fiables con la app abierta. Con la app cerrada solo funcionan a veces: el navegador decide cuándo revisar, y solo con la app instalada en Chrome o Edge.</p>
+            <BotonAvisos />
+          </Seccion>
+        )}
       </div>
     </div>
   );
