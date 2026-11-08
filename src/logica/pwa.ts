@@ -1,6 +1,7 @@
 import { recordatoriosActivos } from "../config";
 import type { Tarea } from "../modelos/tipos";
 import { claveAviso, momentoDeAviso } from "./recordatorios";
+import { esAppNativa } from "./plataforma";
 
 const CACHE_META = "andamia-meta";
 const CLAVE_BASE = "/__base-activa";
@@ -27,13 +28,14 @@ export function registrarPwa(): void {
     avisar();
   });
   // Solo en la versión final: en desarrollo una caché estorbaría los cambios.
-  if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  // En la app de Android los archivos ya vienen dentro de la app: no hace falta caché.
+  if (import.meta.env.PROD && "serviceWorker" in navigator && !esAppNativa()) {
     void navigator.serviceWorker.register("/sw.js").then(() => (recordatoriosActivos ? activarRevisionPeriodica() : false));
   }
 }
 
 export const sePuedeInstalar = () => eventoInstalacion !== null;
-export const estaInstalada = () => typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
+export const estaInstalada = () => esAppNativa() || (typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches);
 
 export function alCambiarInstalacion(oyente: () => void): () => void {
   oyentes.add(oyente);

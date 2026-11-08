@@ -10,6 +10,7 @@ import { useTienda } from "../datos/tienda";
 import type { NombreTabla } from "../datos/bd";
 import { cantidadDe, crearCopia, nombreArchivoCopia, validarCopia, type Copia } from "../logica/copia";
 import { alCambiarInstalacion, estaInstalada, instalar, sePuedeInstalar } from "../logica/pwa";
+import { esAppNativa } from "../logica/plataforma";
 
 function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
@@ -68,9 +69,12 @@ function FormularioAcceso() {
           {modo === "entrar" ? "Iniciar sesión" : "Crear cuenta"}
         </button>
       </form>
-      <button type="button" className={`${claseBoton} mt-2 w-full`} disabled={ocupada} onClick={() => void entrarConGoogle()}>
-        Continuar con Google
-      </button>
+      {/* En la app de Android no hay ventanas emergentes para entrar con Google. */}
+      {!esAppNativa() && (
+        <button type="button" className={`${claseBoton} mt-2 w-full`} disabled={ocupada} onClick={() => void entrarConGoogle()}>
+          Continuar con Google
+        </button>
+      )}
       <div className="mt-3 flex justify-between text-xs">
         <button type="button" className="text-acento hover:underline" onClick={cambiarModo}>
           {modo === "entrar" ? "Crear una cuenta nueva" : "Ya tengo una cuenta"}
@@ -292,6 +296,7 @@ function CopiaSeguridad() {
 function Instalacion() {
   const [, redibujar] = useState(0);
   useEffect(() => alCambiarInstalacion(() => redibujar((n) => n + 1)), []);
+  if (esAppNativa()) return <p className="text-sm text-tenue">Estás usando la app de Android de Andamia.</p>;
   if (estaInstalada()) return <p className="text-sm text-tenue">Andamia ya está instalada en este dispositivo.</p>;
   if (sePuedeInstalar()) {
     return (

@@ -11,12 +11,18 @@
     "test:e2e": "playwright test",
     "test:reglas": "node scripts/con-java.mjs firebase emulators:exec --project demo-andamia --only firestore \"vitest run --config vitest.reglas.config.ts\"",
     "emuladores": "node scripts/con-java.mjs firebase emulators:start --project demo-andamia --only auth,firestore",
-    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules,firestore:indexes"
+    "deploy": "npm run build && firebase deploy --only hosting,firestore:rules,firestore:indexes",
+    "android": "npm run build && cap sync android",
+    "pc": "npm --prefix escritorio run pc",
+    "pc:instalador": "npm --prefix escritorio run instalador"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -33,6 +39,8 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.3",
     "@firebase/rules-unit-testing": "^6.0.0",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.4",

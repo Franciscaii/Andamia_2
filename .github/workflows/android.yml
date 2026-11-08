@@ -1,0 +1,65 @@
+# Crea el archivo .apk de Andamia para Android, gratis, en los servidores de GitHub.
+# Se ejecuta a mano desde la pestaña Actions ("Run workflow") o al subir cambios a apps-nativas.
+name: App de Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [apps-nativas]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Configuración de Firebase
+        # Son los mismos datos públicos que ya usa la web publicada.
+        run: |
+          cat > .env.local <<FIN
+          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
+          FIN
+
+      - name: Compilar la web
+        run: npm run build
+
+      - name: Copiar la web a Android
+        run: npx cap sync android
+
+      - name: Preparar la llave de firma
+        run: echo "${{ secrets.ANDAMIA_LLAVE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/andamia-android.jks"
+
+      - name: Crear el .apk
+        working-directory: android
+        env:
+          ANDAMIA_LLAVE_ARCHIVO: ${{ runner.temp }}/andamia-android.jks
+          ANDAMIA_LLAVE_CLAVE: ${{ secrets.ANDAMIA_LLAVE_CLAVE }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Andamia-Android.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Andamia-Android
+          path: Andamia-Android.apk
+          retention-days: 30

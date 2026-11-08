@@ -1,0 +1,46 @@
+{
+  "name": "andamia-escritorio",
+  "productName": "Andamia",
+  "version": "1.0.0",
+  "description": "Andamia para Windows",
+  "author": "Francisca",
+  "private": true,
+  "main": "principal.cjs",
+  "scripts": {
+    "pc": "electron .",
+    "instalador": "electron-builder --win nsis --x64 --publish never"
+  },
+  "build": {
+    "appId": "cl.andamia.escritorio",
+    "productName": "Andamia",
+    "directories": {
+      "output": "instaladores"
+    },
+    "files": [
+      "principal.cjs",
+      "recursos/**/*"
+    ],
+    "win": {
+      "icon": "recursos/icono.ico",
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Andamia",
+      "artifactName": "Andamia-Instalador-${version}.exe",
+      "language": "3082",
+      "installerLanguages": [
+        "es_ES"
+      ]
+    },
+    "publish": null
+  },
+  "devDependencies": {
+    "electron": "44.9.0",
+    "electron-builder": "26.18.0"
+  }
+}

@@ -6,6 +6,8 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   getAuth,
+  indexedDBLocalPersistence,
+  initializeAuth,
   onAuthStateChanged,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
@@ -34,6 +36,7 @@ import {
 } from "firebase/firestore";
 import { TABLAS, type NombreTabla } from "../bd";
 import type { AlmacenRemoto, CambioRemoto } from "../espejo";
+import { esAppNativa } from "../../logica/plataforma";
 import { claveVapid, configFirebase, usarEmuladores } from "./config";
 
 const COLECCIONES: Record<NombreTabla, string> = {
@@ -55,7 +58,9 @@ let conexion: { auth: Auth; db: Firestore } | null = null;
 function conectar() {
   if (conexion) return conexion;
   const app = getApps()[0] ?? initializeApp(configFirebase);
-  const auth = getAuth(app);
+  // En la app de Android la sesión se guarda directo en IndexedDB, sin el
+  // mecanismo de ventanas emergentes que usa la web (allí no existe).
+  const auth = esAppNativa() ? initializeAuth(app, { persistence: indexedDBLocalPersistence }) : getAuth(app);
   auth.languageCode = "es";
   const db = initializeFirestore(app, {
     // Guarda en el navegador y sigue funcionando sin conexión, en varias pestañas.
