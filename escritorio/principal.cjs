@@ -1,6 +1,6 @@
 // Andamia para Windows: abre la Andamia publicada en su propia ventana y agrega
 // lo que una app web no puede hacer sola: bandeja, atajo global, modo mini
-// siempre visible y abrir al iniciar Windows.
+// siempre visible, modo escritorio (tipo widget) y abrir al iniciar Windows.
 const { app, BrowserWindow, Tray, Menu, globalShortcut, shell, nativeImage, screen, session } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
@@ -16,7 +16,7 @@ let bandeja = null;
 let saliendo = false;
 let avisoBandejaMostrado = false;
 
-// ---------- Preferencias guardadas (tamaño de ventana, modo mini) ----------
+// ---------- Preferencias guardadas (tamaño de ventana y modo) ----------
 const archivoPrefs = () => path.join(app.getPath("userData"), "preferencias.json");
 function leerPrefs() {
   try {
@@ -33,6 +33,13 @@ function guardarPrefs(cambios) {
     // Si no se puede guardar, la app sigue funcionando con los valores por defecto.
   }
   return prefs;
+}
+
+/** "normal", "mini" (chica y encima de todo) o "escritorio" (chica, detrás de las demás ventanas). */
+function modoActual() {
+  const prefs = leerPrefs();
+  if (prefs.modo === "mini" || prefs.modo === "escritorio") return prefs.modo;
+  return prefs.mini ? "mini" : "normal";
 }
 
 /** Devuelve el rectángulo solo si todavía cae dentro de alguna pantalla. */
@@ -67,10 +74,12 @@ function crearVentana({ oculta }) {
     },
   });
   ventana.setMenuBarVisibility(false);
-  if (prefs.mini) aplicarModoMini(true, { guardar: false });
+  if (modoActual() !== "normal") aplicarModo(modoActual(), { guardar: false });
 
   ventana.once("ready-to-show", () => {
+    // Al iniciar Windows, el widget del modo escritorio aparece igual (sin robar el foco).
     if (!oculta) ventana.show();
+    else if (modoActual() === "escritorio") ventana.showInactive();
   });
 
   // Enlaces a otros sitios se abren en el navegador normal.
@@ -92,11 +101,25 @@ function crearVentana({ oculta }) {
   });
 
   const guardarTamano = () => {
-    if (!ventana || ventana.isMinimized() || ventana.isMaximized() || leerPrefs().mini) return;
-    guardarPrefs({ ventana: ventana.getBounds() });
+    if (!ventana || ventana.isMinimized() || ventana.isMaximized()) return;
+    const modo = modoActual();
+    if (modo === "normal") guardarPrefs({ ventana: ventana.getBounds() });
+    // En modo escritorio se recuerda dónde dejaste el widget.
+    else if (modo === "escritorio") guardarPrefs({ widget: ventana.getBounds() });
   };
   ventana.on("resize", guardarTamano);
   ventana.on("move", guardarTamano);
+
+  // En modo escritorio, "Mostrar escritorio" (Windows + D) minimiza todo:
+  // el widget vuelve a aparecer solo, sin quitarle el foco a nadie.
+  ventana.on("minimize", () => {
+    if (modoActual() !== "escritorio") return;
+    setTimeout(() => {
+      if (!ventana || modoActual() !== "escritorio") return;
+      ventana.restore();
+      ventana.showInactive();
+    }, 250);
+  });
 
   // Cerrar la ventana la esconde en la bandeja; "Salir" la cierra de verdad.
   ventana.on("close", (e) => {
@@ -113,7 +136,8 @@ function crearVentana({ oculta }) {
     }
   });
 
-  void ventana.loadURL(URL_ANDAMIA);
+  // En los modos chicos se abre directo en "Hoy".
+  void ventana.loadURL(modoActual() === "normal" ? URL_ANDAMIA : `${URL_ANDAMIA}#/tareas/hoy`);
 }
 
 function mostrarVentana() {
@@ -143,29 +167,37 @@ function nuevaTarea() {
   })()`);
 }
 
-// ---------- Modo mini: ventana chica, siempre visible, en la esquina ----------
-function aplicarModoMini(activar, { guardar = true } = {}) {
+// ---------- Modos: normal, mini (encima de todo) y escritorio (widget) ----------
+function rectanguloEsquina() {
+  const { workArea: a } = screen.getDisplayMatching(ventana.getBounds());
+  const ancho = 380;
+  const alto = Math.min(640, a.height - 40);
+  return { x: a.x + a.width - ancho - 16, y: a.y + a.height - alto - 16, width: ancho, height: alto };
+}
+
+function aplicarModo(modo, { guardar = true } = {}) {
   if (!ventana) return;
-  if (activar) {
-    if (!leerPrefs().mini) guardarPrefs({ ventana: ventana.getBounds() });
-    if (ventana.isMaximized()) ventana.unmaximize();
-    const { workArea: a } = screen.getDisplayMatching(ventana.getBounds());
-    const ancho = 380;
-    const alto = Math.min(640, a.height - 40);
-    ventana.setBounds({ x: a.x + a.width - ancho - 16, y: a.y + a.height - alto - 16, width: ancho, height: alto });
-    ventana.setAlwaysOnTop(true, "floating");
-    ventana.setSkipTaskbar(true);
-    if (ventana.webContents.getURL().startsWith(ORIGEN)) {
-      void ventana.webContents.executeJavaScript(`location.hash = "#/tareas/hoy"`);
-    }
-  } else {
+  const anterior = modoActual();
+  if (guardar && anterior === "normal" && modo !== "normal") guardarPrefs({ ventana: ventana.getBounds() });
+  if (ventana.isMaximized()) ventana.unmaximize();
+
+  if (modo === "normal") {
     ventana.setAlwaysOnTop(false);
     ventana.setSkipTaskbar(false);
     const r = rectanguloVisible(leerPrefs().ventana);
     ventana.setBounds(r ?? { width: 1200, height: 800 });
     if (!r) ventana.center();
+  } else {
+    // Mini queda encima de todo; escritorio queda detrás de las demás ventanas.
+    ventana.setAlwaysOnTop(modo === "mini", "floating");
+    ventana.setSkipTaskbar(true);
+    const guardado = modo === "escritorio" ? rectanguloVisible(leerPrefs().widget) : undefined;
+    ventana.setBounds(guardado ?? rectanguloEsquina());
+    if (ventana.webContents.getURL().startsWith(ORIGEN)) {
+      void ventana.webContents.executeJavaScript(`location.hash = "#/tareas/hoy"`);
+    }
   }
-  if (guardar) guardarPrefs({ mini: activar });
+  if (guardar) guardarPrefs({ modo, mini: undefined });
   actualizarMenuBandeja();
 }
 
@@ -176,21 +208,40 @@ function abreAlIniciar() {
 
 function actualizarMenuBandeja() {
   if (!bandeja) return;
-  const mini = !!leerPrefs().mini;
+  const modo = modoActual();
   bandeja.setContextMenu(
     Menu.buildFromTemplate([
       { label: "Abrir Andamia", click: mostrarVentana },
       { label: "Nueva tarea", accelerator: ATAJO_NUEVA_TAREA, click: nuevaTarea },
       { type: "separator" },
       {
-        label: "Modo mini (siempre visible)",
-        type: "checkbox",
-        checked: mini,
-        click: (item) => {
-          aplicarModoMini(item.checked);
+        label: "Ventana normal",
+        type: "radio",
+        checked: modo === "normal",
+        click: () => {
+          aplicarModo("normal");
           mostrarVentana();
         },
       },
+      {
+        label: "Modo escritorio (widget detrás de las ventanas)",
+        type: "radio",
+        checked: modo === "escritorio",
+        click: () => {
+          aplicarModo("escritorio");
+          mostrarVentana();
+        },
+      },
+      {
+        label: "Modo mini (siempre encima)",
+        type: "radio",
+        checked: modo === "mini",
+        click: () => {
+          aplicarModo("mini");
+          mostrarVentana();
+        },
+      },
+      { type: "separator" },
       {
         label: "Abrir al iniciar Windows",
         type: "checkbox",

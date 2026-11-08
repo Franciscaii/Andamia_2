@@ -9,7 +9,8 @@ Abre la Andamia publicada (https://andamia-85eab.web.app) en su propia ventana, 
 
 - Ícono junto al reloj (bandeja). Cerrar la ventana la esconde ahí; "Salir" la cierra.
 - Atajo global **Ctrl + Alt + N**: abre "Hoy" con el cursor en "Añadir tarea".
-- **Modo mini**: ventana chica, siempre visible, en la esquina de abajo a la derecha.
+- **Modo escritorio** (tipo widget): ventana chica con "Hoy", detrás de las demás ventanas; vuelve sola tras Windows + D y recuerda dónde la dejaste.
+- **Modo mini**: ventana chica, siempre encima, en la esquina de abajo a la derecha.
 - Opción **Abrir al iniciar Windows** (arranca escondida en la bandeja).
 
 Comandos (PowerShell, dentro de `Andamia`):
