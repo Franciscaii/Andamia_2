@@ -31,9 +31,9 @@ El `.apk` se crea gratis en GitHub Actions (archivo `.github/workflows/android.y
 pestaña **Actions** → **App de Android** → **Run workflow**, y al terminar se descarga
 `Andamia-Android` desde la sección *Artifacts*.
 
-Secretos que el repositorio necesita (Settings → Secrets and variables → Actions):
-`VITE_FIREBASE_*` (los mismos de `.env.local`), `ANDAMIA_LLAVE_BASE64` (la llave .jks en base64)
-y `ANDAMIA_LLAVE_CLAVE`.
+La configuración pública de Firebase va en `.env.android`. La llave de firma va en dos secretos
+del repositorio (Settings → Secrets and variables → Actions): `ANDAMIA_LLAVE_BASE64` (la llave .jks
+en base64) y `ANDAMIA_LLAVE_CLAVE` (su contraseña).
 
 **La llave de firma (`andamia-android.jks`) y su contraseña no van en el repositorio.**
 Sin ellas no se puede actualizar la app instalada.

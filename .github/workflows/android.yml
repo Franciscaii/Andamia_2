@@ -14,41 +14,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Preparar la llave de firma
+        id: llave
+        env:
+          LLAVE: ${{ secrets.ANDAMIA_LLAVE_BASE64 }}
+        run: |
+          if [ -z "$LLAVE" ]; then
+            echo "::warning::Todavía no está el secreto ANDAMIA_LLAVE_BASE64 (ver docs/apps-nativas.md). No se crea el .apk."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$LLAVE" | base64 -d > "$RUNNER_TEMP/andamia-android.jks"
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.llave.outputs.ok == 'true'
         with:
           node-version: 22
           cache: npm
 
       - uses: actions/setup-java@v4
+        if: steps.llave.outputs.ok == 'true'
         with:
           distribution: temurin
           java-version: 21
 
       - name: Instalar dependencias
+        if: steps.llave.outputs.ok == 'true'
         run: npm ci
 
-      - name: Configuración de Firebase
-        # Son los mismos datos públicos que ya usa la web publicada.
-        run: |
-          cat > .env.local <<FIN
-          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}
-          FIN
-
       - name: Compilar la web
-        run: npm run build
+        if: steps.llave.outputs.ok == 'true'
+        # Usa .env.android (configuración pública de Firebase).
+        run: npm run build -- --mode android
 
       - name: Copiar la web a Android
+        if: steps.llave.outputs.ok == 'true'
         run: npx cap sync android
 
-      - name: Preparar la llave de firma
-        run: echo "${{ secrets.ANDAMIA_LLAVE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/andamia-android.jks"
-
       - name: Crear el .apk
+        if: steps.llave.outputs.ok == 'true'
         working-directory: android
         env:
           ANDAMIA_LLAVE_ARCHIVO: ${{ runner.temp }}/andamia-android.jks
@@ -59,6 +64,7 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Andamia-Android.apk"
 
       - uses: actions/upload-artifact@v4
+        if: steps.llave.outputs.ok == 'true'
         with:
           name: Andamia-Android
           path: Andamia-Android.apk
