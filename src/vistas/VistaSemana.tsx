@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -54,7 +54,7 @@ interface Arrastre {
   arrastrando: boolean;
 }
 
-function FilaTareaSemana({ tarea, abierta, hoy, arrastre }: { tarea: Tarea; abierta: boolean; hoy: Date; arrastre?: Arrastre }) {
+function FilaTareaSemana({ tarea, abierta, hoy, arrastre, estrecha = false }: { tarea: Tarea; abierta: boolean; hoy: Date; arrastre?: Arrastre; estrecha?: boolean }) {
   const completarTarea = useTienda((s) => s.completarTarea);
   const etiquetas = useTienda((s) => s.etiquetas);
   const hecha = tarea.estado === "completada";
@@ -64,6 +64,14 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre }: { tarea: Tarea; abie
   const fecha = fechaDeTarea(tarea);
   const atrasada = !hecha && fecha !== null && fecha < hoy && !isSameDay(fecha, hoy);
   const etiqueta = tarea.etiquetas[0] ? etiquetas.find((e) => e.nombre === tarea.etiquetas[0]) : undefined;
+  const pildora = etiqueta && (
+    <span
+      className={`truncate rounded-full border px-2 py-0.5 text-xs font-medium ${estrecha ? "max-w-full leading-4" : "max-w-[40%] shrink-0"}`}
+      style={{ color: etiqueta.color, borderColor: etiqueta.color, background: `color-mix(in srgb, ${etiqueta.color} 14%, transparent)` }}
+    >
+      {etiqueta.nombreVisible}
+    </span>
+  );
 
   return (
     <li
@@ -91,7 +99,7 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre }: { tarea: Tarea; abie
       </button>
       <button type="button" onClick={() => irA(SECCION, tarea.id)} className="min-w-0 flex-1 text-left">
         <span className={`block text-sm break-words ${hecha ? "text-tenue line-through" : ""}`}>{tarea.titulo || "Sin título"}</span>
-        {(dificultad !== "ninguna" || hora(tarea) || atrasada) && (
+        {(dificultad !== "ninguna" || hora(tarea) || atrasada || (estrecha && pildora)) && (
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
             {dificultad !== "ninguna" && (
               <span
@@ -106,35 +114,30 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre }: { tarea: Tarea; abie
             )}
             {hora(tarea) && <span className="text-tenue tabular-nums">{hora(tarea)}</span>}
             {atrasada && <span className="font-medium text-peligro">Atrasada</span>}
+            {estrecha && pildora}
           </span>
         )}
       </button>
-      {etiqueta && (
-        <span
-          className="max-w-[40%] shrink-0 truncate rounded-full border px-2 py-0.5 text-xs font-medium"
-          style={{ color: etiqueta.color, borderColor: etiqueta.color, background: `color-mix(in srgb, ${etiqueta.color} 14%, transparent)` }}
-        >
-          {etiqueta.nombreVisible}
-        </span>
-      )}
+      {!estrecha && pildora}
     </li>
   );
 }
 
-function FilaOrdenableSemana({ tarea, abierta, hoy }: { tarea: Tarea; abierta: boolean; hoy: Date }) {
+function FilaOrdenableSemana({ tarea, abierta, hoy, estrecha }: { tarea: Tarea; abierta: boolean; hoy: Date; estrecha: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tarea.id });
   return (
     <FilaTareaSemana
       tarea={tarea}
       abierta={abierta}
       hoy={hoy}
+      estrecha={estrecha}
       arrastre={{ ref: setNodeRef, estilo: { transform: CSS.Translate.toString(transform), transition }, asa: { ...attributes, ...listeners }, arrastrando: isDragging }}
     />
   );
 }
 
 /** Pendientes del día: se suben o bajan arrastrando el asa (o con Espacio y las flechas). */
-function PendientesOrdenables({ tareas, tareaAbierta, hoy }: { tareas: Tarea[]; tareaAbierta: string | null; hoy: Date }) {
+function PendientesOrdenables({ tareas, tareaAbierta, hoy, estrecha = false }: { tareas: Tarea[]; tareaAbierta: string | null; hoy: Date; estrecha?: boolean }) {
   const reordenar = useTienda((s) => s.reordenar);
   const sensores = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -158,7 +161,7 @@ function PendientesOrdenables({ tareas, tareaAbierta, hoy }: { tareas: Tarea[]; 
       <SortableContext items={tareas.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <ul aria-label="Tareas" className="mt-2">
           {tareas.map((t) => (
-            <FilaOrdenableSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={hoy} />
+            <FilaOrdenableSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={hoy} estrecha={estrecha} />
           ))}
         </ul>
       </SortableContext>
@@ -308,6 +311,20 @@ export function MenuNuevo({ alElegir }: { alElegir: (tipo: TipoNuevo | "habito")
 export type Alcance = "dia" | "semana";
 const CLAVE_ALCANCE = "andamia-semana-alcance";
 
+/** La vista de 7 días es solo para pantallas de computador (1024 px o más). */
+const CONSULTA_ESCRITORIO = "(min-width: 1024px)";
+
+function useEsEscritorio(): boolean {
+  const [es, setEs] = useState(() => typeof window !== "undefined" && window.matchMedia(CONSULTA_ESCRITORIO).matches);
+  useEffect(() => {
+    const m = window.matchMedia(CONSULTA_ESCRITORIO);
+    const alCambiar = () => setEs(m.matches);
+    m.addEventListener("change", alCambiar);
+    return () => m.removeEventListener("change", alCambiar);
+  }, []);
+  return es;
+}
+
 function leerAlcance(): Alcance {
   try {
     return localStorage.getItem(CLAVE_ALCANCE) === "semana" ? "semana" : "dia";
@@ -348,7 +365,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compact
               <BarraProgreso {...contenido.progreso} />
             </div>
             {pendientes.length > 0 ? (
-              <PendientesOrdenables tareas={pendientes} tareaAbierta={tareaAbierta} hoy={ahora} />
+              <PendientesOrdenables tareas={pendientes} tareaAbierta={tareaAbierta} hoy={ahora} estrecha={compacto} />
             ) : (
               <p className="px-2 py-4 text-sm text-tenue">{hechas.length ? "¡Todo listo por hoy!" : "No hay tareas este día. Toca + para añadir."}</p>
             )}
@@ -359,7 +376,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compact
               {hechas.length > 0 ? (
                 <ul className="mt-1">
                   {hechas.map((t) => (
-                    <FilaTareaSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={ahora} />
+                    <FilaTareaSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={ahora} estrecha={compacto} />
                   ))}
                 </ul>
               ) : (
@@ -379,7 +396,9 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const ahora = new Date();
   const [elegido, setElegido] = useState(() => new Date());
   const [filtro, setFiltro] = useState<FiltroSemana>("todos");
-  const [alcance, setAlcanceEstado] = useState<Alcance>(leerAlcance);
+  const [alcanceGuardado, setAlcanceEstado] = useState<Alcance>(leerAlcance);
+  const esEscritorio = useEsEscritorio();
+  const alcance: Alcance = esEscritorio ? alcanceGuardado : "dia";
   const [creando, setCreando] = useState<TipoNuevo | "habito" | null>(null);
 
   const setAlcance = (a: Alcance) => {
@@ -398,11 +417,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const mes = (mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1)) + (elegido.getFullYear() !== ahora.getFullYear() ? ` ${elegido.getFullYear()}` : "");
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
-  const elegirDia = (d: Date) => {
-    setElegido(d);
-    // En la vista de 7 días, tocar un día lleva hasta él.
-    if (alcance === "semana") document.getElementById(`dia-${format(d, "yyyy-MM-dd")}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const elegirDia = (d: Date) => setElegido(d);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="px-4 pt-4 pb-2 sm:px-6">
@@ -418,7 +433,27 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               <ChevronRight size={18} />
             </button>
           </div>
-          <div role="group" aria-label="Mostrar" className="ml-auto flex min-w-0 gap-0.5 rounded-md bg-suave p-0.5">
+          {esEscritorio && (
+            <div role="group" aria-label="Ver" className="ml-auto flex gap-0.5 rounded-md bg-suave p-0.5">
+              {(
+                [
+                  { id: "dia", nombre: "Día" },
+                  { id: "semana", nombre: "7 días" },
+                ] as const
+              ).map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  aria-pressed={alcance === o.id}
+                  onClick={() => setAlcance(o.id)}
+                  className={`rounded px-2.5 py-1 text-xs ${alcance === o.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+                >
+                  {o.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+          <div role="group" aria-label="Mostrar" className={`${esEscritorio ? "" : "ml-auto "}flex min-w-0 gap-0.5 rounded-md bg-suave p-0.5`}>
             {FILTROS.map((f) => (
               <button
                 key={f.id}
@@ -434,27 +469,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
           <MenuNuevo alElegir={setCreando} />
         </div>
 
-        <div className="mt-3 flex justify-end">
-          <div role="group" aria-label="Ver" className="flex gap-0.5 rounded-md bg-suave p-0.5">
-            {(
-              [
-                { id: "dia", nombre: "Día" },
-                { id: "semana", nombre: "7 días" },
-              ] as const
-            ).map((o) => (
-              <button
-                key={o.id}
-                type="button"
-                aria-pressed={alcance === o.id}
-                onClick={() => setAlcance(o.id)}
-                className={`rounded px-2.5 py-1 text-xs ${alcance === o.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
-              >
-                {o.nombre}
-              </button>
-            ))}
-          </div>
-        </div>
 
+        {alcance === "dia" && (
         <div className="mt-2 grid grid-cols-7 gap-1" role="group" aria-label="Días de la semana">
           {dias.map((d) => {
             const activo = isSameDay(d, elegido);
@@ -478,20 +494,33 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
             );
           })}
         </div>
+        )}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
-        {alcance === "dia" ? (
+      {alcance === "dia" ? (
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
           <ContenidoDia dia={elegido} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto={false} />
-        ) : (
-          dias.map((d) => (
-            <section key={d.toISOString()} id={`dia-${format(d, "yyyy-MM-dd")}`} aria-label={tituloDelDia(d, ahora)} data-testid="dia-semana" className="mb-5 scroll-mt-2">
-              <h2 className={`mb-2 text-sm font-semibold ${isSameDay(d, ahora) ? "text-acento" : ""}`}>{tituloDelDia(d, ahora)}</h2>
-              <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto />
-            </section>
-          ))
-        )}
-      </div>
+        </div>
+      ) : (
+        // En el computador: los 7 días uno al lado del otro, cada uno en su columna.
+        <div className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-6 sm:px-6">
+          <div className="grid min-h-full grid-cols-[repeat(7,minmax(10rem,1fr))] gap-3">
+            {dias.map((d) => {
+              const esHoy = isSameDay(d, ahora);
+              return (
+                <section key={d.toISOString()} aria-label={tituloDelDia(d, ahora)} data-testid="dia-semana" className={`min-w-0 rounded-xl p-2 ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}>
+                  <h2 className="mb-2 flex items-baseline gap-1.5 px-1">
+                    <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
+                    <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
+                    {esHoy && <span className="text-xs font-medium text-acento">Hoy</span>}
+                  </h2>
+                  <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto />
+                </section>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {(creando === "tarea" || creando === "evento") && <DialogoNuevo tipo={creando} dia={elegido} alCerrar={() => setCreando(null)} />}
       {creando === "habito" && <DialogoHabito habito={null} alCerrar={() => setCreando(null)} />}

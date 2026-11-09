@@ -383,6 +383,12 @@ test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   // Se recuerda al volver.
   await page.reload();
   await expect(page.getByTestId("dia-semana")).toHaveCount(7);
+  // En una pantalla de celular no se ofrece: siempre un día.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("group", { name: "Ver" })).toHaveCount(0);
+  await expect(page.getByTestId("dia-semana")).toHaveCount(0);
+  await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
   await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
 });
