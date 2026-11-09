@@ -10,7 +10,8 @@ export type Seccion =
   | { tipo: "enfoque" }
   | { tipo: "habitos" }
   | { tipo: "ajustes" }
-  | { tipo: "buscar" };
+  | { tipo: "buscar" }
+  | { tipo: "estadisticas"; de: "tareas" | "habitos" };
 
 export type ModoCalendario = "mes" | "semana";
 
@@ -35,6 +36,7 @@ export function leerRuta(hash: string): Ruta {
   if (a === "calendario") return { seccion: { tipo: "calendario", modo: b === "semana" ? "semana" : "mes" }, tareaId };
   if (a === "matriz" || a === "enfoque" || a === "habitos" || a === "ajustes") return { seccion: { tipo: a }, tareaId };
   if (a === "buscar") return { seccion: { tipo: "buscar" }, tareaId };
+  if (a === "estadisticas") return { seccion: { tipo: "estadisticas", de: b === "habitos" ? "habitos" : "tareas" }, tareaId };
   return { seccion: INICIO, tareaId };
 }
 
@@ -61,6 +63,9 @@ export function hashDe(seccion: Seccion, tareaId: string | null = null): string 
       break;
     case "buscar":
       base = "#/buscar";
+      break;
+    case "estadisticas":
+      base = `#/estadisticas/${seccion.de}`;
       break;
   }
   return tareaId ? `${base}/t/${encodeURIComponent(tareaId)}` : base;

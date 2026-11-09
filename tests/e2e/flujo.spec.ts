@@ -222,3 +222,33 @@ test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, edi
   await expect(menu.getByRole("link", { name: /^Universidad/ })).toBeVisible();
   await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
 });
+
+test("estadística de tareas: por etiqueta, circular y en el tiempo; tocar una etiqueta atenúa las demás", async ({ page }) => {
+  await page.goto("/");
+  await crearEnSemana(page, "Tarea", "Leer paper #universidad");
+  await crearEnSemana(page, "Tarea", "Cocinar #vidacotidiana");
+  await crearEnSemana(page, "Tarea", "Lavar ropa #vidacotidiana");
+  for (const t of ["Leer paper", "Cocinar", "Lavar ropa"]) await page.getByRole("checkbox", { name: `Completar: ${t}` }).click();
+
+  await page.getByRole("navigation").getByRole("link", { name: "Estadística Tareas" }).click();
+  await expect(page.getByRole("heading", { name: "Mis tareas completadas" })).toBeVisible();
+  const filas = page.getByTestId("fila-grupo");
+  await expect(filas).toHaveCount(2);
+  await expect(filas.first()).toContainText("VidaCotidiana");
+  await expect(filas.first()).toContainText("2 • 67%");
+  await expect(page.getByTestId("grafico-circular")).toContainText("3");
+
+  await filas.nth(1).click();
+  await expect(filas.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("grafico-circular")).toContainText("33%");
+  await expect(page.getByTestId("lista-hechos").getByRole("listitem")).toHaveCount(1);
+  await expect(page.locator('[data-testid="grafico-circular"] path[data-clave="vidacotidiana"]')).toHaveAttribute("opacity", "0.22");
+  await expect(page.locator('[data-testid="grafico-areas"] path[data-clave="universidad"]')).toHaveAttribute("fill-opacity", "0.85");
+
+  // Otro período sin datos.
+  await page.getByRole("button", { name: "Período anterior" }).click();
+  await expect(page.getByText("No completaste tareas en este período.")).toBeVisible();
+
+  await page.getByRole("navigation").getByRole("link", { name: "Estadística Hábitos" }).click();
+  await expect(page.getByRole("heading", { name: "Mis hábitos cumplidos" })).toBeVisible();
+});

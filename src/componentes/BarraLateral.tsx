@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
 import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
@@ -186,6 +186,8 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
         <Fila href={hashDe({ tipo: "calendario", modo: seccion.tipo === "calendario" ? seccion.modo : "mes" })} activa={seccion.tipo === "calendario"} icono={<CalendarRange size={17} />} nombre="Calendario" />
         <Fila href={hashDe({ tipo: "matriz" })} activa={seccion.tipo === "matriz"} icono={<Grid2x2 size={17} />} nombre="Matriz" />
         <Fila href={hashDe({ tipo: "habitos" })} activa={seccion.tipo === "habitos"} icono={<Flame size={17} />} nombre="Hábitos" />
+        <Fila href={hashDe({ tipo: "estadisticas", de: "tareas" })} activa={seccion.tipo === "estadisticas" && seccion.de === "tareas"} icono={<ChartPie size={17} />} nombre="Estadística Tareas" />
+        <Fila href={hashDe({ tipo: "estadisticas", de: "habitos" })} activa={seccion.tipo === "estadisticas" && seccion.de === "habitos"} icono={<ChartArea size={17} />} nombre="Estadística Hábitos" />
 
         {mostrarListas && titulo(
           "Listas",

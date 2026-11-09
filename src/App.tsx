@@ -16,6 +16,7 @@ import { VistaCalendario } from "./vistas/VistaCalendario";
 import { VistaEnfoque } from "./vistas/VistaEnfoque";
 import { VistaHabitos } from "./vistas/VistaHabitos";
 import { VistaMatriz } from "./vistas/VistaMatriz";
+import { VistaEstadisticas } from "./vistas/VistaEstadisticas";
 import { VistaSemana } from "./vistas/VistaSemana";
 import { VistaTareas } from "./vistas/VistaTareas";
 
@@ -126,6 +127,8 @@ export default function App() {
           <VistaEnfoque />
         ) : ruta.seccion.tipo === "habitos" ? (
           <VistaHabitos />
+        ) : ruta.seccion.tipo === "estadisticas" ? (
+          <VistaEstadisticas key={ruta.seccion.de} tipo={ruta.seccion.de} />
         ) : ruta.seccion.tipo === "ajustes" ? (
           <VistaAjustes />
         ) : ruta.seccion.tipo === "vista" && ruta.seccion.vista === "semana" ? (
