@@ -52,7 +52,15 @@ function Apariencia() {
             onClick={() => fijarPaleta(p.id)}
             className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-2 text-xs ${paleta === p.id ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
           >
-            <span className="h-7 w-7 rounded-full" style={{ background: p.muestra }} />
+            {/* Miniatura del tema: menú, fondo, una tarjeta y el acento. */}
+            <span aria-hidden="true" className="flex h-12 w-16 overflow-hidden rounded-md border border-borde" style={{ background: p.fondo }}>
+              <span className="w-4" style={{ background: p.lateral }} />
+              <span className="flex flex-1 flex-col gap-1 p-1.5">
+                <span className="h-1.5 w-full rounded-sm" style={{ background: p.muestra }} />
+                <span className="h-1.5 w-3/4 rounded-sm bg-white/90 shadow-sm" />
+                <span className="h-1.5 w-3/4 rounded-sm bg-white/90 shadow-sm" />
+              </span>
+            </span>
             {p.nombre}
           </button>
         ))}

@@ -1,13 +1,13 @@
-/** Temas de color de Andamia: cambian el color de acento (botones, día de hoy, menú). */
+/** Temas de color de Andamia: cada uno tiñe toda la app (fondo, menú, tarjetas y acento). */
 export type Paleta = "oceano" | "lavanda" | "coral" | "rosa" | "grafito" | "verde";
 
-export const PALETAS: { id: Paleta; nombre: string; muestra: string }[] = [
-  { id: "oceano", nombre: "Océano", muestra: "#2f6fb0" },
-  { id: "lavanda", nombre: "Lavanda", muestra: "#7a52c7" },
-  { id: "coral", nombre: "Coral", muestra: "#c4553f" },
-  { id: "rosa", nombre: "Rosa", muestra: "#c2457f" },
-  { id: "grafito", nombre: "Grafito", muestra: "#4a5058" },
-  { id: "verde", nombre: "Verde", muestra: "#2f6b5e" },
+export const PALETAS: { id: Paleta; nombre: string; muestra: string; fondo: string; lateral: string }[] = [
+  { id: "oceano", nombre: "Océano", muestra: "#2f6fb0", fondo: "#f3f7fc", lateral: "#e2ecf8" },
+  { id: "lavanda", nombre: "Lavanda", muestra: "#7a52c7", fondo: "#f7f4fc", lateral: "#ebe4f8" },
+  { id: "coral", nombre: "Coral", muestra: "#c4553f", fondo: "#fcf5f2", lateral: "#f7e5dd" },
+  { id: "rosa", nombre: "Rosa", muestra: "#c2457f", fondo: "#fcf4f8", lateral: "#f8e3ed" },
+  { id: "grafito", nombre: "Grafito", muestra: "#4a5058", fondo: "#f4f5f6", lateral: "#e6e8eb" },
+  { id: "verde", nombre: "Verde", muestra: "#2f6b5e", fondo: "#faf8f4", lateral: "#f1eee7" },
 ];
 
 /** Francisca dejó de querer el verde: el tema por defecto es Océano. */

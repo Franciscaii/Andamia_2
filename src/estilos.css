@@ -72,53 +72,124 @@
   color-scheme: dark;
 }
 
-/* Temas de color (src/logica/paletas.ts). Sin data-paleta o con "verde" queda el verde original. */
+/* Temas de color (src/logica/paletas.ts): cada uno tiñe toda la app (fondo, menú, tarjetas, bordes, textos y acento).
+   Sin data-paleta o con "verde" queda el tema original. */
 html[data-paleta="oceano"] {
+  --fondo: #f3f7fc;
+  --panel: #ffffff;
+  --lateral: #e2ecf8;
+  --suave: #d9e5f3;
+  --borde: #c7d7ea;
+  --texto: #1c2733;
+  --tenue: #5b6a7a;
   --acento: #2f6fb0;
   --acento-suave: #dde8f5;
   --sobre-acento: #ffffff;
 }
 html.dark[data-paleta="oceano"] {
+  --fondo: #0f1722;
+  --panel: #172231;
+  --lateral: #0b121b;
+  --suave: #213044;
+  --borde: #2c3d54;
+  --texto: #e3ebf5;
+  --tenue: #94a5b8;
   --acento: #7cb0e8;
   --acento-suave: #1f3047;
   --sobre-acento: #0e1a28;
 }
 html[data-paleta="lavanda"] {
+  --fondo: #f7f4fc;
+  --panel: #ffffff;
+  --lateral: #ebe4f8;
+  --suave: #e3daf3;
+  --borde: #d3c7ea;
+  --texto: #261f33;
+  --tenue: #685d78;
   --acento: #7a52c7;
   --acento-suave: #ebe2f8;
   --sobre-acento: #ffffff;
 }
 html.dark[data-paleta="lavanda"] {
+  --fondo: #15111f;
+  --panel: #1e182b;
+  --lateral: #100c17;
+  --suave: #2a2240;
+  --borde: #382e52;
+  --texto: #ebe5f5;
+  --tenue: #a89cbc;
   --acento: #b59ae8;
   --acento-suave: #34284a;
   --sobre-acento: #1a1226;
 }
 html[data-paleta="coral"] {
+  --fondo: #fcf5f2;
+  --panel: #ffffff;
+  --lateral: #f7e5dd;
+  --suave: #f1dbd2;
+  --borde: #e6cabd;
+  --texto: #33231e;
+  --tenue: #785f57;
   --acento: #c4553f;
   --acento-suave: #f8e1db;
   --sobre-acento: #ffffff;
 }
 html.dark[data-paleta="coral"] {
+  --fondo: #1c1311;
+  --panel: #271b18;
+  --lateral: #150e0c;
+  --suave: #36251f;
+  --borde: #47312a;
+  --texto: #f5e8e3;
+  --tenue: #bba198;
   --acento: #ef8f78;
   --acento-suave: #4a2a23;
   --sobre-acento: #22110d;
 }
 html[data-paleta="rosa"] {
+  --fondo: #fcf4f8;
+  --panel: #ffffff;
+  --lateral: #f8e3ed;
+  --suave: #f2d8e5;
+  --borde: #e8c6d7;
+  --texto: #33202a;
+  --tenue: #785c6a;
   --acento: #c2457f;
   --acento-suave: #f8dfeb;
   --sobre-acento: #ffffff;
 }
 html.dark[data-paleta="rosa"] {
+  --fondo: #1c1218;
+  --panel: #271a22;
+  --lateral: #150d12;
+  --suave: #362430;
+  --borde: #47303f;
+  --texto: #f5e5ee;
+  --tenue: #bb9dad;
   --acento: #ec8fb8;
   --acento-suave: #47243a;
   --sobre-acento: #220f19;
 }
 html[data-paleta="grafito"] {
+  --fondo: #f4f5f6;
+  --panel: #ffffff;
+  --lateral: #e6e8eb;
+  --suave: #dde0e4;
+  --borde: #ccd1d7;
+  --texto: #202429;
+  --tenue: #5d636b;
   --acento: #4a5058;
   --acento-suave: #e4e6e9;
   --sobre-acento: #ffffff;
 }
 html.dark[data-paleta="grafito"] {
+  --fondo: #141618;
+  --panel: #1c1f22;
+  --lateral: #0f1112;
+  --suave: #272b2f;
+  --borde: #33383d;
+  --texto: #e6e8ea;
+  --tenue: #9aa0a7;
   --acento: #b4bac2;
   --acento-suave: #30353b;
   --sobre-acento: #15181b;
