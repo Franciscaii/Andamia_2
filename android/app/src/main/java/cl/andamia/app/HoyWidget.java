@@ -13,7 +13,7 @@ import java.util.Date;
 import java.util.Locale;
 import org.json.JSONObject;
 
-/** Widget "Hoy": las tareas de hoy, con círculo para marcarlas y un botón "+". */
+/** Widget "Hoy": eventos, progreso del día y tareas de hoy, con casilla para marcarlas y un botón "+". */
 public class HoyWidget extends AppWidgetProvider {
 
     @Override
@@ -34,6 +34,7 @@ public class HoyWidget extends AppWidgetProvider {
         return PendingIntent.getActivity(contexto, codigo, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
+    /** "Hoy, lun 9 de noviembre", como en la semana de la app. */
     private static String titulo(Context contexto) {
         String hoy = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
         String json = DatosWidget.leerTareas(contexto);
@@ -41,11 +42,11 @@ public class HoyWidget extends AppWidgetProvider {
         try {
             JSONObject datos = new JSONObject(json);
             if (!hoy.equals(datos.optString("fecha"))) return "Hoy · abre Andamia";
+            String titulo = datos.optString("titulo");
+            return titulo.isEmpty() ? "Hoy" : titulo;
         } catch (Exception e) {
             return "Hoy";
         }
-        int cantidad = new FabricaListaHoy(contexto).cantidadVisible();
-        return cantidad == 0 ? "Hoy" : "Hoy · " + cantidad;
     }
 
     static void dibujar(Context contexto, AppWidgetManager gestor, int idWidget) {

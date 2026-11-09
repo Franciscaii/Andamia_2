@@ -28,7 +28,7 @@ function TarjetaMatriz({ tarea, abierta }: { tarea: Tarea; abierta: boolean }) {
   );
 }
 
-function ZonaCuadrante({ cuadrante, tareas, tareaAbierta, listaId, etiqueta }: { cuadrante: Cuadrante; tareas: Tarea[]; tareaAbierta: string | null; listaId: string | null; etiqueta: string | null }) {
+function ZonaCuadrante({ numero, cuadrante, tareas, tareaAbierta, listaId, etiqueta }: { numero: number; cuadrante: Cuadrante; tareas: Tarea[]; tareaAbierta: string | null; listaId: string | null; etiqueta: string | null }) {
   const crearTarea = useTienda((s) => s.crearTarea);
   const listas = useTienda((s) => s.listas);
   const { setNodeRef, isOver } = useDroppable({ id: cuadrante.id });
@@ -46,7 +46,9 @@ function ZonaCuadrante({ cuadrante, tareas, tareaAbierta, listaId, etiqueta }: {
   return (
     <section ref={setNodeRef} aria-label={cuadrante.nombre} data-testid="cuadrante" className={`flex min-h-64 min-w-0 flex-col rounded-xl border bg-panel p-3 lg:min-h-0 ${isOver ? "border-acento bg-acento-suave" : "border-borde"}`}>
       <header className="mb-2 flex items-start gap-2">
-        <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLOR_PRIORIDAD[cuadrante.prioridad] }} />
+        <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold" style={{ borderColor: COLOR_PRIORIDAD[cuadrante.prioridad], color: COLOR_PRIORIDAD[cuadrante.prioridad] }}>
+          {numero}
+        </span>
         <div className="min-w-0">
           <h2 className="text-sm font-semibold">
             {cuadrante.nombre} <span className="font-normal text-tenue">{tareas.length}</span>
@@ -78,7 +80,7 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
   const listas = useTienda((s) => s.listas);
   const etiquetas = useTienda((s) => s.etiquetas);
   const actualizarTarea = useTienda((s) => s.actualizarTarea);
-  const [listaId, setListaId] = useState<string | null>(null);
+  const listaId: string | null = null;
   const [etiqueta, setEtiqueta] = useState<string | null>(null);
   const [activa, setActiva] = useState<Tarea | null>(null);
 
@@ -98,15 +100,6 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
       <header className="flex flex-wrap items-center gap-2 px-5 pt-5 pb-3">
         <h1 className="text-xl font-semibold">Matriz de Eisenhower</h1>
         <div className="flex flex-wrap gap-2 sm:ml-auto">
-          <select aria-label="Filtrar por lista" className={`${claseCampo} !w-auto`} value={listaId ?? ""} onChange={(e) => setListaId(e.target.value || null)}>
-            <option value="">Todas las listas</option>
-            <option value={LISTA_BANDEJA}>Bandeja de entrada</option>
-            {listas.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.nombre}
-              </option>
-            ))}
-          </select>
           <select aria-label="Filtrar por etiqueta" className={`${claseCampo} !w-auto`} value={etiqueta ?? ""} onChange={(e) => setEtiqueta(e.target.value || null)}>
             <option value="">Todas las etiquetas</option>
             {etiquetas.map((e) => (
@@ -129,8 +122,8 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
         }}
       >
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-5 pb-5 lg:grid-cols-2 lg:grid-rows-2">
-          {CUADRANTES.map((c) => (
-            <ZonaCuadrante key={c.id} cuadrante={c} tareas={reparto[c.id]} tareaAbierta={tareaAbierta} listaId={listaId} etiqueta={etiqueta} />
+          {CUADRANTES.map((c, i) => (
+            <ZonaCuadrante key={c.id} numero={i + 1} cuadrante={c} tareas={reparto[c.id]} tareaAbierta={tareaAbierta} listaId={listaId} etiqueta={etiqueta} />
           ))}
         </div>
         <DragOverlay dropAnimation={null}>

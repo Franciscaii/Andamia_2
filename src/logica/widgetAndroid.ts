@@ -2,10 +2,10 @@ import { registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { format } from "date-fns";
 import { useTienda } from "../datos/tienda";
-import type { Lista, Prioridad, Tarea } from "../modelos/tipos";
+import type { Etiqueta, Lista, Prioridad, Tarea } from "../modelos/tipos";
 import { diasHasta, fechaDeTarea } from "./fechas";
 import { irA } from "./ruta";
-import { tareasDeVista } from "./vistas";
+import { contenidoDelDia, dificultadDe, tituloDelDia } from "./semana";
 
 /** Puente con el widget "Hoy" de Android (android/app/src/main/java/cl/andamia/app). */
 interface PluginWidget {
@@ -18,22 +18,33 @@ const widget = registerPlugin<PluginWidget>("AndamiaWidget");
 const MAX_TAREAS = 30;
 const NIVEL: Record<Prioridad, number> = { ninguna: 0, baja: 1, media: 2, alta: 3 };
 
-/** Lo que el widget muestra: solo lo necesario para dibujar cada fila. */
-export function datosDelWidget(tareas: Tarea[], listas: Lista[], ahora: Date = new Date()) {
+/** Lo que el widget muestra: el día de hoy como en la semana (eventos, progreso y tareas). */
+export function datosDelWidget(tareas: Tarea[], listas: Lista[], ahora: Date = new Date(), etiquetas: Etiqueta[] = []) {
   const nombreLista = new Map(listas.map((l) => [l.id, l.nombre]));
-  const deHoy = tareasDeVista(tareas, "hoy", listas, ahora).slice(0, MAX_TAREAS);
+  const etiquetaPorNombre = new Map(etiquetas.map((e) => [e.nombre, e]));
+  const hoy = contenidoDelDia(tareas, listas, ahora, ahora);
+  const hora = (t: Tarea) => {
+    const fecha = fechaDeTarea(t);
+    return fecha && !t.todoElDia ? format(fecha, "HH:mm") : "";
+  };
   return {
     fecha: format(ahora, "yyyy-MM-dd"),
-    tareas: deHoy.map((t) => {
-      const fecha = fechaDeTarea(t);
-      const hora = fecha && !t.todoElDia ? format(fecha, "HH:mm") : "";
+    titulo: tituloDelDia(ahora, ahora),
+    eventos: hoy.eventos.slice(0, MAX_TAREAS).map((t) => ({ id: t.id, titulo: t.titulo, hora: hora(t) })),
+    tareas: hoy.tareas.slice(0, MAX_TAREAS).map((t) => {
       const lista = t.listaId !== "bandeja" ? nombreLista.get(t.listaId) ?? "" : "";
+      const etiqueta = t.etiquetas[0] ? etiquetaPorNombre.get(t.etiquetas[0]) : undefined;
       return {
         id: t.id,
         titulo: t.titulo,
-        detalle: [hora, lista].filter(Boolean).join(" · "),
-        atrasada: (diasHasta(t, ahora) ?? 0) < 0,
+        detalle: [hora(t), lista].filter(Boolean).join(" · "),
+        atrasada: t.estado === "pendiente" && (diasHasta(t, ahora) ?? 0) < 0,
+        hecha: t.estado === "completada",
+        /** Importancia. */
         prioridad: NIVEL[t.prioridad] ?? 0,
+        dificultad: NIVEL[dificultadDe(t)] ?? 0,
+        etiqueta: etiqueta?.nombreVisible ?? t.etiquetas[0] ?? "",
+        colorEtiqueta: etiqueta?.color ?? "",
       };
     }),
   };
@@ -43,9 +54,9 @@ let ultimoEnviado = "";
 let temporizador: ReturnType<typeof setTimeout> | null = null;
 
 function enviarAlWidget(): void {
-  const { cargando, tareas, listas } = useTienda.getState();
+  const { cargando, tareas, listas, etiquetas } = useTienda.getState();
   if (cargando) return;
-  const datos = JSON.stringify(datosDelWidget(tareas, listas));
+  const datos = JSON.stringify(datosDelWidget(tareas, listas, new Date(), etiquetas));
   if (datos === ultimoEnviado) return;
   ultimoEnviado = datos;
   void widget.actualizar({ datos }).catch(() => {
@@ -75,8 +86,13 @@ async function aplicarMarcadasEnWidget(): Promise<void> {
 
 function enfocarEntradaRapida(intentos = 0): void {
   const campo = document.getElementById("entrada-rapida");
+  const boton = document.querySelector<HTMLButtonElement>("[data-nueva-tarea]");
   if (campo) campo.focus();
-  else if (intentos < 30) setTimeout(() => enfocarEntradaRapida(intentos + 1), 100);
+  else if (boton) {
+    // En la semana, el + abre un menú: se elige "Tarea" y su campo se enfoca solo.
+    boton.click();
+    setTimeout(() => document.querySelector<HTMLButtonElement>('[data-crear="tarea"]')?.click(), 0);
+  } else if (intentos < 30) setTimeout(() => enfocarEntradaRapida(intentos + 1), 100);
 }
 
 /** Abre lo que pidió el widget: andamia://hoy, andamia://nueva o andamia://tarea/ID. */
@@ -88,7 +104,8 @@ export function abrirEnlace(url: string): void {
     return;
   }
   if (destino.protocol !== "andamia:") return;
-  const hoy = { tipo: "vista", vista: "hoy" } as const;
+  // La semana abre en el día de hoy.
+  const hoy = { tipo: "vista", vista: "semana" } as const;
   if (destino.host === "nueva") {
     irA(hoy);
     enfocarEntradaRapida();
@@ -103,7 +120,7 @@ export function abrirEnlace(url: string): void {
 export async function iniciarWidgetAndroid(): Promise<void> {
   useTienda.subscribe((estado, previo) => {
     if (previo.cargando && !estado.cargando) void aplicarMarcadasEnWidget();
-    if (estado.tareas !== previo.tareas || estado.listas !== previo.listas || estado.cargando !== previo.cargando) programarEnvio();
+    if (estado.tareas !== previo.tareas || estado.listas !== previo.listas || estado.etiquetas !== previo.etiquetas || estado.cargando !== previo.cargando) programarEnvio();
   });
   await App.addListener("appUrlOpen", ({ url }) => abrirEnlace(url));
   await App.addListener("resume", () => {

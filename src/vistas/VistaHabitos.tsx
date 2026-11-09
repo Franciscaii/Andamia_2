@@ -13,7 +13,7 @@ import { COLORES_LISTA, type EstadoHabito, type FrecuenciaHabito, type Habito, t
 
 const NOMBRES_ESTADO: Record<EstadoHabito | "vacio", string> = { hecho: "hecho", parcial: "parcial", "no-hecho": "no hecho", vacio: "sin marcar" };
 
-function DialogoHabito({ habito, alCerrar }: { habito: Habito | null; alCerrar: () => void }) {
+export function DialogoHabito({ habito, alCerrar }: { habito: Habito | null; alCerrar: () => void }) {
   const crearHabito = useTienda((s) => s.crearHabito);
   const actualizarHabito = useTienda((s) => s.actualizarHabito);
   const [nombre, setNombre] = useState(habito?.nombre ?? "");

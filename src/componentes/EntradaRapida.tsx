@@ -13,7 +13,7 @@ import { COLOR_PRIORIDAD } from "./FilaTarea";
 /** Lo escrito manda; lo demás lo aporta el lugar donde se crea la tarea. */
 export function datosDesdeEntrada(
   lectura: EntradaInterpretada,
-  destino: { listaId?: string; etiqueta?: string; vence?: string; todoElDia?: boolean; columnaId?: string; prioridad?: Prioridad },
+  destino: { listaId?: string; etiqueta?: string; vence?: string; todoElDia?: boolean; columnaId?: string; prioridad?: Prioridad; esEvento?: boolean },
 ): DatosNuevaTarea {
   const vence = lectura.vence ?? destino.vence ?? null;
   const todoElDia = lectura.vence ? lectura.todoElDia : vence !== null && (destino.todoElDia ?? true);
@@ -21,6 +21,7 @@ export function datosDesdeEntrada(
     titulo: lectura.titulo,
     listaId: lectura.listaId ?? destino.listaId ?? LISTA_BANDEJA,
     prioridad: lectura.prioridad ?? destino.prioridad ?? "ninguna",
+    esEvento: destino.esEvento ?? false,
     vence,
     todoElDia,
     etiquetas: [...lectura.etiquetas, ...(destino.etiqueta ? [destino.etiqueta] : [])],
@@ -50,12 +51,21 @@ function Dato({ icono, texto, color }: { icono: React.ReactNode; texto: string; 
   );
 }
 
-export function EntradaRapida({ seccion }: { seccion: Seccion }) {
+interface PropsEntrada {
+  seccion: Seccion;
+  /** Reemplaza lo que aporta la vista, por ejemplo el día elegido en la semana. */
+  destinoFijo?: { vence?: string; esEvento?: boolean };
+  /** Se llama después de crear, por ejemplo para cerrar el campo. */
+  alCrear?: () => void;
+  autoFocus?: boolean;
+}
+
+export function EntradaRapida({ seccion, destinoFijo, alCrear, autoFocus }: PropsEntrada) {
   const listas = useTienda((s) => s.listas);
   const crearTarea = useTienda((s) => s.crearTarea);
   const [texto, setTexto] = useState("");
 
-  const destino = datosDeLaVista(seccion);
+  const destino = destinoFijo ?? datosDeLaVista(seccion);
   const lectura = useMemo(() => (texto.trim() ? interpretarEntrada(texto, new Date(), listas) : null), [texto, listas]);
 
   const enviar = async (e: FormEvent) => {
@@ -63,6 +73,7 @@ export function EntradaRapida({ seccion }: { seccion: Seccion }) {
     if (!lectura?.titulo) return;
     setTexto("");
     await crearTarea(datosDesdeEntrada(lectura, destino));
+    alCrear?.();
   };
 
   return (
@@ -71,9 +82,10 @@ export function EntradaRapida({ seccion }: { seccion: Seccion }) {
         <Plus size={17} className="shrink-0 text-tenue" />
         <input
           id="entrada-rapida"
-          aria-label="Añadir tarea"
+          aria-label={destinoFijo?.esEvento ? "Añadir evento" : "Añadir tarea"}
+          autoFocus={autoFocus}
           className="w-full bg-transparent text-sm outline-none placeholder:text-tenue"
-          placeholder="Añadir tarea: Llamar mañana 9am !alta #trabajo"
+          placeholder={destinoFijo?.esEvento ? "Añadir evento: Reunión 15:00" : "Añadir tarea: Llamar mañana 9am !alta #trabajo"}
           autoComplete="off"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}

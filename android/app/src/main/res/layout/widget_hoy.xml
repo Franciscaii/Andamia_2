@@ -43,6 +43,7 @@
         android:layout_height="match_parent"
         android:layout_marginTop="6dp">
 
+        <!-- Eventos, luego la barra de progreso del día y después las tareas. -->
         <ListView
             android:id="@+id/widget_lista"
             android:layout_width="match_parent"

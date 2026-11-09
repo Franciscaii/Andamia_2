@@ -38,7 +38,12 @@ export interface Tarea {
   titulo: string;
   descripcion: string;
   estado: EstadoTarea;
+  /** Importancia: urgencia y valor de la tarea. */
   prioridad: Prioridad;
+  /** Dificultad: tiempo y esfuerzo intelectual. Las tareas antiguas no la tienen. */
+  dificultad?: Prioridad;
+  /** Un evento se muestra en la barra morada de la semana: sin casilla y sin contar en el progreso. */
+  esEvento?: boolean;
   /** "AAAA-MM-DD" si es de todo el día; fecha-hora ISO si lleva hora; null sin fecha. */
   vence: string | null;
   todoElDia: boolean;
@@ -137,3 +142,18 @@ export interface RegistroHabito {
 }
 
 export const COLORES_LISTA = ["#c2553d", "#d48a2c", "#b7a42e", "#4f8a4c", "#2f8f83", "#3f74b5", "#7a5fb0", "#b65583"];
+
+/** Etiquetas del ámbito de la tarea que trae Andamia la primera vez (elegidas por Francisca). */
+export const ETIQUETAS_INICIALES: { nombreVisible: string; color: string }[] = [
+  { nombreVisible: "Otro", color: "#22d3e6" },
+  { nombreVisible: "Vinculos", color: "#e0245e" },
+  { nombreVisible: "Universidad", color: "#14c9a0" },
+  { nombreVisible: "NecesidadBiologica", color: "#5b5bf0" },
+  { nombreVisible: "CuidadoPersonal", color: "#4aa3ef" },
+  { nombreVisible: "DisfrutePersonal", color: "#c96ae8" },
+  { nombreVisible: "VidaCotidiana", color: "#7fa3dc" },
+  { nombreVisible: "DesarrolloProfesional", color: "#ec6c9c" },
+];
+
+/** Colores para elegir al crear o editar una etiqueta. */
+export const COLORES_ETIQUETA = [...new Set([...ETIQUETAS_INICIALES.map((e) => e.color), ...COLORES_LISTA])];

@@ -26,7 +26,8 @@ function tarea(c: Partial<Tarea> = {}): Tarea {
 
 describe("matriz de Eisenhower", () => {
   it("cada cuadrante corresponde a una prioridad, en ambos sentidos", () => {
-    expect(CUADRANTES.map((c) => c.prioridad)).toEqual(["alta", "media", "baja", "ninguna"]);
+    expect(CUADRANTES.map((c) => c.prioridad)).toEqual(["alta", "baja", "media", "ninguna"]);
+    expect(CUADRANTES.map((c) => c.nombre)).toEqual(["Urgente + Importante", "Urgente + No importante", "No urgente + Importante", "No urgente + No importante"]);
     for (const c of CUADRANTES) {
       expect(cuadranteDePrioridad(prioridadDeCuadrante(c.id))).toBe(c.id);
     }

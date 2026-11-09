@@ -6,7 +6,9 @@ import { useTienda } from "./datos/tienda";
 import { irA, useRuta } from "./logica/ruta";
 import { PanelAvisos } from "./componentes/Avisos";
 import { DialogoMigracion } from "./componentes/DialogoMigracion";
-import { iniciarCuenta } from "./datos/cuenta";
+import { iniciarCuenta, useCuenta } from "./datos/cuenta";
+
+const MARCA_ETIQUETAS = "andamia-etiquetas-iniciales";
 import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes } from "./vistas/VistaAjustes";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
@@ -14,6 +16,8 @@ import { VistaCalendario } from "./vistas/VistaCalendario";
 import { VistaEnfoque } from "./vistas/VistaEnfoque";
 import { VistaHabitos } from "./vistas/VistaHabitos";
 import { VistaMatriz } from "./vistas/VistaMatriz";
+import { VistaEstadisticas } from "./vistas/VistaEstadisticas";
+import { VistaSemana } from "./vistas/VistaSemana";
 import { VistaTareas } from "./vistas/VistaTareas";
 
 function MotorEnfoque() {
@@ -36,7 +40,21 @@ export default function App() {
 
   useEffect(() => {
     // Primero se sabe quién usa la app; así no se ven por un instante datos de otra sesión.
-    void iniciarCuenta().then(cargar);
+    void iniciarCuenta()
+      .then(cargar)
+      .then(() => {
+        // Sin Firebase, las etiquetas iniciales se agregan una vez en este equipo.
+        // Con Firebase se agregan al entrar a la cuenta (ver sincronizarAjustes); así
+        // no aparecen como "datos sin cuenta" que haya que copiar.
+        if (useCuenta.getState().configurada) return;
+        try {
+          if (localStorage.getItem(MARCA_ETIQUETAS)) return;
+          localStorage.setItem(MARCA_ETIQUETAS, "si");
+        } catch {
+          return;
+        }
+        void useTienda.getState().sembrarEtiquetas();
+      });
   }, [cargar]);
 
   // Al navegar en pantallas angostas la barra lateral se cierra sola.
@@ -59,6 +77,13 @@ export default function App() {
         if (campo) {
           e.preventDefault();
           campo.focus();
+        } else {
+          // En la semana, la N abre el menú del + (tarea, evento o hábito).
+          const boton = document.querySelector<HTMLButtonElement>("[data-nueva-tarea]");
+          if (boton) {
+            e.preventDefault();
+            boton.click();
+          }
         }
       }
     };
@@ -102,8 +127,12 @@ export default function App() {
           <VistaEnfoque />
         ) : ruta.seccion.tipo === "habitos" ? (
           <VistaHabitos />
+        ) : ruta.seccion.tipo === "estadisticas" ? (
+          <VistaEstadisticas key={ruta.seccion.de} tipo={ruta.seccion.de} />
         ) : ruta.seccion.tipo === "ajustes" ? (
           <VistaAjustes />
+        ) : ruta.seccion.tipo === "vista" && ruta.seccion.vista === "semana" ? (
+          <VistaSemana tareaAbierta={ruta.tareaId} />
         ) : (
           <VistaTareas seccion={ruta.seccion} tareaAbierta={ruta.tareaId} />
         )}

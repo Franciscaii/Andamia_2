@@ -7,7 +7,7 @@ export const VISTAS_INTELIGENTES: { id: VistaInteligente; nombre: string }[] = [
   { id: "todas", nombre: "Todas" },
   { id: "hoy", nombre: "Hoy" },
   { id: "manana", nombre: "Mañana" },
-  { id: "semana", nombre: "Próximos 7 días" },
+  { id: "semana", nombre: "Semana" },
   { id: "bandeja", nombre: "Bandeja de entrada" },
   { id: "completadas", nombre: "Completadas" },
   { id: "papelera", nombre: "Papelera" },

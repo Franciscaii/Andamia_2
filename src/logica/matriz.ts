@@ -10,12 +10,15 @@ export interface Cuadrante {
   prioridad: Prioridad;
 }
 
-/** Diseño de Andamia: cada cuadrante corresponde a un nivel de prioridad. */
+/**
+ * Diseño de Andamia: cada cuadrante corresponde a un nivel de prioridad.
+ * Orden de la usuaria, de izquierda a derecha y de arriba abajo.
+ */
 export const CUADRANTES: Cuadrante[] = [
-  { id: "urgente-importante", nombre: "Urgente e importante", ayuda: "Hazlo ahora", prioridad: "alta" },
-  { id: "importante", nombre: "Importante, no urgente", ayuda: "Planifícalo", prioridad: "media" },
-  { id: "urgente", nombre: "Urgente, no importante", ayuda: "Resuélvelo rápido o delégalo", prioridad: "baja" },
-  { id: "ninguno", nombre: "Ni urgente ni importante", ayuda: "Déjalo para después", prioridad: "ninguna" },
+  { id: "urgente-importante", nombre: "Urgente + Importante", ayuda: "Hazlo ahora", prioridad: "alta" },
+  { id: "urgente", nombre: "Urgente + No importante", ayuda: "Resuélvelo rápido o delégalo", prioridad: "baja" },
+  { id: "importante", nombre: "No urgente + Importante", ayuda: "Suele contribuir a objetivos a largo plazo", prioridad: "media" },
+  { id: "ninguno", nombre: "No urgente + No importante", ayuda: "Déjalo para después", prioridad: "ninguna" },
 ];
 
 export function prioridadDeCuadrante(id: IdCuadrante): Prioridad {

@@ -7,7 +7,7 @@ import { etiquetaFecha } from "../logica/fechas";
 import { avisosDeHabitos } from "../logica/habitos";
 import { avisosPendientes } from "../logica/recordatorios";
 import { mostrarNotificacion, programarAvisos } from "../logica/pwa";
-import { hashDe, irA, type Seccion } from "../logica/ruta";
+import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
 
 const INTERVALO_COMPROBACION_MS = 20_000;
 
@@ -87,7 +87,7 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
   const cerrar = (clave: string) => setAvisos((a) => a.filter((x) => x.clave !== clave));
   const abrir = (a: AvisoVisible) => {
     if (a.tareaId === null) irA({ tipo: "habitos" });
-    else irA(seccion.tipo === "buscar" ? { tipo: "vista", vista: "hoy" } : seccion, a.tareaId);
+    else irA(seccion.tipo === "buscar" ? INICIO : seccion, a.tareaId);
     cerrar(a.clave);
   };
 

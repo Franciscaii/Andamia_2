@@ -36,21 +36,21 @@ test.describe("matriz", () => {
 
     await enlace(page, "Matriz").click();
     const cuadrante = (n: string) => page.getByRole("region", { name: n, exact: true });
-    await expect(cuadrante("Urgente e importante")).toContainText("Entregar informe");
-    await expect(cuadrante("Ni urgente ni importante")).toContainText("Ordenar correo");
+    await expect(cuadrante("Urgente + Importante")).toContainText("Entregar informe");
+    await expect(cuadrante("No urgente + No importante")).toContainText("Ordenar correo");
     // Solo pendientes.
     await expect(page.getByTestId("cuadrante").filter({ hasText: "Hecha ya" })).toHaveCount(0);
 
-    const fila = cuadrante("Ni urgente ni importante").getByTestId("fila-tarea").filter({ hasText: "Ordenar correo" });
+    const fila = cuadrante("No urgente + No importante").getByTestId("fila-tarea").filter({ hasText: "Ordenar correo" });
     await fila.hover();
-    await arrastrar(page, fila.getByRole("button", { name: "Mover Ordenar correo" }), cuadrante("Importante, no urgente"));
-    await expect(cuadrante("Importante, no urgente")).toContainText("Ordenar correo");
-    await expect(cuadrante("Ni urgente ni importante")).not.toContainText("Ordenar correo");
+    await arrastrar(page, fila.getByRole("button", { name: "Mover Ordenar correo" }), cuadrante("No urgente + Importante"));
+    await expect(cuadrante("No urgente + Importante")).toContainText("Ordenar correo");
+    await expect(cuadrante("No urgente + No importante")).not.toContainText("Ordenar correo");
 
     // La prioridad cambió de verdad y persiste.
     await page.reload();
     await page.getByRole("button", { name: /^Ordenar correo/ }).click();
-    await expect(page.getByRole("complementary", { name: "Detalle de la tarea" }).getByRole("button", { name: "Media" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("complementary", { name: "Detalle de la tarea" }).getByRole("group", { name: "Importancia" }).getByRole("button", { name: "Media" })).toHaveAttribute("aria-pressed", "true");
   });
 
   test("añadir en un cuadrante y filtrar", async ({ page }) => {
@@ -60,16 +60,16 @@ test.describe("matriz", () => {
     await page.goto("/#/matriz");
     const cuadrante = (n: string) => page.getByRole("region", { name: n, exact: true });
 
-    await page.getByLabel("Añadir tarea en Urgente, no importante").fill("Llamar al gas mañana");
-    await page.getByLabel("Añadir tarea en Urgente, no importante").press("Enter");
-    await expect(cuadrante("Urgente, no importante")).toContainText("Llamar al gas");
-    await expect(cuadrante("Urgente, no importante")).toContainText("Mañana");
+    await page.getByLabel("Añadir tarea en Urgente + No importante").fill("Llamar al gas mañana");
+    await page.getByLabel("Añadir tarea en Urgente + No importante").press("Enter");
+    await expect(cuadrante("Urgente + No importante")).toContainText("Llamar al gas");
+    await expect(cuadrante("Urgente + No importante")).toContainText("Mañana");
 
     await page.getByLabel("Filtrar por etiqueta").selectOption("casa");
     await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
     await expect(page.getByTestId("fila-tarea")).toContainText("Con etiqueta");
     await page.getByLabel("Filtrar por etiqueta").selectOption("");
-    await page.getByLabel("Filtrar por lista").selectOption({ label: "Bandeja de entrada" });
+    await expect(page.getByLabel("Filtrar por lista")).toHaveCount(0);
     await expect(page.getByTestId("fila-tarea")).toHaveCount(2);
   });
 });
@@ -101,7 +101,7 @@ test.describe("enfoque", () => {
     });
     await page.goto("/#/tareas/bandeja");
     await agregar(page, "Escribir capítulo");
-    await enlace(page, "Enfoque").click();
+    await page.goto("/#/enfoque");
 
     await expect(page.getByTestId("tiempo")).toHaveText("25:00");
     await page.getByRole("combobox", { name: "Tarea de esta sesión" }).selectOption({ label: "Escribir capítulo" });
@@ -110,7 +110,6 @@ test.describe("enfoque", () => {
     // Diez minutos después sigue contando desde la marca de tiempo.
     await page.clock.fastForward("10:00");
     await expect(page.getByTestId("tiempo")).toHaveText(/^1[45]:\d\d$/);
-    await expect(page.getByTestId("tiempo-lateral")).toBeVisible();
 
     // Sobrevive a recargar la página.
     await page.reload();
@@ -328,9 +327,9 @@ test.describe("móvil", () => {
       expect(desborde, `desborde horizontal en ${ruta}`).toBeLessThanOrEqual(0);
     }
     await page.goto("/#/matriz");
-    await page.getByLabel("Añadir tarea en Urgente e importante").fill("Desde el móvil");
-    await page.getByLabel("Añadir tarea en Urgente e importante").press("Enter");
-    await expect(page.getByRole("region", { name: "Urgente e importante", exact: true })).toContainText("Desde el móvil");
+    await page.getByLabel("Añadir tarea en Urgente + Importante").fill("Desde el móvil");
+    await page.getByLabel("Añadir tarea en Urgente + Importante").press("Enter");
+    await expect(page.getByRole("region", { name: "Urgente + Importante", exact: true })).toContainText("Desde el móvil");
 
     await page.getByRole("button", { name: "Abrir menú" }).click();
     await expect(page.getByRole("navigation").getByRole("link", { name: /^Hábitos/ })).toBeVisible();

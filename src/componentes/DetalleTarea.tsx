@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Check, Flag, RotateCcw, Timer, Trash2, X } from "lucide-react";
-import { recordatoriosActivos } from "../config";
+import { listasActivas, recordatoriosActivos } from "../config";
 import { useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { formatoMinutos, minutosDeTarea } from "../logica/enfoque";
@@ -9,8 +9,8 @@ import { describirRecordatorio, OPCIONES_RECORDATORIO } from "../logica/recordat
 import { construirRegla, describirRegla, INICIALES_DIA, leerRegla, NOMBRES_DIA, venceParaRegla, type Frecuencia, type OpcionesRepeticion } from "../logica/repeticion";
 import { irA, type Seccion } from "../logica/ruta";
 import { nuevoId } from "../logica/texto";
-import { LISTA_BANDEJA, PRIORIDADES, type Subtarea, type Tarea } from "../modelos/tipos";
-import { COLOR_PRIORIDAD } from "./FilaTarea";
+import { LISTA_BANDEJA, PRIORIDADES, type Prioridad, type Subtarea, type Tarea } from "../modelos/tipos";
+import { COLOR_NIVEL, COLOR_PRIORIDAD } from "./FilaTarea";
 import { claseBoton, claseCampo } from "./Modal";
 
 const UNIDADES: { valor: Frecuencia; nombre: string }[] = [
@@ -309,6 +309,31 @@ function Etiquetas({ tarea }: { tarea: Tarea }) {
   );
 }
 
+/** Alta, media, baja o ninguna, con el color de la semana (rojo, amarillo, azul). */
+function SelectorNivel({ titulo, ayuda, valor, alElegir }: { titulo: string; ayuda: string; valor: Prioridad; alElegir: (v: Prioridad) => void }) {
+  return (
+    <section role="group" aria-label={titulo}>
+      <h3 className="mb-1 text-xs font-semibold tracking-wide text-tenue uppercase">
+        {titulo} <span className="font-normal normal-case tracking-normal">· {ayuda}</span>
+      </h3>
+      <div className="flex gap-1">
+        {PRIORIDADES.map((p) => (
+          <button
+            key={p.valor}
+            type="button"
+            aria-pressed={valor === p.valor}
+            onClick={() => alElegir(p.valor)}
+            className={`flex flex-1 items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-xs ${valor === p.valor ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
+          >
+            <Flag size={12} style={{ color: COLOR_NIVEL[p.valor] }} />
+            {p.nombre}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: Seccion }) {
   const tarea = useTienda((s) => s.tareas.find((t) => t.id === tareaId));
   const listas = useTienda((s) => s.listas);
@@ -393,23 +418,43 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
           {recordatoriosActivos && <EditorRecordatorios tarea={tarea} />}
 
           <section>
-            <h3 className="mb-1 text-xs font-semibold tracking-wide text-tenue uppercase">Prioridad</h3>
+            <h3 className="mb-1 text-xs font-semibold tracking-wide text-tenue uppercase">Tipo</h3>
             <div className="flex gap-1">
-              {PRIORIDADES.map((p) => (
+              {[
+                { valor: false, nombre: "Tarea" },
+                { valor: true, nombre: "Evento" },
+              ].map((o) => (
                 <button
-                  key={p.valor}
+                  key={o.nombre}
                   type="button"
-                  aria-pressed={tarea.prioridad === p.valor}
-                  onClick={() => actualizarTarea(tarea.id, { prioridad: p.valor })}
-                  className={`flex flex-1 items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-xs ${tarea.prioridad === p.valor ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
+                  aria-pressed={(tarea.esEvento ?? false) === o.valor}
+                  onClick={() => actualizarTarea(tarea.id, { esEvento: o.valor })}
+                  className={`flex flex-1 items-center justify-center rounded-md border px-1.5 py-1 text-xs ${(tarea.esEvento ?? false) === o.valor ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
                 >
-                  <Flag size={12} style={{ color: COLOR_PRIORIDAD[p.valor] }} />
-                  {p.nombre}
+                  {o.nombre}
                 </button>
               ))}
             </div>
           </section>
 
+          {!tarea.esEvento && (
+            <>
+              <SelectorNivel
+                titulo="Importancia"
+                ayuda="Urgencia y valor"
+                valor={tarea.prioridad}
+                alElegir={(prioridad) => actualizarTarea(tarea.id, { prioridad })}
+              />
+              <SelectorNivel
+                titulo="Dificultad"
+                ayuda="Tiempo y esfuerzo intelectual"
+                valor={tarea.dificultad ?? "ninguna"}
+                alElegir={(dificultad) => actualizarTarea(tarea.id, { dificultad })}
+              />
+            </>
+          )}
+
+          {(listasActivas || listas.length > 0) && (
           <label className="block text-xs text-tenue">
             Lista
             <select aria-label="Lista" className={`${claseCampo} mt-1`} value={tarea.listaId} onChange={(e) => actualizarTarea(tarea.id, { listaId: e.target.value, columnaId: null })}>
@@ -421,6 +466,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
               ))}
             </select>
           </label>
+          )}
 
           <label className="block text-xs text-tenue">
             Notas

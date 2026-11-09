@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Check, Slash } from "lucide-react";
 import { useTienda } from "../datos/tienda";
 import { irA } from "../logica/ruta";
-import { COLORES_LISTA, type Carpeta, type Lista } from "../modelos/tipos";
+import { COLORES_ETIQUETA, COLORES_LISTA, type Carpeta, type Etiqueta, type Lista } from "../modelos/tipos";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "./Modal";
 
 export function DialogoLista({ lista, alCerrar }: { lista: Lista | null; alCerrar: () => void }) {
@@ -95,6 +95,69 @@ export function DialogoCarpeta({ carpeta, alCerrar }: { carpeta: Carpeta | null;
           </button>
           <button type="submit" className={claseBotonPrincipal} disabled={!nombre.trim()}>
             {carpeta ? "Guardar" : "Crear carpeta"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/** Crear o editar una etiqueta del ámbito de la tarea: nombre y color. */
+export function DialogoEtiqueta({ etiqueta, alCerrar }: { etiqueta: Etiqueta | null; alCerrar: () => void }) {
+  const guardarEtiqueta = useTienda((s) => s.guardarEtiqueta);
+  const [nombre, setNombre] = useState(etiqueta?.nombreVisible ?? "");
+  const [color, setColor] = useState(etiqueta?.color ?? COLORES_ETIQUETA[0]);
+  const [error, setError] = useState<string | null>(null);
+
+  const enviar = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!nombre.trim()) return;
+    const problema = await guardarEtiqueta(etiqueta?.nombre ?? null, { nombreVisible: nombre, color });
+    if (problema) setError(problema);
+    else alCerrar();
+  };
+
+  return (
+    <Modal titulo={etiqueta ? "Editar etiqueta" : "Nueva etiqueta"} alCerrar={alCerrar}>
+      <form onSubmit={enviar} className="space-y-4">
+        <label className="block text-sm">
+          <span className="mb-1 block text-tenue">Nombre</span>
+          <input
+            autoFocus
+            maxLength={64}
+            className={claseCampo}
+            value={nombre}
+            onChange={(e) => {
+              setNombre(e.target.value);
+              setError(null);
+            }}
+          />
+        </label>
+        <div className="text-sm">
+          <span className="mb-1 block text-tenue">Color</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {COLORES_ETIQUETA.map((c) => (
+              <button key={c} type="button" aria-label={`Color ${c}`} aria-pressed={color === c} onClick={() => setColor(c)} style={{ background: c }} className={`flex h-7 w-7 items-center justify-center rounded-full ${color === c ? "ring-2 ring-acento ring-offset-1 ring-offset-panel" : ""}`}>
+                {color === c && <Check size={14} className="text-white" />}
+              </button>
+            ))}
+            <label className="flex items-center gap-1 text-xs text-tenue" title="Otro color">
+              <input type="color" aria-label="Otro color" value={color} onChange={(e) => setColor(e.target.value)} className="h-7 w-9 cursor-pointer rounded border border-borde bg-transparent" />
+              Otro
+            </label>
+          </div>
+        </div>
+        {error && (
+          <p role="alert" className="text-sm text-peligro">
+            {error}
+          </p>
+        )}
+        <div className="flex justify-end gap-2">
+          <button type="button" className={claseBoton} onClick={alCerrar}>
+            Cancelar
+          </button>
+          <button type="submit" className={claseBotonPrincipal} disabled={!nombre.trim()}>
+            {etiqueta ? "Guardar" : "Crear etiqueta"}
           </button>
         </div>
       </form>

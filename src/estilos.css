@@ -38,6 +38,12 @@
   --prio-media: #c47a14;
   --prio-baja: #3a70b0;
   --prio-ninguna: #8d918d;
+  /* Semana: dificultad e importancia (rojo, amarillo, azul) y eventos (morado). */
+  --nivel-alta: #d0402b;
+  --nivel-media: #d29b06;
+  --nivel-baja: #2f7fd1;
+  --evento: #9b5cd6;
+  --evento-suave: #efe3fa;
   color-scheme: light;
 }
 
@@ -58,6 +64,11 @@
   --prio-media: #e0a64f;
   --prio-baja: #7cabe2;
   --prio-ninguna: #7f8682;
+  --nivel-alta: #ef7a66;
+  --nivel-media: #f0c94a;
+  --nivel-baja: #6fb0f0;
+  --evento: #b98ae6;
+  --evento-suave: #34264a;
   color-scheme: dark;
 }
 

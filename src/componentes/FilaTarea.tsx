@@ -15,6 +15,14 @@ export const COLOR_PRIORIDAD: Record<Prioridad, string> = {
   ninguna: "var(--prio-ninguna)",
 };
 
+/** Dificultad e importancia en la semana: rojo, amarillo y azul. */
+export const COLOR_NIVEL: Record<Prioridad, string> = {
+  alta: "var(--nivel-alta)",
+  media: "var(--nivel-media)",
+  baja: "var(--nivel-baja)",
+  ninguna: "var(--prio-ninguna)",
+};
+
 function Resaltado({ partes }: { partes: Fragmento[] }) {
   return (
     <>

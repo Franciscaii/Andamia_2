@@ -114,6 +114,26 @@ describe("etiquetas", () => {
     expect((await bd.tareas.get(tarea.id))?.etiquetas).toEqual(["dos"]);
     expect(await bd.etiquetas.get("uno")).toBeUndefined();
   });
+
+  it("agrega las etiquetas iniciales sin pisar las que ya existen", async () => {
+    await repo.guardarEtiqueta(null, { nombreVisible: "Universidad", color: "#000000" });
+    const creadas = await repo.sembrarEtiquetasIniciales();
+    expect(creadas.map((e) => e.nombreVisible)).toEqual(["Otro", "Vinculos", "NecesidadBiologica", "CuidadoPersonal", "DisfrutePersonal", "VidaCotidiana", "DesarrolloProfesional"]);
+    expect((await bd.etiquetas.get("universidad"))?.color).toBe("#000000");
+    expect(await repo.sembrarEtiquetasIniciales()).toEqual([]);
+  });
+
+  it("editar el nombre cambia la etiqueta en las tareas y no permite repetir", async () => {
+    const { tarea } = await repo.crearTarea({ titulo: "T", etiquetas: ["uni", "casa"] });
+    const editada = await repo.guardarEtiqueta("uni", { nombreVisible: "Universidad", color: "#14c9a0" });
+    expect(editada).toMatchObject({ nombre: "universidad", nombreVisible: "Universidad", color: "#14c9a0", orden: 0 });
+    expect((await bd.tareas.get(tarea.id))?.etiquetas).toEqual(["universidad", "casa"]);
+    expect(await bd.etiquetas.get("uni")).toBeUndefined();
+    await expect(repo.guardarEtiqueta("casa", { nombreVisible: "universidad", color: "#000000" })).rejects.toBeInstanceOf(repo.EtiquetaRepetida);
+    // Solo cambiar mayúsculas o color mantiene la misma etiqueta.
+    await repo.guardarEtiqueta("universidad", { nombreVisible: "UNIVERSIDAD", color: "#111111" });
+    expect((await bd.etiquetas.get("universidad"))?.nombreVisible).toBe("UNIVERSIDAD");
+  });
 });
 
 describe("reordenar", () => {

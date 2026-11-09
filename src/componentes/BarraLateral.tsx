@@ -1,13 +1,13 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, Timer, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
-import { textoTemporizador, useAhora, useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
-import { hashDe, irA, type Seccion } from "../logica/ruta";
-import type { Carpeta, Lista } from "../modelos/tipos";
+import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
+import type { Carpeta, Etiqueta, Lista } from "../modelos/tipos";
 import { BotonAvisos } from "./Avisos";
-import { DialogoCarpeta, DialogoLista } from "./Dialogos";
+import { DialogoCarpeta, DialogoEtiqueta, DialogoLista } from "./Dialogos";
 import { Confirmar } from "./Modal";
 
 const ICONOS: Record<VistaInteligente, ReactNode> = {
@@ -19,6 +19,9 @@ const ICONOS: Record<VistaInteligente, ReactNode> = {
   completadas: <CheckCheck size={17} />,
   papelera: <Trash2 size={17} />,
 };
+
+/** Francisca pidió quitar Todas, Hoy, Mañana y Bandeja de entrada del menú. */
+const VISTAS_EN_MENU: VistaInteligente[] = ["semana"];
 
 const claseFila = (activa: boolean) =>
   `group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${activa ? "bg-acento-suave font-medium" : "hover:bg-suave"}`;
@@ -86,28 +89,12 @@ function FilaAjustes({ activa }: { activa: boolean }) {
   );
 }
 
-/** Muestra el tiempo que queda desde cualquier pantalla. */
-function FilaEnfoque({ activa }: { activa: boolean }) {
-  const t = useEnfoque((s) => s.temporizador);
-  const ahora = useAhora(t.estado === "corriendo");
-  return (
-    <div className={claseFila(activa)}>
-      <a href={hashDe({ tipo: "enfoque" })} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="shrink-0 text-tenue">
-          <Timer size={17} />
-        </span>
-        <span className="truncate">Enfoque</span>
-        {t.estado !== "listo" && <span data-testid="tiempo-lateral" className="ml-auto pl-1 text-xs font-medium text-acento tabular-nums">{textoTemporizador(t, ahora)}</span>}
-      </a>
-    </div>
-  );
-}
-
 type Dialogo =
   | { tipo: "lista"; lista: Lista | null; }
   | { tipo: "carpeta"; carpeta: Carpeta | null }
   | { tipo: "borrar-lista"; lista: Lista }
   | { tipo: "borrar-carpeta"; carpeta: Carpeta }
+  | { tipo: "etiqueta"; etiqueta: Etiqueta | null }
   | { tipo: "borrar-etiqueta"; nombre: string; visible: string };
 
 export function BarraLateral({ seccion }: { seccion: Seccion }) {
@@ -122,6 +109,9 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
   const borrarEtiqueta = useTienda((s) => s.borrarEtiqueta);
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const [plegadas, setPlegadas] = useState<Set<string>>(new Set());
+
+  // Sin listas creadas y con la opción apagada, la sección entera desaparece.
+  const mostrarListas = listasActivas || listas.length > 0 || carpetas.length > 0;
 
   const pendientesPorLista = useMemo(() => {
     const m = new Map<string, number>();
@@ -183,7 +173,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
 
       <nav aria-label="Navegación" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
         <Fila href={hashDe({ tipo: "buscar" })} activa={seccion.tipo === "buscar"} icono={<Search size={17} />} nombre="Buscar" />
-        {VISTAS_INTELIGENTES.filter((v) => !["completadas", "papelera"].includes(v.id)).map((v) => (
+        {VISTAS_INTELIGENTES.filter((v) => VISTAS_EN_MENU.includes(v.id)).map((v) => (
           <Fila
             key={v.id}
             href={hashDe({ tipo: "vista", vista: v.id })}
@@ -195,12 +185,13 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
         ))}
         <Fila href={hashDe({ tipo: "calendario", modo: seccion.tipo === "calendario" ? seccion.modo : "mes" })} activa={seccion.tipo === "calendario"} icono={<CalendarRange size={17} />} nombre="Calendario" />
         <Fila href={hashDe({ tipo: "matriz" })} activa={seccion.tipo === "matriz"} icono={<Grid2x2 size={17} />} nombre="Matriz" />
-        <FilaEnfoque activa={seccion.tipo === "enfoque"} />
         <Fila href={hashDe({ tipo: "habitos" })} activa={seccion.tipo === "habitos"} icono={<Flame size={17} />} nombre="Hábitos" />
+        <Fila href={hashDe({ tipo: "estadisticas", de: "tareas" })} activa={seccion.tipo === "estadisticas" && seccion.de === "tareas"} icono={<ChartPie size={17} />} nombre="Estadística Tareas" />
+        <Fila href={hashDe({ tipo: "estadisticas", de: "habitos" })} activa={seccion.tipo === "estadisticas" && seccion.de === "habitos"} icono={<ChartArea size={17} />} nombre="Estadística Hábitos" />
 
-        {titulo(
+        {mostrarListas && titulo(
           "Listas",
-          <>
+          listasActivas && <>
             <BotonIcono etiqueta="Nueva carpeta" alPulsar={() => setDialogo({ tipo: "carpeta", carpeta: null })}>
               <FolderPlus size={15} />
             </BotonIcono>
@@ -209,7 +200,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
             </BotonIcono>
           </>,
         )}
-        {!listas.length && !carpetas.length && <p className="px-2 text-xs text-tenue">Crea listas para ordenar tus tareas por tema.</p>}
+        {listasActivas && !listas.length && !carpetas.length && <p className="px-2 text-xs text-tenue">Crea listas para ordenar tus tareas por tema.</p>}
         {carpetas.map((c) => {
           const plegada = plegadas.has(c.id);
           return (
@@ -235,8 +226,13 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
         })}
         {listas.filter((l) => !l.carpetaId || !carpetas.some((c) => c.id === l.carpetaId)).map(filaLista)}
 
-        {titulo("Etiquetas")}
-        {!etiquetas.length && <p className="px-2 text-xs text-tenue">Escribe #etiqueta al crear una tarea.</p>}
+        {titulo(
+          "Etiquetas",
+          <BotonIcono etiqueta="Nueva etiqueta" alPulsar={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
+            <Plus size={15} />
+          </BotonIcono>,
+        )}
+        {!etiquetas.length && <p className="px-2 text-xs text-tenue">Crea etiquetas con el + o escribe #etiqueta al crear una tarea.</p>}
         {etiquetas.map((e) => (
           <Fila
             key={e.nombre}
@@ -246,9 +242,14 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
             nombre={e.nombreVisible}
             contador={pendientesPorEtiqueta.get(e.nombre)}
             acciones={
-              <BotonIcono etiqueta={`Borrar etiqueta ${e.nombreVisible}`} alPulsar={() => setDialogo({ tipo: "borrar-etiqueta", nombre: e.nombre, visible: e.nombreVisible })}>
-                <Trash2 size={14} />
-              </BotonIcono>
+              <>
+                <BotonIcono etiqueta={`Editar etiqueta ${e.nombreVisible}`} alPulsar={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
+                  <Pencil size={14} />
+                </BotonIcono>
+                <BotonIcono etiqueta={`Borrar etiqueta ${e.nombreVisible}`} alPulsar={() => setDialogo({ tipo: "borrar-etiqueta", nombre: e.nombre, visible: e.nombreVisible })}>
+                  <Trash2 size={14} />
+                </BotonIcono>
+              </>
             }
           />
         ))}
@@ -263,6 +264,20 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
       </nav>
 
       {dialogo?.tipo === "lista" && <DialogoLista lista={dialogo.lista} alCerrar={() => setDialogo(null)} />}
+      {dialogo?.tipo === "etiqueta" && (
+        <DialogoEtiqueta
+          etiqueta={dialogo.etiqueta}
+          alCerrar={() => {
+            const anterior = dialogo.etiqueta;
+            setDialogo(null);
+            // Si se renombró la etiqueta abierta, la vista pasa a la nueva.
+            if (anterior && seccion.tipo === "etiqueta" && seccion.nombre === anterior.nombre) {
+              const actual = useTienda.getState().etiquetas.find((x) => x.orden === anterior.orden);
+              if (actual && actual.nombre !== anterior.nombre) irA({ tipo: "etiqueta", nombre: actual.nombre });
+            }
+          }}
+        />
+      )}
       {dialogo?.tipo === "carpeta" && <DialogoCarpeta carpeta={dialogo.carpeta} alCerrar={() => setDialogo(null)} />}
       {dialogo?.tipo === "borrar-lista" && (
         <Confirmar
@@ -272,7 +287,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
           alCerrar={() => setDialogo(null)}
           alConfirmar={() => {
             void borrarLista(dialogo.lista.id);
-            if (seccion.tipo === "lista" && seccion.id === dialogo.lista.id) irA({ tipo: "vista", vista: "hoy" });
+            if (seccion.tipo === "lista" && seccion.id === dialogo.lista.id) irA(INICIO);
           }}
         />
       )}
@@ -293,7 +308,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
           alCerrar={() => setDialogo(null)}
           alConfirmar={() => {
             void borrarEtiqueta(dialogo.nombre);
-            if (seccion.tipo === "etiqueta" && seccion.nombre === dialogo.nombre) irA({ tipo: "vista", vista: "hoy" });
+            if (seccion.tipo === "etiqueta" && seccion.nombre === dialogo.nombre) irA(INICIO);
           }}
         />
       )}

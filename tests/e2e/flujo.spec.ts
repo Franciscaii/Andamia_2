@@ -9,6 +9,16 @@ async function crearLista(page: Page, nombre: string) {
 }
 
 const entrada = (page: Page) => page.getByRole("textbox", { name: "Añadir tarea" });
+/** En la semana: + → Tarea o Evento, escribir y crear. */
+async function crearEnSemana(page: Page, tipo: "Tarea" | "Evento", texto: string) {
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: tipo }).click();
+  const campo = page.getByRole("textbox", { name: tipo === "Tarea" ? "Añadir tarea" : "Añadir evento" });
+  await campo.fill(texto);
+  await campo.press("Enter");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+}
+
 const navegar = (page: Page, nombre: string) => page.getByRole("navigation").getByRole("link", { name: new RegExp(`^${nombre}`) }).click();
 
 test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y completarla", async ({ page }) => {
@@ -27,7 +37,8 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
   await expect(fila).not.toContainText("propuesta mañana");
   await expect(page.getByRole("navigation").getByRole("link", { name: /^trabajo/ })).toBeVisible();
 
-  await navegar(page, "Mañana");
+  // Mañana ya no está en el menú, pero su dirección sigue funcionando.
+  await page.goto("/#/tareas/manana");
   await expect(page.getByRole("heading", { level: 1, name: "Mañana" })).toBeVisible();
   const enManana = page.getByTestId("fila-tarea").filter({ hasText: "Enviar propuesta" });
   await expect(enManana).toContainText("Proyecto");
@@ -43,6 +54,56 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
   await expect(page.getByTestId("fila-tarea").filter({ hasText: "Enviar propuesta" })).toBeVisible();
 });
 
+test("el menú no muestra Todas, Hoy, Mañana, Bandeja de entrada ni Enfoque", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Tareas hoy" })).toBeVisible();
+  await expect(page.getByTestId("progreso-dia")).toBeVisible();
+  // Ya no hay campo para añadir tareas a la vista: se usa el +.
+  await expect(page.getByRole("textbox", { name: "Añadir tarea" })).toHaveCount(0);
+  const menu = page.getByRole("navigation");
+  for (const nombre of ["Todas", "Hoy", "Mañana", "Bandeja de entrada", "Enfoque"]) {
+    await expect(menu.getByRole("link", { name: new RegExp(`^${nombre}`) })).toHaveCount(0);
+  }
+  await expect(menu.getByRole("link", { name: /^Semana/ })).toBeVisible();
+});
+
+test("semana: eventos arriba, progreso del día y tareas con dificultad e importancia", async ({ page }) => {
+  await page.goto("/");
+  await crearEnSemana(page, "Tarea", "Leer paper !alta #universidad");
+  await crearEnSemana(page, "Tarea", "Comprar pan");
+  await expect(page.getByTestId("progreso-dia")).toContainText("0/2 (0%)");
+
+  await page.getByRole("checkbox", { name: "Completar: Comprar pan" }).click();
+  await expect(page.getByTestId("progreso-dia")).toContainText("1/2 (50%)");
+  // Lo completado baja a la tarjeta "Completada", y el día queda marcado con un punto.
+  await expect(page.getByTestId("tarjeta-completada")).toContainText("Comprar pan");
+  await expect(page.getByRole("list", { name: "Tareas" })).not.toContainText("Comprar pan");
+  await expect(page.getByRole("button", { name: /^lunes|^martes|^miércoles|^jueves|^viernes|^sábado|^domingo/, pressed: true }).getByTestId("punto-dia")).toHaveCount(1);
+
+  const fila = page.getByTestId("fila-tarea").filter({ hasText: "Leer paper" });
+  await expect(fila.getByTestId("importancia")).toHaveText("Alta");
+  await expect(fila).toContainText("Universidad");
+  await fila.getByRole("button", { name: /^Leer paper/ }).click();
+  await page.getByRole("group", { name: "Dificultad" }).getByRole("button", { name: "Media" }).click();
+  await expect(page.getByRole("checkbox", { name: "Completar: Leer paper" })).toHaveAttribute("title", "Dificultad media");
+  await page.keyboard.press("Escape");
+
+  // Un evento va arriba y no cuenta en el progreso.
+  await crearEnSemana(page, "Evento", "Cumpleaños de Ana");
+  await expect(page.getByTestId("fila-evento")).toContainText("Cumpleaños de Ana");
+  await expect(page.getByTestId("progreso-dia")).toContainText("1/2 (50%)");
+
+  // Otro día de la semana.
+  await page.getByRole("button", { name: "Semana siguiente" }).click();
+  await expect(page.getByTestId("progreso-dia")).toContainText("0/0 (0%)");
+  await expect(page.getByRole("heading", { name: "Tareas del día" })).toBeVisible();
+
+  // Desde el + también se crea un hábito.
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Hábito" }).click();
+  await expect(page.getByRole("dialog", { name: "Nuevo hábito" })).toBeVisible();
+});
+
 test("detalle, papelera y restaurar", async ({ page }) => {
   await page.goto("/#/tareas/bandeja");
   await entrada(page).fill("Revisar contrato !alta");
@@ -51,7 +112,7 @@ test("detalle, papelera y restaurar", async ({ page }) => {
 
   const detalle = page.getByRole("complementary", { name: "Detalle de la tarea" });
   await expect(detalle.getByLabel("Título")).toHaveValue("Revisar contrato");
-  await expect(detalle.getByRole("button", { name: "Alta" })).toHaveAttribute("aria-pressed", "true");
+  await expect(detalle.getByRole("group", { name: "Importancia" }).getByRole("button", { name: "Alta" })).toHaveAttribute("aria-pressed", "true");
 
   await detalle.getByLabel("Notas").fill("Pedir la versión firmada");
   await detalle.getByLabel("Nueva subtarea").fill("Leer cláusulas");
@@ -68,7 +129,7 @@ test("detalle, papelera y restaurar", async ({ page }) => {
   await page.getByRole("button", { name: "Restaurar Revisar contrato" }).click();
   await expect(page.getByTestId("fila-tarea")).toHaveCount(0);
 
-  await navegar(page, "Bandeja");
+  await page.goto("/#/tareas/bandeja");
   await expect(page.getByTestId("fila-tarea").filter({ hasText: "Revisar contrato" })).toBeVisible();
 });
 
@@ -124,4 +185,100 @@ test("reordenar con el teclado y borrar una lista con sus tareas", async ({ page
 
   await navegar(page, "Papelera");
   await expect(page.getByTestId("fila-tarea")).toHaveCount(3);
+});
+
+test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, editar y borrar", async ({ page }) => {
+  await page.goto("/");
+  const menu = page.getByRole("navigation");
+  for (const nombre of ["Otro", "Vinculos", "Universidad", "NecesidadBiologica", "CuidadoPersonal", "DisfrutePersonal", "VidaCotidiana", "DesarrolloProfesional"]) {
+    await expect(menu.getByRole("link", { name: new RegExp(`^${nombre}`) })).toBeVisible();
+  }
+
+  await page.getByRole("button", { name: "Nueva etiqueta" }).click();
+  const dialogo = page.getByRole("dialog", { name: "Nueva etiqueta" });
+  await dialogo.getByLabel("Nombre").fill("Deporte");
+  await dialogo.getByRole("button", { name: "Crear etiqueta" }).click();
+  await expect(menu.getByRole("link", { name: /^Deporte/ })).toBeVisible();
+
+  // Renombrar mantiene la etiqueta en las tareas.
+  await crearEnSemana(page, "Tarea", "Correr #deporte");
+  await menu.getByRole("link", { name: /^Deporte/ }).hover();
+  await page.getByRole("button", { name: "Editar etiqueta Deporte" }).click();
+  const edicion = page.getByRole("dialog", { name: "Editar etiqueta" });
+  await edicion.getByLabel("Nombre").fill("Universidad");
+  await edicion.getByRole("button", { name: "Guardar" }).click();
+  await expect(edicion.getByRole("alert")).toContainText("Ya existe");
+  await edicion.getByLabel("Nombre").fill("Ejercicio");
+  await edicion.getByRole("button", { name: "Guardar" }).click();
+  await expect(menu.getByRole("link", { name: /^Ejercicio/ })).toBeVisible();
+  await expect(page.getByTestId("fila-tarea").filter({ hasText: "Correr" })).toContainText("Ejercicio");
+
+  await menu.getByRole("link", { name: /^Otro/ }).hover();
+  await page.getByRole("button", { name: "Borrar etiqueta Otro" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Borrar etiqueta" }).click();
+  await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
+  // Al recargar no vuelve.
+  await page.reload();
+  await expect(menu.getByRole("link", { name: /^Universidad/ })).toBeVisible();
+  await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
+});
+
+test("estadística de tareas: por etiqueta, circular y en el tiempo; tocar una etiqueta atenúa las demás", async ({ page }) => {
+  await page.goto("/");
+  await crearEnSemana(page, "Tarea", "Leer paper #universidad");
+  await crearEnSemana(page, "Tarea", "Cocinar #vidacotidiana");
+  await crearEnSemana(page, "Tarea", "Lavar ropa #vidacotidiana");
+  for (const t of ["Leer paper", "Cocinar", "Lavar ropa"]) await page.getByRole("checkbox", { name: `Completar: ${t}` }).click();
+
+  await page.getByRole("navigation").getByRole("link", { name: "Estadística Tareas" }).click();
+  await expect(page.getByRole("heading", { name: "Mis tareas completadas" })).toBeVisible();
+  const filas = page.getByTestId("fila-grupo");
+  await expect(filas).toHaveCount(2);
+  await expect(filas.first()).toContainText("VidaCotidiana");
+  await expect(filas.first()).toContainText("2 • 67%");
+  await expect(page.getByTestId("grafico-circular")).toContainText("3");
+
+  await filas.nth(1).click();
+  await expect(filas.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("grafico-circular")).toContainText("33%");
+  await expect(page.getByTestId("lista-hechos")).toHaveCount(0);
+  await expect(page.locator('[data-testid="grafico-circular"] path[data-clave="vidacotidiana"]')).toHaveAttribute("opacity", "0.22");
+  await expect(page.locator('[data-testid="grafico-areas"] path[data-clave="universidad"]')).toHaveAttribute("fill-opacity", "0.85");
+
+  // Otro período sin datos.
+  await page.getByRole("button", { name: "Período anterior" }).click();
+  await expect(page.getByText("No completaste tareas en este período.")).toBeVisible();
+
+  await page.getByRole("navigation").getByRole("link", { name: "Estadística Hábitos" }).click();
+  await expect(page.getByRole("heading", { name: "Mis hábitos cumplidos" })).toBeVisible();
+});
+
+test("calendario mes: eventos y tareas con casilla en cada día, filtros y +", async ({ page }) => {
+  await page.goto("/");
+  await crearEnSemana(page, "Tarea", "Estudiar cálculo");
+  await crearEnSemana(page, "Evento", "Doctor");
+  await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
+
+  const hoy = page.locator(`[data-zona="dia:${new Date().toLocaleDateString("sv-SE")}"]`);
+  await expect(hoy).toContainText("Estudiar cálculo");
+  await expect(hoy).toContainText("Doctor");
+  // El evento va primero y no tiene casilla.
+  await expect(hoy.getByTestId("chip-tarea").first()).toContainText("Doctor");
+  await expect(hoy.getByRole("checkbox", { name: "Completar: Doctor" })).toHaveCount(0);
+
+  await hoy.getByRole("checkbox", { name: "Completar: Estudiar cálculo" }).click();
+  await expect(hoy.getByRole("checkbox", { name: /Estudiar cálculo/ })).toHaveAttribute("aria-checked", "true");
+
+  await page.getByRole("button", { name: "Eventos" }).click();
+  await expect(hoy).not.toContainText("Estudiar cálculo");
+  await expect(hoy).toContainText("Doctor");
+  await page.getByRole("button", { name: "Tareas" }).click();
+  await expect(hoy).not.toContainText("Doctor");
+
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Evento" }).click();
+  await page.getByRole("textbox", { name: "Añadir evento" }).fill("Cumpleaños");
+  await page.getByRole("textbox", { name: "Añadir evento" }).press("Enter");
+  await page.getByRole("button", { name: "Todos" }).click();
+  await expect(hoy).toContainText("Cumpleaños");
 });
