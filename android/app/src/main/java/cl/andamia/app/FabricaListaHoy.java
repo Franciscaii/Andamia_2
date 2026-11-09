@@ -40,6 +40,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         int dificultad;
         String etiqueta = "";
         String colorEtiqueta = "";
+        String color = "";
     }
 
     private final Context contexto;
@@ -73,6 +74,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                     f.id = e.optString("id");
                     f.titulo = e.optString("titulo");
                     f.detalle = e.optString("hora");
+                    f.color = e.optString("color");
                     filas.add(f);
                 }
             }
@@ -166,6 +168,13 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setTextViewText(R.id.evento_titulo, f.titulo);
         vista.setTextViewText(R.id.evento_hora, f.detalle);
         vista.setViewVisibility(R.id.evento_hora, f.detalle.isEmpty() ? View.GONE : View.VISIBLE);
+        int colorEvento = color(R.color.widget_evento);
+        try {
+            if (!f.color.isEmpty()) colorEvento = Color.parseColor(f.color);
+        } catch (IllegalArgumentException e) {
+            // Color desconocido: se queda el morado.
+        }
+        vista.setInt(R.id.evento_color, "setBackgroundColor", colorEvento);
         Intent abrir = new Intent();
         abrir.setData(Uri.parse("andamia://tarea/" + Uri.encode(f.id)));
         vista.setOnClickFillInIntent(R.id.evento_fila, abrir);
@@ -196,15 +205,15 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             vista.setTextColor(R.id.fila_titulo, color(R.color.widget_texto));
         }
 
-        // Casilla: color de la dificultad.
+        // Casilla: color de la importancia.
         vista.setTextViewText(R.id.fila_circulo, f.hecha ? "☑" : "☐");
-        vista.setTextColor(R.id.fila_circulo, colorNivel(f.dificultad));
+        vista.setTextColor(R.id.fila_circulo, colorNivel(f.prioridad));
 
-        // Insignia: importancia.
-        String importancia = nombreNivel(f.prioridad);
-        vista.setTextViewText(R.id.fila_importancia, importancia);
-        vista.setTextColor(R.id.fila_importancia, colorNivel(f.prioridad));
-        vista.setViewVisibility(R.id.fila_importancia, importancia.isEmpty() ? View.GONE : View.VISIBLE);
+        // Insignia bajo el título: dificultad.
+        String dificultad = nombreNivel(f.dificultad);
+        vista.setTextViewText(R.id.fila_importancia, dificultad);
+        vista.setTextColor(R.id.fila_importancia, colorNivel(f.dificultad));
+        vista.setViewVisibility(R.id.fila_importancia, dificultad.isEmpty() ? View.GONE : View.VISIBLE);
 
         String detalle = f.atrasada ? (f.detalle.isEmpty() ? "Atrasada" : "Atrasada · " + f.detalle) : f.detalle;
         vista.setTextViewText(R.id.fila_detalle, detalle);

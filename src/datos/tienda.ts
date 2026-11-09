@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Carpeta, Columna, EstadoHabito, Etiqueta, Habito, Lista, ModoLista, RegistroHabito, SesionEnfoque, Tarea } from "../modelos/tipos";
 import * as repo from "./repositorio";
+import { aplicarTema, leerEleccion, presetDe, TEMA_INICIAL, temaEfectivo, ultimoTema, type AjustesTema, type EleccionTema } from "../logica/temas";
 
 export type Tema = "claro" | "oscuro";
 
@@ -20,6 +21,11 @@ interface Estado {
   cerrarError: () => void;
   alternarTema: () => void;
   fijarTema: (tema: Tema) => void;
+  /** Tema de colores elegido y lo personalizado sobre él. */
+  eleccionTema: EleccionTema;
+  elegirTema: (id: string) => void;
+  ajustarTema: (cambios: AjustesTema) => void;
+  restablecerTema: () => void;
   crearTarea: (datos: repo.DatosNuevaTarea) => Promise<Tarea | null>;
   actualizarTarea: (id: string, cambios: Partial<Omit<Tarea, "id" | "creadaEn">>) => void;
   agregarEtiquetaATarea: (tarea: Tarea, nombre: string) => Promise<void>;
@@ -92,6 +98,21 @@ export const useTienda = create<Estado>((set, get) => {
     habitos: [],
     registros: [],
     tema: typeof document === "undefined" ? "claro" : temaInicial(),
+    eleccionTema: typeof document === "undefined" ? { id: TEMA_INICIAL, ajustes: {} } : leerEleccion(),
+    elegirTema: (id) => {
+      // Como en HorarioWidgets, la imagen de fondo elegida se conserva al cambiar de tema.
+      const imagen = get().eleccionTema.ajustes.imagen;
+      const eleccion: EleccionTema = { id, ajustes: imagen ? { imagen } : {} };
+      aplicarTema(eleccion);
+      set({ eleccionTema: eleccion, tema: presetDe(id).oscuro ? "oscuro" : "claro" });
+    },
+    ajustarTema: (cambios) => {
+      const e = get().eleccionTema;
+      const eleccion: EleccionTema = { id: e.id, ajustes: { ...e.ajustes, ...cambios } };
+      aplicarTema(eleccion);
+      set({ eleccionTema: eleccion, tema: temaEfectivo(eleccion).oscuro ? "oscuro" : "claro" });
+    },
+    restablecerTema: () => get().elegirTema(get().eleccionTema.id),
 
     cargar: async () => {
       try {
@@ -106,10 +127,10 @@ export const useTienda = create<Estado>((set, get) => {
 
     alternarTema: () => get().fijarTema(get().tema === "oscuro" ? "claro" : "oscuro"),
 
+    // El sol y la luna pasan al último tema claro u oscuro que se usó.
     fijarTema: (tema) => {
-      document.documentElement.classList.toggle("dark", tema === "oscuro");
-      localStorage.setItem("andamia-tema", tema);
-      set({ tema });
+      if (get().tema === tema) return;
+      get().elegirTema(ultimoTema(tema === "oscuro"));
     },
 
     crearTarea: async (datos) => {

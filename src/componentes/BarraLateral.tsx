@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
 import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
@@ -97,7 +97,7 @@ type Dialogo =
   | { tipo: "etiqueta"; etiqueta: Etiqueta | null }
   | { tipo: "borrar-etiqueta"; nombre: string; visible: string };
 
-export function BarraLateral({ seccion }: { seccion: Seccion }) {
+export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcultar?: () => void }) {
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
   const carpetas = useTienda((s) => s.carpetas);
@@ -162,13 +162,18 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
   );
 
   return (
-    <aside className="flex h-full flex-col border-r border-borde bg-lateral">
+    <aside className="barra-lateral flex h-full flex-col border-r border-borde">
       <div className="flex items-center gap-2 px-4 pt-4 pb-3">
         <Marca />
         <span className="text-base font-semibold">Andamia</span>
         <button type="button" aria-label={tema === "oscuro" ? "Usar tema claro" : "Usar tema oscuro"} title={tema === "oscuro" ? "Usar tema claro" : "Usar tema oscuro"} className="ml-auto rounded-md p-1.5 text-tenue hover:bg-suave" onClick={alternarTema}>
           {tema === "oscuro" ? <Sun size={17} /> : <Moon size={17} />}
         </button>
+        {alOcultar && (
+          <button type="button" aria-label="Ocultar menú" title="Ocultar menú" className="hidden rounded-md p-1.5 text-tenue hover:bg-suave lg:block" onClick={alOcultar}>
+            <PanelLeftClose size={17} />
+          </button>
+        )}
       </div>
 
       <nav aria-label="Navegación" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
@@ -255,7 +260,8 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
         ))}
 
         <div className="mt-5 border-t border-borde pt-2">
-          {VISTAS_INTELIGENTES.filter((v) => ["completadas", "papelera"].includes(v.id)).map((v) => (
+          {/* "Completadas" salió del menú a pedido de Francisca; su dirección (#/tareas/completadas) sigue funcionando. */}
+          {VISTAS_INTELIGENTES.filter((v) => v.id === "papelera").map((v) => (
             <Fila key={v.id} href={hashDe({ tipo: "vista", vista: v.id })} activa={seccion.tipo === "vista" && seccion.vista === v.id} icono={ICONOS[v.id]} nombre={v.nombre} />
           ))}
           <BotonAvisos />

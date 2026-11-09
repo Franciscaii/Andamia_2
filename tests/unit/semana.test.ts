@@ -39,6 +39,16 @@ describe("semana", () => {
     expect(lunes.tareas.map((t) => t.id)).toEqual(["c"]);
   });
 
+  it("las tareas del día siguen su orden manual, aunque tengan hora", () => {
+    const listas: Lista[] = [];
+    const tareas = [
+      { ...base, id: "x", vence: "2026-11-11T09:00:00", todoElDia: false, orden: 30 },
+      { ...base, id: "y", vence: "2026-11-11", orden: 10 },
+      { ...base, id: "z", vence: "2026-11-11", orden: 20 },
+    ] as Tarea[];
+    expect(contenidoDelDia(tareas, listas, ahora, ahora).tareas.map((t) => t.id)).toEqual(["y", "z", "x"]);
+  });
+
   it("sin tareas el progreso es 0 %", () => {
     expect(progresoDe([])).toEqual({ hechas: 0, total: 0, porcentaje: 0 });
   });

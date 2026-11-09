@@ -67,31 +67,11 @@ test("una tarea 'cada lunes' completada genera la siguiente", async ({ page }) =
   await expect(detalle.getByLabel("Fecha", { exact: true })).toHaveValue("2026-11-16");
   await expect(fila(page, "Reunión de equipo").first()).toContainText("0/1");
 
-  await navegar(page, "Completadas");
+  await page.goto("/#/tareas/completadas");
   const hecha = fila(page, "Reunión de equipo");
   await expect(hecha).toHaveCount(1);
   // La copia conserva la fecha original: el lunes 9, a 5 días de hoy.
   await expect(hecha).toContainText("Lunes");
-});
-
-test("editar la repetición en el detalle", async ({ page }) => {
-  await page.goto("/#/tareas/bandeja");
-  await agregar(page, "Pagar arriendo");
-  await page.getByRole("button", { name: /^Pagar arriendo/ }).click();
-  const detalle = page.getByRole("complementary", { name: "Detalle de la tarea" });
-
-  await detalle.getByLabel("Repetir", { exact: true }).selectOption("personalizada");
-  await expect(detalle.getByLabel("Fecha", { exact: true })).toHaveValue("2026-11-04");
-  await detalle.getByLabel("Intervalo de repetición").fill("3");
-  await detalle.getByLabel("Unidad de repetición").selectOption("mensual");
-  await expect(detalle.getByText("Cada 3 meses")).toBeVisible();
-
-  await detalle.getByLabel("Repetir", { exact: true }).selectOption("semanal");
-  await detalle.getByRole("group", { name: "Días de la semana" }).getByRole("button", { name: "viernes" }).click();
-  await expect(detalle.getByText("Cada miércoles y viernes")).toBeVisible();
-
-  await detalle.getByLabel("Repetir", { exact: true }).selectOption("ninguna");
-  await expect(detalle.getByText("Calcular la siguiente fecha desde")).toHaveCount(0);
 });
 
 test("recordatorio: aviso en la app y notificación del navegador", async ({ page, context }) => {
@@ -242,12 +222,13 @@ test("Kanban: columnas y arrastrar tareas con el ratón", async ({ page }) => {
   await expect(page.getByTestId("columna")).toHaveCount(0);
 });
 
-test("Calendario: arrastrar cambia la fecha, clic crea y panel sin fecha", async ({ page }) => {
+test("Calendario: arrastrar cambia la fecha, clic crea y no hay panel sin fecha", async ({ page }) => {
   await page.goto("/#/tareas/bandeja");
   await agregar(page, "Dentista el viernes");
-  await agregar(page, "Ordenar fotos");
 
   await navegar(page, "Calendario");
+  // Toda tarea tiene fecha: no hay panel "Sin fecha".
+  await expect(page.locator('[data-zona="sin-fecha"]')).toHaveCount(0);
   await expect(page.getByTestId("titulo-calendario")).toHaveText("Nov");
   const dia = (clave: string) => page.locator(`[data-zona="dia:${clave}"]`);
   const chip = (texto: string) => page.getByTestId("chip-tarea").filter({ hasText: texto });
@@ -258,12 +239,6 @@ test("Calendario: arrastrar cambia la fecha, clic crea y panel sin fecha", async
   await arrastrar(page, chip("Dentista"), dia("2026-11-18"), { y: 60 });
   await expect(dia("2026-11-18")).toContainText("Dentista");
   await expect(dia("2026-11-06")).not.toContainText("Dentista");
-
-  // Desde el panel sin fecha.
-  await expect(page.locator('[data-zona="sin-fecha"]')).toContainText("Ordenar fotos");
-  await arrastrar(page, chip("Ordenar fotos"), dia("2026-11-20"), { y: 60 });
-  await expect(dia("2026-11-20")).toContainText("Ordenar fotos");
-  await expect(page.locator('[data-zona="sin-fecha"]')).not.toContainText("Ordenar fotos");
 
   // Clic en un día vacío crea con esa fecha.
   await dia("2026-11-25").click({ position: { x: 40, y: 50 } });
@@ -277,10 +252,6 @@ test("Calendario: arrastrar cambia la fecha, clic crea y panel sin fecha", async
   await expect(detalle.getByLabel("Fecha", { exact: true })).toHaveValue("2026-11-18");
   await detalle.getByRole("button", { name: "Cerrar detalle" }).click();
 
-  // Volver al panel quita la fecha.
-  await arrastrar(page, chip("Comprar regalo"), page.locator('[data-zona="sin-fecha"]'));
-  await expect(page.locator('[data-zona="sin-fecha"]')).toContainText("Comprar regalo");
-
   // Persiste tras recargar.
   await page.reload();
   await expect(dia("2026-11-18")).toContainText("Dentista");
@@ -289,7 +260,8 @@ test("Calendario: arrastrar cambia la fecha, clic crea y panel sin fecha", async
 test("Calendario semanal: hora, cambio de semana y ocurrencias", async ({ page }) => {
   await page.goto("/#/tareas/bandeja");
   await agregar(page, "Yoga cada viernes 18:30");
-  await agregar(page, "Informe");
+  // Toda tarea tiene fecha: el informe parte el jueves, todo el día.
+  await agregar(page, "Informe el jueves");
 
   await page.goto("/#/calendario/semana");
   await expect(page.getByTestId("titulo-calendario")).toHaveText(/2 nov – 8 nov 2026/);

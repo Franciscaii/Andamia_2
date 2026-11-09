@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
-import { Check, Flag, RotateCcw, Timer, Trash2, X } from "lucide-react";
-import { listasActivas, recordatoriosActivos } from "../config";
+import { useState } from "react";
+import { Check, RotateCcw, Timer, Trash2, X } from "lucide-react";
+import { listasActivas, opcionesAvanzadas, recordatoriosActivos } from "../config";
 import { useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { formatoMinutos, minutosDeTarea } from "../logica/enfoque";
@@ -9,8 +9,9 @@ import { describirRecordatorio, OPCIONES_RECORDATORIO } from "../logica/recordat
 import { construirRegla, describirRegla, INICIALES_DIA, leerRegla, NOMBRES_DIA, venceParaRegla, type Frecuencia, type OpcionesRepeticion } from "../logica/repeticion";
 import { irA, type Seccion } from "../logica/ruta";
 import { nuevoId } from "../logica/texto";
-import { LISTA_BANDEJA, PRIORIDADES, type Prioridad, type Subtarea, type Tarea } from "../modelos/tipos";
-import { COLOR_NIVEL, COLOR_PRIORIDAD } from "./FilaTarea";
+import { LISTA_BANDEJA, type Tarea } from "../modelos/tipos";
+import { CampoNotas, claseTituloCampo, EditorSubtareas, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "./CamposTarea";
+import { COLOR_PRIORIDAD } from "./FilaTarea";
 import { claseBoton, claseCampo } from "./Modal";
 
 const UNIDADES: { valor: Frecuencia; nombre: string }[] = [
@@ -216,124 +217,6 @@ function EnfoqueDeTarea({ tarea }: { tarea: Tarea }) {
   );
 }
 
-function Subtareas({ tarea }: { tarea: Tarea }) {
-  const actualizarTarea = useTienda((s) => s.actualizarTarea);
-  const [nueva, setNueva] = useState("");
-  const guardar = (subtareas: Subtarea[]) => actualizarTarea(tarea.id, { subtareas });
-  const cambiar = (id: string, cambios: Partial<Subtarea>) => guardar(tarea.subtareas.map((s) => (s.id === id ? { ...s, ...cambios } : s)));
-
-  const agregar = (e: FormEvent) => {
-    e.preventDefault();
-    if (!nueva.trim()) return;
-    guardar([...tarea.subtareas, { id: nuevoId(), titulo: nueva.trim(), estado: "pendiente", orden: tarea.subtareas.length }]);
-    setNueva("");
-  };
-
-  return (
-    <section>
-      <h3 className="mb-1 text-xs font-semibold tracking-wide text-tenue uppercase">Subtareas</h3>
-      <ul className="space-y-1">
-        {tarea.subtareas.map((s) => {
-          const hecha = s.estado === "completada";
-          return (
-            <li key={s.id} className="group flex items-center gap-2">
-              <button
-                type="button"
-                role="checkbox"
-                aria-checked={hecha}
-                aria-label={`Completar subtarea: ${s.titulo}`}
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${hecha ? "border-acento bg-acento" : "border-tenue"}`}
-                onClick={() => cambiar(s.id, { estado: hecha ? "pendiente" : "completada" })}
-              >
-                {hecha && <Check size={11} strokeWidth={3} className="text-sobre-acento" />}
-              </button>
-              <input
-                aria-label="Título de la subtarea"
-                className={`min-w-0 flex-1 bg-transparent text-sm outline-none ${hecha ? "text-tenue line-through" : ""}`}
-                value={s.titulo}
-                onChange={(e) => cambiar(s.id, { titulo: e.target.value })}
-              />
-              <button type="button" aria-label={`Quitar subtarea: ${s.titulo}`} className="text-tenue opacity-0 group-hover:opacity-100 focus-visible:opacity-100" onClick={() => guardar(tarea.subtareas.filter((x) => x.id !== s.id))}>
-                <X size={14} />
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <form onSubmit={agregar} className="mt-1.5">
-        <input aria-label="Nueva subtarea" className={claseCampo} placeholder="Añadir subtarea y pulsar Enter" value={nueva} onChange={(e) => setNueva(e.target.value)} />
-      </form>
-    </section>
-  );
-}
-
-function Etiquetas({ tarea }: { tarea: Tarea }) {
-  const etiquetas = useTienda((s) => s.etiquetas);
-  const actualizarTarea = useTienda((s) => s.actualizarTarea);
-  const agregarEtiquetaATarea = useTienda((s) => s.agregarEtiquetaATarea);
-  const [nueva, setNueva] = useState("");
-
-  const agregar = (e: FormEvent) => {
-    e.preventDefault();
-    const nombre = nueva.replace(/^#/, "").trim();
-    if (!nombre) return;
-    void agregarEtiquetaATarea(tarea, nombre);
-    setNueva("");
-  };
-
-  return (
-    <section>
-      <h3 className="mb-1 text-xs font-semibold tracking-wide text-tenue uppercase">Etiquetas</h3>
-      <div className="mb-1.5 flex flex-wrap gap-1">
-        {tarea.etiquetas.map((clave) => {
-          const e = etiquetas.find((x) => x.nombre === clave);
-          return (
-            <span key={clave} className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ color: e?.color, background: `color-mix(in srgb, ${e?.color ?? "gray"} 16%, transparent)` }}>
-              {e?.nombreVisible ?? clave}
-              <button type="button" aria-label={`Quitar etiqueta ${e?.nombreVisible ?? clave}`} onClick={() => actualizarTarea(tarea.id, { etiquetas: tarea.etiquetas.filter((x) => x !== clave) })}>
-                <X size={12} />
-              </button>
-            </span>
-          );
-        })}
-      </div>
-      <form onSubmit={agregar}>
-        <input aria-label="Nueva etiqueta" list="etiquetas-existentes" className={claseCampo} placeholder="Añadir etiqueta y pulsar Enter" value={nueva} onChange={(e) => setNueva(e.target.value)} />
-        <datalist id="etiquetas-existentes">
-          {etiquetas.filter((e) => !tarea.etiquetas.includes(e.nombre)).map((e) => (
-            <option key={e.nombre} value={e.nombreVisible} />
-          ))}
-        </datalist>
-      </form>
-    </section>
-  );
-}
-
-/** Alta, media, baja o ninguna, con el color de la semana (rojo, amarillo, azul). */
-function SelectorNivel({ titulo, ayuda, valor, alElegir }: { titulo: string; ayuda: string; valor: Prioridad; alElegir: (v: Prioridad) => void }) {
-  return (
-    <section role="group" aria-label={titulo}>
-      <h3 className="mb-1 text-xs font-semibold tracking-wide text-tenue uppercase">
-        {titulo} <span className="font-normal normal-case tracking-normal">· {ayuda}</span>
-      </h3>
-      <div className="flex gap-1">
-        {PRIORIDADES.map((p) => (
-          <button
-            key={p.valor}
-            type="button"
-            aria-pressed={valor === p.valor}
-            onClick={() => alElegir(p.valor)}
-            className={`flex flex-1 items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-xs ${valor === p.valor ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
-          >
-            <Flag size={12} style={{ color: COLOR_NIVEL[p.valor] }} />
-            {p.nombre}
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: Seccion }) {
   const tarea = useTienda((s) => s.tareas.find((t) => t.id === tareaId));
   const listas = useTienda((s) => s.listas);
@@ -394,88 +277,86 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
             onChange={(e) => actualizarTarea(tarea.id, { titulo: e.target.value })}
           />
 
-          <section className="grid grid-cols-2 gap-2">
-            <label className="text-xs text-tenue">
-              Fecha
+          <section className={opcionesAvanzadas ? "grid grid-cols-2 gap-2" : ""}>
+            <label className="block text-xs text-tenue">
+              <span className={`${claseTituloCampo} block`}>Fecha</span>
               <input
                 type="date"
-                className={`${claseCampo} mt-1`}
+                aria-label="Fecha"
+                className={claseCampo}
                 value={fecha}
+                required
                 onChange={(e) => {
-                  // Sin fecha no hay de dónde repetir.
-                  const fin = e.target.value ? {} : { repeticion: null };
-                  actualizarTarea(tarea.id, { ...componerVence(e.target.value, hora), ...fin });
+                  // Toda tarea debe tener fecha: borrarla no hace nada.
+                  if (!e.target.value) return;
+                  actualizarTarea(tarea.id, componerVence(e.target.value, hora));
                 }}
               />
             </label>
-            <label className="text-xs text-tenue">
-              Hora
-              <input type="time" disabled={!fecha} className={`${claseCampo} mt-1 disabled:opacity-50`} value={hora} onChange={(e) => actualizarTarea(tarea.id, componerVence(fecha, e.target.value))} />
-            </label>
+            {opcionesAvanzadas && (
+              <label className="text-xs text-tenue">
+                Hora
+                <input type="time" disabled={!fecha} className={`${claseCampo} mt-1 disabled:opacity-50`} value={hora} onChange={(e) => actualizarTarea(tarea.id, componerVence(fecha, e.target.value))} />
+              </label>
+            )}
           </section>
 
-          <EditorRepeticion tarea={tarea} />
+          {opcionesAvanzadas && <EditorRepeticion tarea={tarea} />}
           {recordatoriosActivos && <EditorRecordatorios tarea={tarea} />}
 
-          <section>
-            <h3 className="mb-1 text-xs font-semibold tracking-wide text-tenue uppercase">Tipo</h3>
-            <div className="flex gap-1">
-              {[
-                { valor: false, nombre: "Tarea" },
-                { valor: true, nombre: "Evento" },
-              ].map((o) => (
-                <button
-                  key={o.nombre}
-                  type="button"
-                  aria-pressed={(tarea.esEvento ?? false) === o.valor}
-                  onClick={() => actualizarTarea(tarea.id, { esEvento: o.valor })}
-                  className={`flex flex-1 items-center justify-center rounded-md border px-1.5 py-1 text-xs ${(tarea.esEvento ?? false) === o.valor ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
-                >
-                  {o.nombre}
-                </button>
-              ))}
-            </div>
-          </section>
+          {opcionesAvanzadas && (
+            <section>
+              <h3 className="mb-1 text-xs font-semibold tracking-wide text-tenue uppercase">Tipo</h3>
+              <div className="flex gap-1">
+                {[
+                  { valor: false, nombre: "Tarea" },
+                  { valor: true, nombre: "Evento" },
+                ].map((o) => (
+                  <button
+                    key={o.nombre}
+                    type="button"
+                    aria-pressed={(tarea.esEvento ?? false) === o.valor}
+                    onClick={() => actualizarTarea(tarea.id, { esEvento: o.valor })}
+                    className={`flex flex-1 items-center justify-center rounded-md border px-1.5 py-1 text-xs ${(tarea.esEvento ?? false) === o.valor ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
+                  >
+                    {o.nombre}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {tarea.esEvento && <SelectorColorEvento valor={tarea.colorEvento ?? null} alElegir={(colorEvento) => actualizarTarea(tarea.id, { colorEvento })} />}
 
           {!tarea.esEvento && (
             <>
-              <SelectorNivel
-                titulo="Importancia"
-                ayuda="Urgencia y valor"
-                valor={tarea.prioridad}
-                alElegir={(prioridad) => actualizarTarea(tarea.id, { prioridad })}
-              />
-              <SelectorNivel
-                titulo="Dificultad"
-                ayuda="Tiempo y esfuerzo intelectual"
-                valor={tarea.dificultad ?? "ninguna"}
-                alElegir={(dificultad) => actualizarTarea(tarea.id, { dificultad })}
-              />
+              <SelectorNivel titulo="Importancia" ayuda="Urgencia y valor" valor={tarea.prioridad} alElegir={(prioridad) => actualizarTarea(tarea.id, { prioridad })} />
+              <SelectorNivel titulo="Dificultad" ayuda="Tiempo y esfuerzo intelectual" icono={ICONO_DIFICULTAD} valor={tarea.dificultad ?? "ninguna"} alElegir={(dificultad) => actualizarTarea(tarea.id, { dificultad })} />
             </>
           )}
 
+          <SelectorIndole
+            valor={tarea.etiquetas[0] ?? null}
+            alElegir={(clave) => actualizarTarea(tarea.id, { etiquetas: clave ? [clave, ...tarea.etiquetas.slice(1).filter((x) => x !== clave)] : tarea.etiquetas.slice(1) })}
+          />
+
           {(listasActivas || listas.length > 0) && (
-          <label className="block text-xs text-tenue">
-            Lista
-            <select aria-label="Lista" className={`${claseCampo} mt-1`} value={tarea.listaId} onChange={(e) => actualizarTarea(tarea.id, { listaId: e.target.value, columnaId: null })}>
-              <option value={LISTA_BANDEJA}>Bandeja de entrada</option>
-              {listas.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="block text-xs text-tenue">
+              Lista
+              <select aria-label="Lista" className={`${claseCampo} mt-1`} value={tarea.listaId} onChange={(e) => actualizarTarea(tarea.id, { listaId: e.target.value, columnaId: null })}>
+                <option value={LISTA_BANDEJA}>Bandeja de entrada</option>
+                {listas.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nombre}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
 
-          <label className="block text-xs text-tenue">
-            Notas
-            <textarea aria-label="Notas" rows={5} className={`${claseCampo} mt-1 resize-y`} placeholder="Escribe aquí tus notas" value={tarea.descripcion} onChange={(e) => actualizarTarea(tarea.id, { descripcion: e.target.value })} />
-          </label>
-
-          <Subtareas tarea={tarea} />
-          <Etiquetas tarea={tarea} />
-          <EnfoqueDeTarea tarea={tarea} />
+          <CampoNotas valor={tarea.descripcion} alCambiar={(descripcion) => actualizarTarea(tarea.id, { descripcion })} />
+          <EditorSubtareas subtareas={tarea.subtareas} alCambiar={(subtareas) => actualizarTarea(tarea.id, { subtareas })} />
+          {opcionesAvanzadas && <EnfoqueDeTarea tarea={tarea} />}
         </fieldset>
       </div>
 

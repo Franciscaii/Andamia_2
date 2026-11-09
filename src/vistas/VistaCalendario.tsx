@@ -3,6 +3,7 @@ import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, u
 import { addMonths, addWeeks, format, isSameDay, isSameMonth, parseISO, startOfDay, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
+import { estiloEvento } from "../componentes/CamposTarea";
 import { colisionPunteroOTeclado } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
 import { COLOR_NIVEL, COLOR_PRIORIDAD } from "../componentes/FilaTarea";
@@ -11,15 +12,24 @@ import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes, diasDeSemana, entradasDelDia, entradasEnRango, venceEnDia, venceEnHora, type EntradaCalendario } from "../logica/calendario";
 import { interpretarEntrada } from "../logica/entradaRapida";
 import { hashDe, irA, type ModoCalendario } from "../logica/ruta";
-import { estaPendiente } from "../logica/vistas";
 import type { FiltroSemana } from "../logica/semana";
 import { DialogoHabito } from "./VistaHabitos";
-import { DialogoNuevo, FILTROS, MenuNuevo, type TipoNuevo } from "./VistaSemana";
+import { DialogoNuevo, FILTROS, MenuNuevo, verDiaEnSemana, type TipoNuevo } from "./VistaSemana";
 import type { Tarea } from "../modelos/tipos";
 
 const NOMBRES_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const HORAS = Array.from({ length: 24 }, (_, i) => i);
-const MAX_EN_CELDA = 3;
+/** Medidas de una celda del mes, en px: número del día con sus márgenes, cada entrada y el "n más". */
+const ALTO_CABECERA_CELDA = 32;
+const ALTO_ENTRADA = 21;
+const ALTO_MAS = 16;
+
+/** Cuántas entradas caben en una celda de `alto` px; si no caben todas, se reserva lugar para "n más". */
+function entradasQueCaben(alto: number, total: number): number {
+  const libre = alto - ALTO_CABECERA_CELDA;
+  if (total * ALTO_ENTRADA <= libre) return total;
+  return Math.max(1, Math.floor((libre - ALTO_MAS) / ALTO_ENTRADA));
+}
 const ALTO_HORA = 48;
 const PREFIJO_TAREA = "tarea:";
 
@@ -49,7 +59,7 @@ function ChipMes({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: Pr
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: idArrastre ?? PREFIJO_TAREA + tarea.id, disabled: !movible });
   const hecha = tarea.estado === "completada";
   const evento = tarea.esEvento === true;
-  const color = COLOR_NIVEL[tarea.dificultad ?? "ninguna"];
+  const color = COLOR_NIVEL[tarea.prioridad];
   return (
     <div
       ref={setNodeRef}
@@ -68,7 +78,7 @@ function ChipMes({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: Pr
       className={`flex w-full min-w-0 items-center gap-1 overflow-hidden rounded px-0.5 py-0.5 text-left text-[11px] leading-tight sm:text-xs ${
         evento ? "border-l-[3px] font-medium" : "hover:bg-suave"
       } ${movible ? "cursor-grab touch-none" : "cursor-pointer"} ${esOcurrencia ? "opacity-55" : ""} ${isDragging ? "opacity-30" : ""}`}
-      style={evento ? { borderColor: "var(--evento)", background: "var(--evento-suave)" } : undefined}
+      style={evento ? estiloEvento(tarea.colorEvento) : undefined}
       {...(movible ? { ...attributes, ...listeners } : {})}
     >
       {!evento && (
@@ -175,6 +185,21 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const [filtro, setFiltro] = useState<FiltroSemana>("todos");
   const [nuevo, setNuevo] = useState<TipoNuevo | "habito" | null>(null);
   const rejilla = useRef<HTMLDivElement>(null);
+  // Alto real de una celda del mes, para mostrar tantas entradas como quepan.
+  const rejillaMes = useRef<HTMLDivElement>(null);
+  const [altoCelda, setAltoCelda] = useState(96);
+  useEffect(() => {
+    const nodo = rejillaMes.current;
+    if (!nodo) return;
+    const medir = () => {
+      const celda = nodo.firstElementChild as HTMLElement | null;
+      if (celda) setAltoCelda(celda.getBoundingClientRect().height);
+    };
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(nodo);
+    return () => observador.disconnect();
+  }, [modo, fecha]);
   const hoy = new Date();
 
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
@@ -191,7 +216,6 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     const filtradas = visibles.filter((t) => (filtro === "todos" ? true : filtro === "eventos" ? t.esEvento === true : t.esEvento !== true));
     return entradasEnRango(filtradas, dias[0], dias[dias.length - 1]);
   }, [visibles, dias, filtro]);
-  const sinFecha = useMemo(() => visibles.filter((t) => estaPendiente(t) && !t.vence).sort((a, b) => a.orden - b.orden), [visibles]);
 
   // La semana arranca mostrando la mañana, no la madrugada.
   useEffect(() => {
@@ -205,10 +229,8 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     const tarea = tareas.find((t) => t.id === id);
     if (!tarea) return;
     const zona = String(over.id);
-    if (zona === "sin-fecha") {
-      // Sin fecha no hay de dónde repetir.
-      actualizarTarea(id, { vence: null, todoElDia: false, repeticion: null });
-    } else if (zona.startsWith("dia:")) {
+    // Toda tarea tiene fecha: ya no hay panel "Sin fecha" al que soltarla.
+    if (zona.startsWith("dia:")) {
       actualizarTarea(id, venceEnDia(tarea, parseISO(zona.slice(4))));
     } else if (zona.startsWith("todo-el-dia:")) {
       actualizarTarea(id, { vence: zona.slice(12), todoElDia: true });
@@ -309,31 +331,41 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                   </div>
                 ))}
               </div>
-              <div className="grid min-h-0 flex-1 grid-cols-7 auto-rows-fr overflow-y-auto">
+              <div ref={rejillaMes} className="grid min-h-0 flex-1 grid-cols-7 auto-rows-fr overflow-y-auto">
                 {dias.map((dia, i) => {
                   const delMes = isSameMonth(dia, fecha);
                   const delDia = delMes ? entradasDelDia(entradas, dia) : [];
                   // Eventos primero, como en la Semana.
                   delDia.sort((a, b) => Number(b.tarea.esEvento === true) - Number(a.tarea.esEvento === true));
-                  const resto = delDia.length - MAX_EN_CELDA;
+                  // Tantas como quepan en el recuadro; si sobran, "n más" al final, sin salirse del día.
+                  const visibles = entradasQueCaben(altoCelda, delDia.length);
+                  const resto = delDia.length - visibles;
                   const ultimaFila = i >= dias.length - 7;
                   return (
                     <Zona
                       key={claveDia(dia)}
                       id={`dia:${claveDia(dia)}`}
                       etiqueta={format(dia, "d 'de' MMMM", { locale: es })}
-                      clase={`min-h-24 min-w-0 px-0.5 pt-1 pb-1.5 ${ultimaFila ? "" : "border-b border-borde"}`}
+                      clase={`flex min-h-24 min-w-0 flex-col overflow-hidden px-0.5 pt-1 pb-1.5 ${ultimaFila ? "" : "border-b border-borde"}`}
                       alCrear={delMes ? () => crearEnDia(dia) : undefined}
                     >
                       {delMes && (
                         <>
-                          <span className={`mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs tabular-nums ${isSameDay(dia, hoy) ? "border-2 border-acento font-semibold text-acento" : ""}`}>{format(dia, "d")}</span>
-                          <div className="space-y-0.5">
-                            {delDia.slice(0, MAX_EN_CELDA).map((e) => (
+                          <span className={`mx-auto mb-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs tabular-nums ${isSameDay(dia, hoy) ? "border-2 border-acento font-semibold text-acento" : ""}`}>{format(dia, "d")}</span>
+                          <div className="min-h-0 space-y-0.5 overflow-hidden">
+                            {delDia.slice(0, visibles).map((e) => (
                               <ChipMes key={e.clave} tarea={e.tarea} fecha={e.fecha} esOcurrencia={e.esOcurrencia} idArrastre={e.esOcurrencia ? `ocurrencia:${e.clave}` : undefined} alAbrir={() => abrir(e.tarea.id)} />
                             ))}
                             {resto > 0 && (
-                              <a data-entrada href={hashDe({ tipo: "calendario", modo: "semana" })} onClick={() => setFecha(dia)} className="block px-1 text-[11px] text-tenue hover:text-texto">
+                              <a
+                                data-entrada
+                                href={hashDe({ tipo: "vista", vista: "semana" })}
+                                onClick={(ev) => {
+                                  // Lleva a la Semana, en "Hoy", con este día elegido.
+                                  ev.preventDefault();
+                                  verDiaEnSemana(dia);
+                                }}
+                                className="block truncate px-1 text-[11px] leading-4 text-tenue hover:text-texto">
                                 {resto} más
                               </a>
                             )}
@@ -376,15 +408,6 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
             </div>
           )}
 
-          <Zona id="sin-fecha" etiqueta="Tareas sin fecha" clase="hidden w-56 shrink-0 flex-col overflow-y-auto rounded-lg border border-borde bg-panel p-2 lg:flex">
-            <h2 className="mb-1 px-1 text-xs font-semibold tracking-wide text-tenue uppercase">Sin fecha</h2>
-            <p className="mb-2 px-1 text-xs text-tenue">Arrastra una tarea a un día.</p>
-            <div className="space-y-1">
-              {sinFecha.map((t) => (
-                <Chip key={t.id} tarea={t} fecha={null} alAbrir={() => abrir(t.id)} />
-              ))}
-            </div>
-          </Zona>
         </div>
 
         <DragOverlay dropAnimation={null}>

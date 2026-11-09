@@ -69,7 +69,8 @@ export function contenidoDelDia(tareas: Tarea[], listas: Lista[], dia: Date, aho
     else if (esHoy && !esEvento(t) && t.estado === "pendiente" && fecha < inicioDia) delDia.push(t);
   }
   const eventos = delDia.filter(esEvento).sort(porHoraYOrden);
-  const deTareas = delDia.filter((t) => !esEvento(t)).sort(porHoraYOrden);
+  // Las tareas siguen el orden que la persona les da arrastrándolas.
+  const deTareas = delDia.filter((t) => !esEvento(t)).sort((a, b) => a.orden - b.orden);
   return { eventos, tareas: deTareas, progreso: progresoDe(deTareas) };
 }
 

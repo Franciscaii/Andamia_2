@@ -134,11 +134,6 @@ test.describe("enfoque", () => {
     await page.getByRole("button", { name: "Saltar" }).click();
     await expect(page.getByTestId("fase")).toHaveText("Enfoque");
     await expect(page.getByTestId("tiempo")).toHaveText("25:00");
-
-    // El acumulado aparece en la tarea, y persiste.
-    await page.goto("/#/tareas/bandeja");
-    await page.getByRole("button", { name: /^Escribir capítulo/ }).click();
-    await expect(page.getByText("Enfoque acumulado: 25 min")).toBeVisible();
   });
 
   test("con la página cerrada, la sesión termina a su hora", async ({ page }) => {

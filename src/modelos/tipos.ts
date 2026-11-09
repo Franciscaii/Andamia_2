@@ -44,6 +44,8 @@ export interface Tarea {
   dificultad?: Prioridad;
   /** Un evento se muestra en la barra morada de la semana: sin casilla y sin contar en el progreso. */
   esEvento?: boolean;
+  /** Color elegido para un evento; sin él, el morado de siempre. */
+  colorEvento?: string | null;
   /** "AAAA-MM-DD" si es de todo el día; fecha-hora ISO si lleva hora; null sin fecha. */
   vence: string | null;
   todoElDia: boolean;

@@ -44,6 +44,13 @@
   --nivel-baja: #2f7fd1;
   --evento: #9b5cd6;
   --evento-suave: #efe3fa;
+  --app-texto: var(--texto);
+  --app-tenue: var(--tenue);
+  --app-suave: var(--suave);
+  --app-borde: var(--borde);
+  --app-acento: var(--acento);
+  --app-acento-suave: var(--acento-suave);
+  --app-sobre-acento: var(--sobre-acento);
   color-scheme: light;
 }
 
@@ -72,6 +79,33 @@
   color-scheme: dark;
 }
 
+/* Temas (src/logica/temas.ts): el tema elegido escribe estas variables en <html>; lo de arriba es solo el respaldo. */
+
+/* El menú lateral es la "cabecera" de color del tema: dentro de él, textos y resaltes salen de su color. */
+.barra-lateral {
+  background: var(--lateral);
+  color: var(--lat-texto, inherit);
+  --texto: var(--lat-texto, var(--app-texto));
+  --tenue: color-mix(in srgb, var(--lat-texto, #6a6f6c) 70%, transparent);
+  --suave: color-mix(in srgb, var(--lat-texto, #24282a) 12%, transparent);
+  --borde: color-mix(in srgb, var(--lat-texto, #24282a) 20%, transparent);
+  --acento: var(--lat-texto, var(--app-acento));
+  --acento-suave: color-mix(in srgb, var(--lat-texto, #24282a) 20%, transparent);
+  --sobre-acento: var(--lat-base, #ffffff);
+}
+
+/* Las ventanas que se abren desde el menú vuelven a los colores normales. */
+.ventana {
+  color: var(--app-texto);
+  --texto: var(--app-texto);
+  --tenue: var(--app-tenue);
+  --suave: var(--app-suave);
+  --borde: var(--app-borde);
+  --acento: var(--app-acento);
+  --acento-suave: var(--app-acento-suave);
+  --sobre-acento: var(--app-sobre-acento);
+}
+
 html,
 body,
 #raiz {
@@ -80,10 +114,10 @@ body,
 
 body {
   margin: 0;
-  background: var(--fondo);
+  background: var(--fondo-capa, var(--fondo));
   color: var(--texto);
   font-family: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 /* En una capa para que los campos con su propio borde de foco puedan anularlo. */

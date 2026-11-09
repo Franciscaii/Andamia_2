@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Un evento: barra morada, sin casilla. -->
+<!-- Un evento: franja con su color (morado por defecto), sin casilla. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/evento_fila"
     android:layout_width="match_parent"
@@ -9,8 +9,14 @@
     android:gravity="center_vertical"
     android:minHeight="36dp"
     android:orientation="horizontal"
-    android:paddingStart="12dp"
     android:paddingEnd="10dp">
+
+    <View
+        android:id="@+id/evento_color"
+        android:layout_width="4dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="8dp"
+        android:background="@color/widget_evento" />
 
     <TextView
         android:id="@+id/evento_titulo"

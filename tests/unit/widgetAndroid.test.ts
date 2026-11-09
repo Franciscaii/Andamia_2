@@ -22,11 +22,11 @@ describe("datosDelWidget", () => {
     ] as Tarea[];
     const datos = datosDelWidget(tareas, listas, ahora);
     expect(datos.fecha).toBe("2026-11-09");
-    // Con hora primero; lo completado de hoy se queda (tachado) para el progreso.
-    expect(datos.tareas.map((t) => t.id)).toEqual(["t2", "t1", "t3", "t5"]);
+    // En el orden manual de la semana; lo completado de hoy se queda (tachado) para el progreso.
+    expect(datos.tareas.map((t) => t.id)).toEqual(["t1", "t2", "t3", "t5"]);
     expect(datos.titulo).toBe("Hoy, lun 9 de noviembre");
-    expect(datos.tareas[1]).toMatchObject({ prioridad: 3, atrasada: false, detalle: "", hecha: false });
-    expect(datos.tareas[0]).toMatchObject({ detalle: "15:30 · Trabajo", prioridad: 0 });
+    expect(datos.tareas[0]).toMatchObject({ prioridad: 3, atrasada: false, detalle: "", hecha: false });
+    expect(datos.tareas[1]).toMatchObject({ detalle: "15:30 · Trabajo", prioridad: 0 });
     expect(datos.tareas[2]).toMatchObject({ atrasada: true, prioridad: 1 });
     expect(datos.tareas[3]).toMatchObject({ hecha: true, atrasada: false });
   });
@@ -38,7 +38,7 @@ describe("datosDelWidget", () => {
     ] as Tarea[];
     const etiquetas = [{ nombre: "uni", nombreVisible: "Universidad", color: "#2f9e5b", orden: 0 }];
     const datos = datosDelWidget(tareas, listas, ahora, etiquetas);
-    expect(datos.eventos).toEqual([{ id: "e1", titulo: "Doctor", hora: "11:00" }]);
+    expect(datos.eventos).toEqual([{ id: "e1", titulo: "Doctor", hora: "11:00", color: "" }]);
     expect(datos.tareas).toHaveLength(1);
     expect(datos.tareas[0]).toMatchObject({ dificultad: 2, etiqueta: "Universidad", colorEtiqueta: "#2f9e5b" });
   });
