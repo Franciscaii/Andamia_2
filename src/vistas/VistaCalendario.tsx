@@ -13,7 +13,7 @@ import { interpretarEntrada } from "../logica/entradaRapida";
 import { hashDe, irA, type ModoCalendario } from "../logica/ruta";
 import type { FiltroSemana } from "../logica/semana";
 import { DialogoHabito } from "./VistaHabitos";
-import { DialogoNuevo, FILTROS, MenuNuevo, type TipoNuevo } from "./VistaSemana";
+import { DialogoNuevo, FILTROS, MenuNuevo, verDiaEnSemana, type TipoNuevo } from "./VistaSemana";
 import type { Tarea } from "../modelos/tipos";
 
 const NOMBRES_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -356,7 +356,15 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                               <ChipMes key={e.clave} tarea={e.tarea} fecha={e.fecha} esOcurrencia={e.esOcurrencia} idArrastre={e.esOcurrencia ? `ocurrencia:${e.clave}` : undefined} alAbrir={() => abrir(e.tarea.id)} />
                             ))}
                             {resto > 0 && (
-                              <a data-entrada href={hashDe({ tipo: "calendario", modo: "semana" })} onClick={() => setFecha(dia)} className="block truncate px-1 text-[11px] leading-4 text-tenue hover:text-texto">
+                              <a
+                                data-entrada
+                                href={hashDe({ tipo: "vista", vista: "semana" })}
+                                onClick={(ev) => {
+                                  // Lleva a la Semana, en "Hoy", con este día elegido.
+                                  ev.preventDefault();
+                                  verDiaEnSemana(dia);
+                                }}
+                                className="block truncate px-1 text-[11px] leading-4 text-tenue hover:text-texto">
                                 {resto} más
                               </a>
                             )}

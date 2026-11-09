@@ -426,3 +426,27 @@ test("en el computador el menú se oculta y se vuelve a mostrar", async ({ page 
   await page.getByRole("button", { name: "Mostrar menú" }).click();
   await expect(menu).toBeVisible();
 });
+
+test("calendario mes: 'n más' lleva a la Semana en Hoy con ese día elegido", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await page.goto("/");
+  // Quedó elegida la vista de 7 días: el enlace debe volver a "Hoy".
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  const dia = new Date();
+  dia.setDate(dia.getDate() + (dia.getDay() === 0 ? -1 : 1));
+  const clave = dia.toLocaleDateString("sv-SE");
+  for (let i = 1; i <= 8; i++) {
+    await page.getByTestId("dia-semana").first().getByRole("button", { name: /^Añadir el/ }).click();
+    await page.getByRole("menuitem", { name: "Tarea" }).click();
+    const d = page.getByRole("dialog");
+    await d.getByRole("textbox", { name: "Añadir tarea" }).fill(`Tarea ${i}`);
+    await d.getByLabel("Fecha", { exact: true }).fill(clave);
+    await d.getByRole("button", { name: "Crear tarea" }).click();
+  }
+  await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
+  const celda = page.locator(`[data-zona="dia:${clave}"]`);
+  await celda.getByRole("link", { name: /más$/ }).click();
+  await expect(page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Hoy", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: new RegExp(`^${dia.toLocaleDateString("es-CL", { weekday: "long" })}`), pressed: true })).toBeVisible();
+  await expect(page.getByTestId("fila-tarea")).toHaveCount(8);
+});

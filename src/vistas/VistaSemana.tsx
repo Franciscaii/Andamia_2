@@ -391,13 +391,30 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compact
   );
 }
 
+/** Día que otra vista pidió mostrar (el "n más" del mes). Se usa una vez al abrir la Semana. */
+let diaPedido: Date | null = null;
+
+/** Abre la Semana en la vista "Hoy" con ese día elegido. */
+export function verDiaEnSemana(dia: Date) {
+  diaPedido = dia;
+  try {
+    localStorage.setItem(CLAVE_ALCANCE, "dia");
+  } catch {
+    // Sin almacenamiento igual abre en "Hoy": diaPedido manda.
+  }
+  irA({ tipo: "vista", vista: "semana" });
+}
+
 export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
   const ahora = new Date();
-  const [elegido, setElegido] = useState(() => new Date());
+  const [elegido, setElegido] = useState(() => diaPedido ?? new Date());
   const [filtro, setFiltro] = useState<FiltroSemana>("todos");
-  const [alcanceGuardado, setAlcanceEstado] = useState<Alcance>(leerAlcance);
+  const [alcanceGuardado, setAlcanceEstado] = useState<Alcance>(() => (diaPedido ? "dia" : leerAlcance()));
+  useEffect(() => {
+    diaPedido = null;
+  }, []);
   const esEscritorio = useEsEscritorio();
   const alcance: Alcance = esEscritorio ? alcanceGuardado : "dia";
   const [creando, setCreando] = useState<TipoNuevo | "habito" | null>(null);
