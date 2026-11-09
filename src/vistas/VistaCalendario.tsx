@@ -315,25 +315,27 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                   const delDia = delMes ? entradasDelDia(entradas, dia) : [];
                   // Eventos primero, como en la Semana.
                   delDia.sort((a, b) => Number(b.tarea.esEvento === true) - Number(a.tarea.esEvento === true));
-                  const resto = delDia.length - MAX_EN_CELDA;
+                  // Si no caben todas, el "n más" ocupa el lugar de la última, para no salirse del día.
+                  const visibles = delDia.length > MAX_EN_CELDA ? MAX_EN_CELDA - 1 : delDia.length;
+                  const resto = delDia.length - visibles;
                   const ultimaFila = i >= dias.length - 7;
                   return (
                     <Zona
                       key={claveDia(dia)}
                       id={`dia:${claveDia(dia)}`}
                       etiqueta={format(dia, "d 'de' MMMM", { locale: es })}
-                      clase={`min-h-24 min-w-0 px-0.5 pt-1 pb-1.5 ${ultimaFila ? "" : "border-b border-borde"}`}
+                      clase={`flex min-h-24 min-w-0 flex-col overflow-hidden px-0.5 pt-1 pb-1.5 ${ultimaFila ? "" : "border-b border-borde"}`}
                       alCrear={delMes ? () => crearEnDia(dia) : undefined}
                     >
                       {delMes && (
                         <>
-                          <span className={`mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs tabular-nums ${isSameDay(dia, hoy) ? "border-2 border-acento font-semibold text-acento" : ""}`}>{format(dia, "d")}</span>
-                          <div className="space-y-0.5">
-                            {delDia.slice(0, MAX_EN_CELDA).map((e) => (
+                          <span className={`mx-auto mb-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs tabular-nums ${isSameDay(dia, hoy) ? "border-2 border-acento font-semibold text-acento" : ""}`}>{format(dia, "d")}</span>
+                          <div className="min-h-0 space-y-0.5 overflow-hidden">
+                            {delDia.slice(0, visibles).map((e) => (
                               <ChipMes key={e.clave} tarea={e.tarea} fecha={e.fecha} esOcurrencia={e.esOcurrencia} idArrastre={e.esOcurrencia ? `ocurrencia:${e.clave}` : undefined} alAbrir={() => abrir(e.tarea.id)} />
                             ))}
                             {resto > 0 && (
-                              <a data-entrada href={hashDe({ tipo: "calendario", modo: "semana" })} onClick={() => setFecha(dia)} className="block px-1 text-[11px] text-tenue hover:text-texto">
+                              <a data-entrada href={hashDe({ tipo: "calendario", modo: "semana" })} onClick={() => setFecha(dia)} className="block truncate px-1 text-[11px] leading-4 text-tenue hover:text-texto">
                                 {resto} más
                               </a>
                             )}
