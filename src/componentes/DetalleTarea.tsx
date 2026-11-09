@@ -285,10 +285,11 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
                 aria-label="Fecha"
                 className={claseCampo}
                 value={fecha}
+                required
                 onChange={(e) => {
-                  // Sin fecha no hay de dónde repetir.
-                  const fin = e.target.value ? {} : { repeticion: null };
-                  actualizarTarea(tarea.id, { ...componerVence(e.target.value, hora), ...fin });
+                  // Toda tarea debe tener fecha: borrarla no hace nada.
+                  if (!e.target.value) return;
+                  actualizarTarea(tarea.id, componerVence(e.target.value, hora));
                 }}
               />
             </label>

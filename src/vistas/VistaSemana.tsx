@@ -203,11 +203,11 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
-    if (!titulo.trim()) return;
+    if (!titulo.trim() || !fecha) return;
     await crearTarea({
       titulo,
       esEvento,
-      vence: fecha || null,
+      vence: fecha,
       todoElDia: true,
       prioridad: esEvento ? "ninguna" : prioridad,
       dificultad: esEvento ? "ninguna" : dificultad,
@@ -236,7 +236,7 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
         </label>
         <label className="block text-xs text-tenue">
           <span className={`${claseTituloCampo} block`}>Fecha</span>
-          <input type="date" aria-label="Fecha" className={claseCampo} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <input type="date" required aria-label="Fecha" className={claseCampo} value={fecha} onChange={(e) => setFecha(e.target.value)} />
         </label>
         {!esEvento && (
           <>
@@ -251,7 +251,7 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
           <button type="button" className={claseBoton} onClick={alCerrar}>
             Cancelar
           </button>
-          <button type="submit" className={claseBotonPrincipal} disabled={!titulo.trim()}>
+          <button type="submit" className={claseBotonPrincipal} disabled={!titulo.trim() || !fecha}>
             {esEvento ? "Crear evento" : "Crear tarea"}
           </button>
         </div>

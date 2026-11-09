@@ -300,6 +300,10 @@ test("nueva tarea en ventana: fecha, importancia, dificultad, índole, notas y s
   const dialogo = page.getByRole("dialog", { name: "Nueva tarea" });
   await dialogo.getByRole("textbox", { name: "Añadir tarea" }).fill("Preparar informe");
   await expect(dialogo.getByLabel("Fecha", { exact: true })).toHaveValue(new Date().toLocaleDateString("sv-SE"));
+  // Sin fecha no se puede crear.
+  await dialogo.getByLabel("Fecha", { exact: true }).fill("");
+  await expect(dialogo.getByRole("button", { name: "Crear tarea" })).toBeDisabled();
+  await dialogo.getByLabel("Fecha", { exact: true }).fill(new Date().toLocaleDateString("sv-SE"));
   await dialogo.getByRole("group", { name: "Importancia" }).getByRole("button", { name: "Media" }).click();
   await dialogo.getByRole("group", { name: "Dificultad" }).getByRole("button", { name: "Alta" }).click();
   await dialogo.getByRole("group", { name: "Índole" }).getByRole("button", { name: "Universidad" }).click();

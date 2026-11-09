@@ -11,7 +11,6 @@ import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes, diasDeSemana, entradasDelDia, entradasEnRango, venceEnDia, venceEnHora, type EntradaCalendario } from "../logica/calendario";
 import { interpretarEntrada } from "../logica/entradaRapida";
 import { hashDe, irA, type ModoCalendario } from "../logica/ruta";
-import { estaPendiente } from "../logica/vistas";
 import type { FiltroSemana } from "../logica/semana";
 import { DialogoHabito } from "./VistaHabitos";
 import { DialogoNuevo, FILTROS, MenuNuevo, type TipoNuevo } from "./VistaSemana";
@@ -216,7 +215,6 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     const filtradas = visibles.filter((t) => (filtro === "todos" ? true : filtro === "eventos" ? t.esEvento === true : t.esEvento !== true));
     return entradasEnRango(filtradas, dias[0], dias[dias.length - 1]);
   }, [visibles, dias, filtro]);
-  const sinFecha = useMemo(() => visibles.filter((t) => estaPendiente(t) && !t.vence).sort((a, b) => a.orden - b.orden), [visibles]);
 
   // La semana arranca mostrando la mañana, no la madrugada.
   useEffect(() => {
@@ -230,10 +228,8 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     const tarea = tareas.find((t) => t.id === id);
     if (!tarea) return;
     const zona = String(over.id);
-    if (zona === "sin-fecha") {
-      // Sin fecha no hay de dónde repetir.
-      actualizarTarea(id, { vence: null, todoElDia: false, repeticion: null });
-    } else if (zona.startsWith("dia:")) {
+    // Toda tarea tiene fecha: ya no hay panel "Sin fecha" al que soltarla.
+    if (zona.startsWith("dia:")) {
       actualizarTarea(id, venceEnDia(tarea, parseISO(zona.slice(4))));
     } else if (zona.startsWith("todo-el-dia:")) {
       actualizarTarea(id, { vence: zona.slice(12), todoElDia: true });
@@ -403,15 +399,6 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
             </div>
           )}
 
-          <Zona id="sin-fecha" etiqueta="Tareas sin fecha" clase="hidden w-56 shrink-0 flex-col overflow-y-auto rounded-lg border border-borde bg-panel p-2 lg:flex">
-            <h2 className="mb-1 px-1 text-xs font-semibold tracking-wide text-tenue uppercase">Sin fecha</h2>
-            <p className="mb-2 px-1 text-xs text-tenue">Arrastra una tarea a un día.</p>
-            <div className="space-y-1">
-              {sinFecha.map((t) => (
-                <Chip key={t.id} tarea={t} fecha={null} alAbrir={() => abrir(t.id)} />
-              ))}
-            </div>
-          </Zona>
         </div>
 
         <DragOverlay dropAnimation={null}>
