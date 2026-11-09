@@ -29,7 +29,7 @@
         <!-- Widget "Hoy" de la pantalla de inicio -->
         <receiver
             android:name=".HoyWidget"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/widget_nombre">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
