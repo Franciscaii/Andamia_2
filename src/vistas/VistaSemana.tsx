@@ -260,7 +260,7 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
 }
 
 /** El + de la semana: tarea, evento o hábito. */
-export function MenuNuevo({ alElegir }: { alElegir: (tipo: TipoNuevo | "habito") => void }) {
+export function MenuNuevo({ alElegir, etiqueta = "Añadir", atajo = true, pequeno = false }: { alElegir: (tipo: TipoNuevo | "habito") => void; etiqueta?: string; atajo?: boolean; pequeno?: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const opciones: { tipo: TipoNuevo | "habito"; nombre: string; icono: ReactNode }[] = [
     { tipo: "tarea", nombre: "Tarea", icono: <CheckSquare size={16} /> },
@@ -271,20 +271,20 @@ export function MenuNuevo({ alElegir }: { alElegir: (tipo: TipoNuevo | "habito")
     <div className="relative shrink-0">
       <button
         type="button"
-        data-nueva-tarea
-        aria-label="Añadir"
+        data-nueva-tarea={atajo ? "" : undefined}
+        aria-label={etiqueta}
         aria-haspopup="menu"
         aria-expanded={abierto}
         title="Añadir tarea, evento o hábito"
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90"
+        className={`flex items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90 ${pequeno ? "h-6 w-6" : "h-8 w-8"}`}
         onClick={() => setAbierto((a) => !a)}
       >
-        <Plus size={18} />
+        <Plus size={pequeno ? 15 : 18} />
       </button>
       {abierto && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setAbierto(false)} />
-          <div role="menu" aria-label="Añadir" className="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-borde bg-panel p-1 shadow-lg">
+          <div role="menu" aria-label={etiqueta} className="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-borde bg-panel p-1 shadow-lg">
             {opciones.map((o) => (
               <button
                 key={o.tipo}
@@ -400,6 +400,12 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const esEscritorio = useEsEscritorio();
   const alcance: Alcance = esEscritorio ? alcanceGuardado : "dia";
   const [creando, setCreando] = useState<TipoNuevo | "habito" | null>(null);
+  // Día para el que se crea: el elegido, o el de la columna donde se tocó el +.
+  const [diaNuevo, setDiaNuevo] = useState(() => new Date());
+  const nuevoEn = (tipo: TipoNuevo | "habito", dia: Date) => {
+    setDiaNuevo(dia);
+    setCreando(tipo);
+  };
 
   const setAlcance = (a: Alcance) => {
     setAlcanceEstado(a);
@@ -466,7 +472,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               </button>
             ))}
           </div>
-          <MenuNuevo alElegir={setCreando} />
+          {alcance === "dia" && <MenuNuevo alElegir={(tipo) => nuevoEn(tipo, elegido)} />}
         </div>
 
 
@@ -505,15 +511,24 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
         // En el computador: los 7 días uno al lado del otro, cada uno en su columna.
         <div className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-6 sm:px-6">
           <div className="grid min-h-full grid-cols-[repeat(7,minmax(10rem,1fr))] gap-3">
-            {dias.map((d) => {
+            {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
               return (
                 <section key={d.toISOString()} aria-label={tituloDelDia(d, ahora)} data-testid="dia-semana" className={`min-w-0 rounded-xl p-2 ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}>
-                  <h2 className="mb-2 flex items-baseline gap-1.5 px-1">
-                    <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
-                    <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
-                    {esHoy && <span className="text-xs font-medium text-acento">Hoy</span>}
-                  </h2>
+                  <div className="mb-2 flex items-center gap-1 px-1">
+                    <h2 className="flex min-w-0 flex-1 items-baseline gap-1.5">
+                      <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
+                      <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
+                      {esHoy && <span className="text-xs font-medium text-acento">Hoy</span>}
+                    </h2>
+                    {/* El atajo N abre el + de hoy, o el del lunes si hoy no está en la semana. */}
+                    <MenuNuevo
+                      pequeno
+                      etiqueta={`Añadir el ${format(d, "EEEE d", { locale: es })}`}
+                      atajo={dias.some((x) => isSameDay(x, ahora)) ? esHoy : i === 0}
+                      alElegir={(tipo) => nuevoEn(tipo, d)}
+                    />
+                  </div>
                   <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto />
                 </section>
               );
@@ -522,7 +537,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
         </div>
       )}
 
-      {(creando === "tarea" || creando === "evento") && <DialogoNuevo tipo={creando} dia={elegido} alCerrar={() => setCreando(null)} />}
+      {(creando === "tarea" || creando === "evento") && <DialogoNuevo tipo={creando} dia={diaNuevo} alCerrar={() => setCreando(null)} />}
       {creando === "habito" && <DialogoHabito habito={null} alCerrar={() => setCreando(null)} />}
     </div>
   );

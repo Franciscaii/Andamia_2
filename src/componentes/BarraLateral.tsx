@@ -260,7 +260,8 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
         ))}
 
         <div className="mt-5 border-t border-borde pt-2">
-          {VISTAS_INTELIGENTES.filter((v) => ["completadas", "papelera"].includes(v.id)).map((v) => (
+          {/* "Completadas" salió del menú a pedido de Francisca; su dirección (#/tareas/completadas) sigue funcionando. */}
+          {VISTAS_INTELIGENTES.filter((v) => v.id === "papelera").map((v) => (
             <Fila key={v.id} href={hashDe({ tipo: "vista", vista: v.id })} activa={seccion.tipo === "vista" && seccion.vista === v.id} icono={ICONOS[v.id]} nombre={v.nombre} />
           ))}
           <BotonAvisos />

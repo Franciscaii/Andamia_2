@@ -50,7 +50,7 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
   await enManana.getByRole("checkbox", { name: "Completar: Enviar propuesta" }).click();
   await expect(page.getByTestId("fila-tarea").filter({ hasText: "Enviar propuesta" })).toHaveCount(0);
 
-  await navegar(page, "Completadas");
+  await page.goto("/#/tareas/completadas");
   await expect(page.getByTestId("fila-tarea").filter({ hasText: "Enviar propuesta" })).toBeVisible();
 
   // Los datos deben seguir ahí después de recargar: viven en IndexedDB.
@@ -339,9 +339,13 @@ test("tareas hoy: subir o bajar una tarea arrastrando su asa", async ({ page }) 
   await page.keyboard.press("Space");
   // dnd-kit mide las filas al tomar la tarea; moverla antes no la mueve.
   await expect(page.getByRole("list", { name: "Tareas" }).getByTestId("fila-tarea").first()).toHaveClass(/shadow-lg/);
-  await page.keyboard.press("ArrowDown");
-  // Soltar solo cuando la fila ya bajó; antes, dnd-kit la deja donde estaba.
-  await expect(lista.getByTestId("fila-tarea").first()).toHaveAttribute("style", /translate3d\(0px, [1-9]/);
+  // Con la página ocupada, dnd-kit puede ignorar la flecha si llega mientras mide las filas:
+  // se repite solo mientras la fila siga en su lugar. Se suelta cuando ya bajó.
+  const primera = lista.getByTestId("fila-tarea").first();
+  await expect(async () => {
+    if (!/translate3d\(0px, [1-9]/.test((await primera.getAttribute("style")) ?? "")) await page.keyboard.press("ArrowDown");
+    await expect(primera).toHaveAttribute("style", /translate3d\(0px, [1-9]/, { timeout: 700 });
+  }).toPass({ timeout: 8000 });
   await page.waitForTimeout(300);
   await page.keyboard.press("Space");
   await expect.poll(titulos).toEqual(["Segunda", "Primera", "Tercera"]);
@@ -382,6 +386,14 @@ test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   await expect(page.getByTestId("dia-semana")).toHaveCount(7);
   await expect(page.getByTestId("fila-tarea")).toHaveCount(2);
   await expect(page.getByTestId("dia-semana").filter({ hasText: "Tarea de otro día" })).toHaveCount(1);
+  // Con 7 días no hay + general: cada día tiene el suyo y crea en ese día.
+  await expect(page.getByRole("button", { name: "Añadir", exact: true })).toHaveCount(0);
+  const domingo = page.getByTestId("dia-semana").last();
+  await domingo.getByRole("button", { name: /^Añadir el domingo/ }).click();
+  await page.getByRole("menuitem", { name: "Evento" }).click();
+  await page.getByRole("dialog").getByRole("textbox", { name: "Añadir evento" }).fill("Asado familiar");
+  await page.getByRole("dialog").getByRole("button", { name: "Crear evento" }).click();
+  await expect(domingo).toContainText("Asado familiar");
   // Se recuerda al volver.
   await page.reload();
   await expect(page.getByTestId("dia-semana")).toHaveCount(7);
@@ -403,6 +415,10 @@ test("en el computador el menú se oculta y se vuelve a mostrar", async ({ page 
   await expect(menu).toBeHidden();
   await page.reload();
   await expect(menu).toBeHidden();
+  // "Completadas" ya no está en el menú.
+  await page.getByRole("button", { name: "Mostrar menú" }).click();
+  await expect(menu.getByRole("link", { name: /^Completadas/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Ocultar menú" }).click();
   await page.getByRole("button", { name: "Mostrar menú" }).click();
   await expect(menu).toBeVisible();
 });

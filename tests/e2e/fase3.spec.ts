@@ -67,7 +67,7 @@ test("una tarea 'cada lunes' completada genera la siguiente", async ({ page }) =
   await expect(detalle.getByLabel("Fecha", { exact: true })).toHaveValue("2026-11-16");
   await expect(fila(page, "Reunión de equipo").first()).toContainText("0/1");
 
-  await navegar(page, "Completadas");
+  await page.goto("/#/tareas/completadas");
   const hecha = fila(page, "Reunión de equipo");
   await expect(hecha).toHaveCount(1);
   // La copia conserva la fecha original: el lunes 9, a 5 días de hoy.
