@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { addMonths, addWeeks, format, isSameDay, isSameMonth, parseISO, startOfDay } from "date-fns";
+import { addMonths, addWeeks, format, isSameDay, isSameMonth, parseISO, startOfDay, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { colisionPunteroOTeclado } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
-import { COLOR_PRIORIDAD } from "../componentes/FilaTarea";
+import { COLOR_NIVEL, COLOR_PRIORIDAD } from "../componentes/FilaTarea";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes, diasDeSemana, entradasDelDia, entradasEnRango, venceEnDia, venceEnHora, type EntradaCalendario } from "../logica/calendario";
 import { interpretarEntrada } from "../logica/entradaRapida";
 import { hashDe, irA, type ModoCalendario } from "../logica/ruta";
 import { estaPendiente } from "../logica/vistas";
+import type { FiltroSemana } from "../logica/semana";
+import { DialogoHabito } from "./VistaHabitos";
+import { DialogoNuevo, FILTROS, MenuNuevo, type TipoNuevo } from "./VistaSemana";
 import type { Tarea } from "../modelos/tipos";
 
 const NOMBRES_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -36,6 +39,57 @@ function contenidoChip(tarea: Tarea, fecha: Date | null, esOcurrencia: boolean) 
       <span className={`truncate ${tarea.estado === "completada" ? "line-through" : ""}`}>{tarea.titulo || "Sin título"}</span>
       {(tarea.repeticion || esOcurrencia) && <Repeat size={11} className="ml-auto hidden shrink-0 text-tenue sm:block" />}
     </>
+  );
+}
+
+/** En el mes: el evento en un recuadro morado y la tarea con su casilla, como en la Semana. */
+function ChipMes({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: PropsChip) {
+  const completarTarea = useTienda((s) => s.completarTarea);
+  const movible = !esOcurrencia && tarea.estado === "pendiente";
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: idArrastre ?? PREFIJO_TAREA + tarea.id, disabled: !movible });
+  const hecha = tarea.estado === "completada";
+  const evento = tarea.esEvento === true;
+  const color = COLOR_NIVEL[tarea.dificultad ?? "ninguna"];
+  return (
+    <div
+      ref={setNodeRef}
+      data-testid="chip-tarea"
+      data-entrada
+      role="button"
+      tabIndex={0}
+      title={tarea.titulo}
+      onClick={(e) => {
+        e.stopPropagation();
+        alAbrir();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") alAbrir();
+      }}
+      className={`flex w-full min-w-0 items-center gap-1 overflow-hidden rounded px-0.5 py-0.5 text-left text-[11px] leading-tight sm:text-xs ${
+        evento ? "border-l-[3px] font-medium" : "hover:bg-suave"
+      } ${movible ? "cursor-grab touch-none" : "cursor-pointer"} ${esOcurrencia ? "opacity-55" : ""} ${isDragging ? "opacity-30" : ""}`}
+      style={evento ? { borderColor: "var(--evento)", background: "var(--evento-suave)" } : undefined}
+      {...(movible ? { ...attributes, ...listeners } : {})}
+    >
+      {!evento && (
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={hecha}
+          aria-label={hecha ? `Marcar como pendiente: ${tarea.titulo}` : `Completar: ${tarea.titulo}`}
+          disabled={esOcurrencia}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            void completarTarea(tarea.id, !hecha);
+          }}
+          style={{ borderColor: color, background: hecha ? color : undefined }}
+          className="flex h-3 w-3 shrink-0 items-center justify-center rounded-sm border-[1.5px]"
+        />
+      )}
+      {fecha && !tarea.todoElDia && <span className="hidden shrink-0 text-tenue sm:inline">{format(fecha, "HH:mm")}</span>}
+      <span className={`truncate ${hecha ? "text-tenue line-through" : ""}`}>{tarea.titulo || "Sin título"}</span>
+    </div>
   );
 }
 
@@ -78,6 +132,7 @@ interface Creacion {
   vence: string;
   todoElDia: boolean;
   etiqueta: string;
+  esEvento?: boolean;
 }
 
 function DialogoNuevaTarea({ creacion, alCerrar }: { creacion: Creacion; alCerrar: () => void }) {
@@ -89,12 +144,12 @@ function DialogoNuevaTarea({ creacion, alCerrar }: { creacion: Creacion; alCerra
     e.preventDefault();
     const lectura = interpretarEntrada(texto, new Date(), listas);
     if (!lectura.titulo) return;
-    await crearTarea(datosDesdeEntrada(lectura, { vence: creacion.vence, todoElDia: creacion.todoElDia }));
+    await crearTarea(datosDesdeEntrada(lectura, { vence: creacion.vence, todoElDia: creacion.todoElDia, esEvento: creacion.esEvento }));
     alCerrar();
   };
 
   return (
-    <Modal titulo={`Nueva tarea: ${creacion.etiqueta}`} alCerrar={alCerrar}>
+    <Modal titulo={`${creacion.esEvento ? "Nuevo evento" : "Nueva tarea"}: ${creacion.etiqueta}`} alCerrar={alCerrar}>
       <form onSubmit={enviar} className="space-y-4">
         <input autoFocus aria-label="Título de la nueva tarea" className={claseCampo} placeholder="¿Qué hay que hacer?" value={texto} onChange={(e) => setTexto(e.target.value)} />
         <div className="flex justify-end gap-2">
@@ -102,7 +157,7 @@ function DialogoNuevaTarea({ creacion, alCerrar }: { creacion: Creacion; alCerra
             Cancelar
           </button>
           <button type="submit" className={claseBotonPrincipal} disabled={!texto.trim()}>
-            Crear tarea
+            {creacion.esEvento ? "Crear evento" : "Crear tarea"}
           </button>
         </div>
       </form>
@@ -117,6 +172,8 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const [fecha, setFecha] = useState(() => new Date());
   const [creacion, setCreacion] = useState<Creacion | null>(null);
   const [activa, setActiva] = useState<Tarea | null>(null);
+  const [filtro, setFiltro] = useState<FiltroSemana>("todos");
+  const [nuevo, setNuevo] = useState<TipoNuevo | "habito" | null>(null);
   const rejilla = useRef<HTMLDivElement>(null);
   const hoy = new Date();
 
@@ -130,7 +187,10 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   }, [tareas, listas]);
 
   const dias = useMemo(() => (modo === "mes" ? diasDeMes(fecha) : diasDeSemana(fecha)), [modo, fecha]);
-  const entradas = useMemo(() => entradasEnRango(visibles, dias[0], dias[dias.length - 1]), [visibles, dias]);
+  const entradas = useMemo(() => {
+    const filtradas = visibles.filter((t) => (filtro === "todos" ? true : filtro === "eventos" ? t.esEvento === true : t.esEvento !== true));
+    return entradasEnRango(filtradas, dias[0], dias[dias.length - 1]);
+  }, [visibles, dias, filtro]);
   const sinFecha = useMemo(() => visibles.filter((t) => estaPendiente(t) && !t.vence).sort((a, b) => a.orden - b.orden), [visibles]);
 
   // La semana arranca mostrando la mañana, no la madrugada.
@@ -162,14 +222,47 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const titulo = modo === "mes"
     ? format(fecha, "MMMM yyyy", { locale: es })
     : `${format(dias[0], "d MMM", { locale: es })} – ${format(dias[6], "d MMM yyyy", { locale: es })}`;
-  const crearEnDia = (dia: Date) => setCreacion({ vence: claveDia(dia), todoElDia: true, etiqueta: format(dia, "EEEE d 'de' MMMM", { locale: es }) });
+  const crearEnDia = (dia: Date) => setCreacion({ vence: claveDia(dia), todoElDia: true, etiqueta: format(dia, "EEEE d 'de' MMMM", { locale: es }), esEvento: filtro === "eventos" });
+  const mesCorto = format(fecha, "MMM", { locale: es }).replace(".", "");
+  const tituloMes = mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1) + (fecha.getFullYear() !== hoy.getFullYear() ? ` ${fecha.getFullYear()}` : "");
+  // El + crea para hoy si se ve este mes; si no, para el primer día del mes visible.
+  const diaParaNuevo = isSameMonth(fecha, hoy) ? hoy : startOfMonth(fecha);
   const claseModo = (activo: boolean) => `rounded px-2.5 py-1 text-xs ${activo ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`;
 
   const chipsDe = (lista: EntradaCalendario[]) => lista.map((e) => <Chip key={e.clave} tarea={e.tarea} fecha={e.fecha} esOcurrencia={e.esOcurrencia} idArrastre={e.esOcurrencia ? `ocurrencia:${e.clave}` : undefined} alAbrir={() => abrir(e.tarea.id)} />);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex flex-wrap items-center gap-2 px-5 pt-5 pb-3">
+      {modo === "mes" ? (
+        <header className="flex items-center gap-2 px-4 pt-4 pb-2 sm:px-5">
+          <div className="flex shrink-0 items-center">
+            <button type="button" aria-label="Periodo anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
+              <ChevronLeft size={18} />
+            </button>
+            <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className="px-0.5 text-lg font-semibold">
+              {tituloMes}
+            </h1>
+            <button type="button" aria-label="Periodo siguiente" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(1)}>
+              <ChevronRight size={18} />
+            </button>
+          </div>
+          <div role="group" aria-label="Mostrar" className="ml-auto flex min-w-0 gap-0.5 rounded-md bg-suave p-0.5">
+            {FILTROS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                aria-pressed={filtro === f.id}
+                onClick={() => setFiltro(f.id)}
+                className={`rounded px-2 py-1 text-xs sm:px-2.5 ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+              >
+                {f.nombre}
+              </button>
+            ))}
+          </div>
+          <MenuNuevo alElegir={setNuevo} />
+        </header>
+      ) : (
+        <header className="flex flex-wrap items-center gap-2 px-5 pt-5 pb-3">
         <h1 data-testid="titulo-calendario" className="text-xl font-semibold first-letter:uppercase">{titulo}</h1>
         <div className="ml-auto flex items-center gap-2">
           <div className="flex items-center gap-0.5">
@@ -184,15 +277,16 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
             </button>
           </div>
           <div role="group" aria-label="Modo del calendario" className="flex gap-0.5 rounded-md bg-suave p-0.5">
-            <a href={hashDe({ tipo: "calendario", modo: "mes" })} aria-current={modo === "mes" ? "true" : undefined} className={claseModo(modo === "mes")}>
+            <a href={hashDe({ tipo: "calendario", modo: "mes" })} className={claseModo(false)}>
               Mes
             </a>
-            <a href={hashDe({ tipo: "calendario", modo: "semana" })} aria-current={modo === "semana" ? "true" : undefined} className={claseModo(modo === "semana")}>
+            <a href={hashDe({ tipo: "calendario", modo: "semana" })} aria-current="true" className={claseModo(true)}>
               Semana
             </a>
           </div>
         </div>
       </header>
+      )}
 
       <DndContext
         sensors={sensores}
@@ -205,36 +299,47 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
           announcements: { onDragStart: () => "Tarea tomada.", onDragOver: () => "", onDragEnd: () => "Tarea soltada.", onDragCancel: () => "Movimiento cancelado." },
         }}
       >
-        <div className="flex min-h-0 flex-1 gap-3 px-5 pb-5">
+        <div className={`flex min-h-0 flex-1 gap-3 pb-5 ${modo === "mes" ? "px-4 sm:px-5" : "px-5"}`}>
           {modo === "mes" ? (
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-borde bg-panel">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-borde bg-panel">
               <div className="grid grid-cols-7 border-b border-borde">
                 {NOMBRES_SEMANA.map((n) => (
-                  <div key={n} className="px-2 py-1 text-xs font-medium text-tenue">
+                  <div key={n} className="px-1 py-1.5 text-center text-xs font-medium text-tenue">
                     {n}
                   </div>
                 ))}
               </div>
               <div className="grid min-h-0 flex-1 grid-cols-7 auto-rows-fr overflow-y-auto">
-                {dias.map((dia) => {
-                  const delDia = entradasDelDia(entradas, dia);
+                {dias.map((dia, i) => {
+                  const delMes = isSameMonth(dia, fecha);
+                  const delDia = delMes ? entradasDelDia(entradas, dia) : [];
+                  // Eventos primero, como en la Semana.
+                  delDia.sort((a, b) => Number(b.tarea.esEvento === true) - Number(a.tarea.esEvento === true));
                   const resto = delDia.length - MAX_EN_CELDA;
+                  const ultimaFila = i >= dias.length - 7;
                   return (
-                    <Zona key={claveDia(dia)} id={`dia:${claveDia(dia)}`} etiqueta={format(dia, "d 'de' MMMM", { locale: es })} clase={`min-h-20 min-w-0 border-r border-b border-borde p-1 ${isSameMonth(dia, fecha) ? "" : "bg-fondo/70"}`} alCrear={() => crearEnDia(dia)}>
-                      <span className={`mb-1 flex h-5 w-5 items-center justify-center rounded-full text-xs ${isSameDay(dia, hoy) ? "bg-acento font-semibold text-sobre-acento" : isSameMonth(dia, fecha) ? "" : "text-tenue"}`}>{format(dia, "d")}</span>
-                      <div className="space-y-0.5">
-                        {chipsDe(delDia.slice(0, MAX_EN_CELDA))}
-                        {resto > 0 && (
-                          <a
-                            data-entrada
-                            href={hashDe({ tipo: "calendario", modo: "semana" })}
-                            onClick={() => setFecha(dia)}
-                            className="block px-1 text-xs text-tenue hover:text-texto"
-                          >
-                            {resto} más
-                          </a>
-                        )}
-                      </div>
+                    <Zona
+                      key={claveDia(dia)}
+                      id={`dia:${claveDia(dia)}`}
+                      etiqueta={format(dia, "d 'de' MMMM", { locale: es })}
+                      clase={`min-h-24 min-w-0 px-0.5 pt-1 pb-1.5 ${ultimaFila ? "" : "border-b border-borde"}`}
+                      alCrear={delMes ? () => crearEnDia(dia) : undefined}
+                    >
+                      {delMes && (
+                        <>
+                          <span className={`mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs tabular-nums ${isSameDay(dia, hoy) ? "border-2 border-acento font-semibold text-acento" : ""}`}>{format(dia, "d")}</span>
+                          <div className="space-y-0.5">
+                            {delDia.slice(0, MAX_EN_CELDA).map((e) => (
+                              <ChipMes key={e.clave} tarea={e.tarea} fecha={e.fecha} esOcurrencia={e.esOcurrencia} idArrastre={e.esOcurrencia ? `ocurrencia:${e.clave}` : undefined} alAbrir={() => abrir(e.tarea.id)} />
+                            ))}
+                            {resto > 0 && (
+                              <a data-entrada href={hashDe({ tipo: "calendario", modo: "semana" })} onClick={() => setFecha(dia)} className="block px-1 text-[11px] text-tenue hover:text-texto">
+                                {resto} más
+                              </a>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </Zona>
                   );
                 })}
@@ -288,6 +393,8 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
       </DndContext>
 
       {creacion && <DialogoNuevaTarea creacion={creacion} alCerrar={() => setCreacion(null)} />}
+      {(nuevo === "tarea" || nuevo === "evento") && <DialogoNuevo tipo={nuevo} dia={diaParaNuevo} alCerrar={() => setNuevo(null)} />}
+      {nuevo === "habito" && <DialogoHabito habito={null} alCerrar={() => setNuevo(null)} />}
       {tareaAbierta && <span className="sr-only">Tarea abierta en el panel de detalle</span>}
     </div>
   );

@@ -17,7 +17,7 @@ const SECCION: Seccion = { tipo: "vista", vista: "semana" };
 
 const NOMBRE_NIVEL: Record<Prioridad, string> = { alta: "Alta", media: "Media", baja: "Baja", ninguna: "" };
 
-const FILTROS: { id: FiltroSemana; nombre: string }[] = [
+export const FILTROS: { id: FiltroSemana; nombre: string }[] = [
   { id: "tareas", nombre: "Tareas" },
   { id: "eventos", nombre: "Eventos" },
   { id: "todos", nombre: "Todos" },
@@ -28,7 +28,7 @@ function hora(t: Tarea): string {
   return fecha && !t.todoElDia ? format(fecha, "HH:mm") : "";
 }
 
-function FilaEvento({ evento, abierta }: { evento: Tarea; abierta: boolean }) {
+export function FilaEvento({ evento, abierta }: { evento: Tarea; abierta: boolean }) {
   return (
     <li>
       <button
@@ -113,10 +113,10 @@ function BarraProgreso({ hechas, total, porcentaje }: { hechas: number; total: n
   );
 }
 
-type TipoNuevo = "tarea" | "evento";
+export type TipoNuevo = "tarea" | "evento";
 
 /** Crear una tarea o un evento para el día elegido. Entiende "9am", "!alta" y "#etiqueta". */
-function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Date; alCerrar: () => void }) {
+export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Date; alCerrar: () => void }) {
   const listas = useTienda((s) => s.listas);
   const crearTarea = useTienda((s) => s.crearTarea);
   const [texto, setTexto] = useState("");
@@ -164,7 +164,7 @@ function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Date; alC
 }
 
 /** El + de la semana: tarea, evento o hábito. */
-function MenuNuevo({ alElegir }: { alElegir: (tipo: TipoNuevo | "habito") => void }) {
+export function MenuNuevo({ alElegir }: { alElegir: (tipo: TipoNuevo | "habito") => void }) {
   const [abierto, setAbierto] = useState(false);
   const opciones: { tipo: TipoNuevo | "habito"; nombre: string; icono: ReactNode }[] = [
     { tipo: "tarea", nombre: "Tarea", icono: <CheckSquare size={16} /> },

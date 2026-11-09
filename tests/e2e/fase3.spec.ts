@@ -248,7 +248,7 @@ test("Calendario: arrastrar cambia la fecha, clic crea y panel sin fecha", async
   await agregar(page, "Ordenar fotos");
 
   await navegar(page, "Calendario");
-  await expect(page.getByTestId("titulo-calendario")).toHaveText(/noviembre 2026/i);
+  await expect(page.getByTestId("titulo-calendario")).toHaveText("Nov");
   const dia = (clave: string) => page.locator(`[data-zona="dia:${clave}"]`);
   const chip = (texto: string) => page.getByTestId("chip-tarea").filter({ hasText: texto });
 

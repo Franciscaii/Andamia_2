@@ -252,3 +252,33 @@ test("estadística de tareas: por etiqueta, circular y en el tiempo; tocar una e
   await page.getByRole("navigation").getByRole("link", { name: "Estadística Hábitos" }).click();
   await expect(page.getByRole("heading", { name: "Mis hábitos cumplidos" })).toBeVisible();
 });
+
+test("calendario mes: eventos y tareas con casilla en cada día, filtros y +", async ({ page }) => {
+  await page.goto("/");
+  await crearEnSemana(page, "Tarea", "Estudiar cálculo");
+  await crearEnSemana(page, "Evento", "Doctor");
+  await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
+
+  const hoy = page.locator(`[data-zona="dia:${new Date().toLocaleDateString("sv-SE")}"]`);
+  await expect(hoy).toContainText("Estudiar cálculo");
+  await expect(hoy).toContainText("Doctor");
+  // El evento va primero y no tiene casilla.
+  await expect(hoy.getByTestId("chip-tarea").first()).toContainText("Doctor");
+  await expect(hoy.getByRole("checkbox", { name: "Completar: Doctor" })).toHaveCount(0);
+
+  await hoy.getByRole("checkbox", { name: "Completar: Estudiar cálculo" }).click();
+  await expect(hoy.getByRole("checkbox", { name: /Estudiar cálculo/ })).toHaveAttribute("aria-checked", "true");
+
+  await page.getByRole("button", { name: "Eventos" }).click();
+  await expect(hoy).not.toContainText("Estudiar cálculo");
+  await expect(hoy).toContainText("Doctor");
+  await page.getByRole("button", { name: "Tareas" }).click();
+  await expect(hoy).not.toContainText("Doctor");
+
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Evento" }).click();
+  await page.getByRole("textbox", { name: "Añadir evento" }).fill("Cumpleaños");
+  await page.getByRole("textbox", { name: "Añadir evento" }).press("Enter");
+  await page.getByRole("button", { name: "Todos" }).click();
+  await expect(hoy).toContainText("Cumpleaños");
+});
