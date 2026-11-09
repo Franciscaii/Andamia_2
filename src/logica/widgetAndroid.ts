@@ -88,8 +88,11 @@ function enfocarEntradaRapida(intentos = 0): void {
   const campo = document.getElementById("entrada-rapida");
   const boton = document.querySelector<HTMLButtonElement>("[data-nueva-tarea]");
   if (campo) campo.focus();
-  else if (boton) boton.click();
-  else if (intentos < 30) setTimeout(() => enfocarEntradaRapida(intentos + 1), 100);
+  else if (boton) {
+    // En la semana, el + abre un menú: se elige "Tarea" y su campo se enfoca solo.
+    boton.click();
+    setTimeout(() => document.querySelector<HTMLButtonElement>('[data-crear="tarea"]')?.click(), 0);
+  } else if (intentos < 30) setTimeout(() => enfocarEntradaRapida(intentos + 1), 100);
 }
 
 /** Abre lo que pidió el widget: andamia://hoy, andamia://nueva o andamia://tarea/ID. */

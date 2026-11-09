@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
-        android:text="Avance Tareas"
+        android:text="Tareas hoy"
         android:textColor="@color/widget_texto"
         android:textSize="13sp"
         android:textStyle="bold" />

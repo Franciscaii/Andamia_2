@@ -77,7 +77,7 @@ export default function App() {
           e.preventDefault();
           campo.focus();
         } else {
-          // En la semana el campo aparece con el botón +.
+          // En la semana, la N abre el menú del + (tarea, evento o hábito).
           const boton = document.querySelector<HTMLButtonElement>("[data-nueva-tarea]");
           if (boton) {
             e.preventDefault();

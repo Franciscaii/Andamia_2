@@ -9,6 +9,16 @@ async function crearLista(page: Page, nombre: string) {
 }
 
 const entrada = (page: Page) => page.getByRole("textbox", { name: "Añadir tarea" });
+/** En la semana: + → Tarea o Evento, escribir y crear. */
+async function crearEnSemana(page: Page, tipo: "Tarea" | "Evento", texto: string) {
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: tipo }).click();
+  const campo = page.getByRole("textbox", { name: tipo === "Tarea" ? "Añadir tarea" : "Añadir evento" });
+  await campo.fill(texto);
+  await campo.press("Enter");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+}
+
 const navegar = (page: Page, nombre: string) => page.getByRole("navigation").getByRole("link", { name: new RegExp(`^${nombre}`) }).click();
 
 test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y completarla", async ({ page }) => {
@@ -46,7 +56,10 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
 
 test("el menú no muestra Todas, Hoy, Mañana, Bandeja de entrada ni Enfoque", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByTestId("progreso-dia")).toContainText("Avance Tareas");
+  await expect(page.getByRole("heading", { name: "Tareas hoy" })).toBeVisible();
+  await expect(page.getByTestId("progreso-dia")).toBeVisible();
+  // Ya no hay campo para añadir tareas a la vista: se usa el +.
+  await expect(page.getByRole("textbox", { name: "Añadir tarea" })).toHaveCount(0);
   const menu = page.getByRole("navigation");
   for (const nombre of ["Todas", "Hoy", "Mañana", "Bandeja de entrada", "Enfoque"]) {
     await expect(menu.getByRole("link", { name: new RegExp(`^${nombre}`) })).toHaveCount(0);
@@ -56,12 +69,8 @@ test("el menú no muestra Todas, Hoy, Mañana, Bandeja de entrada ni Enfoque", a
 
 test("semana: eventos arriba, progreso del día y tareas con dificultad e importancia", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Nueva tarea" }).click();
-  const entradaTarea = page.getByRole("textbox", { name: "Añadir tarea" });
-  await entradaTarea.fill("Leer paper !alta #universidad");
-  await entradaTarea.press("Enter");
-  await entradaTarea.fill("Comprar pan");
-  await entradaTarea.press("Enter");
+  await crearEnSemana(page, "Tarea", "Leer paper !alta #universidad");
+  await crearEnSemana(page, "Tarea", "Comprar pan");
   await expect(page.getByTestId("progreso-dia")).toContainText("0/2 (0%)");
 
   await page.getByRole("checkbox", { name: "Completar: Comprar pan" }).click();
@@ -80,17 +89,19 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
   await page.keyboard.press("Escape");
 
   // Un evento va arriba y no cuenta en el progreso.
-  await page.getByRole("button", { name: "Eventos" }).click();
-  const entradaEvento = page.getByRole("textbox", { name: "Añadir evento" });
-  await entradaEvento.fill("Cumpleaños de Ana");
-  await entradaEvento.press("Enter");
-  await page.getByRole("button", { name: "Todos" }).click();
+  await crearEnSemana(page, "Evento", "Cumpleaños de Ana");
   await expect(page.getByTestId("fila-evento")).toContainText("Cumpleaños de Ana");
   await expect(page.getByTestId("progreso-dia")).toContainText("1/2 (50%)");
 
   // Otro día de la semana.
   await page.getByRole("button", { name: "Semana siguiente" }).click();
   await expect(page.getByTestId("progreso-dia")).toContainText("0/0 (0%)");
+  await expect(page.getByRole("heading", { name: "Tareas del día" })).toBeVisible();
+
+  // Desde el + también se crea un hábito.
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Hábito" }).click();
+  await expect(page.getByRole("dialog", { name: "Nuevo hábito" })).toBeVisible();
 });
 
 test("detalle, papelera y restaurar", async ({ page }) => {
@@ -190,9 +201,7 @@ test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, edi
   await expect(menu.getByRole("link", { name: /^Deporte/ })).toBeVisible();
 
   // Renombrar mantiene la etiqueta en las tareas.
-  await page.getByRole("button", { name: "Nueva tarea" }).click();
-  await page.getByRole("textbox", { name: "Añadir tarea" }).fill("Correr #deporte");
-  await page.getByRole("textbox", { name: "Añadir tarea" }).press("Enter");
+  await crearEnSemana(page, "Tarea", "Correr #deporte");
   await menu.getByRole("link", { name: /^Deporte/ }).hover();
   await page.getByRole("button", { name: "Editar etiqueta Deporte" }).click();
   const edicion = page.getByRole("dialog", { name: "Editar etiqueta" });
