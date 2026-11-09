@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from "react";
-import { Check, Flag, X } from "lucide-react";
+import { Brain, Check, Flag, X, type LucideIcon } from "lucide-react";
 import { useTienda } from "../datos/tienda";
 import { nuevoId } from "../logica/texto";
 import { PRIORIDADES, type Prioridad, type Subtarea } from "../modelos/tipos";
@@ -14,8 +14,12 @@ import { claseCampo } from "./Modal";
 
 export const claseTituloCampo = "mb-1 text-xs font-semibold tracking-wide text-tenue uppercase";
 
+/** Ícono de cada nivel: bandera para la importancia, cerebro para la dificultad. */
+export const ICONO_IMPORTANCIA: LucideIcon = Flag;
+export const ICONO_DIFICULTAD: LucideIcon = Brain;
+
 /** Alta, media, baja o ninguna, con el color de la semana (rojo, amarillo, azul). */
-export function SelectorNivel({ titulo, ayuda, valor, alElegir }: { titulo: string; ayuda: string; valor: Prioridad; alElegir: (v: Prioridad) => void }) {
+export function SelectorNivel({ titulo, ayuda, valor, alElegir, icono: Icono = ICONO_IMPORTANCIA }: { titulo: string; ayuda: string; valor: Prioridad; alElegir: (v: Prioridad) => void; icono?: LucideIcon }) {
   return (
     <section role="group" aria-label={titulo}>
       <h3 className={claseTituloCampo}>
@@ -30,7 +34,7 @@ export function SelectorNivel({ titulo, ayuda, valor, alElegir }: { titulo: stri
             onClick={() => alElegir(p.valor)}
             className={`flex flex-1 items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-xs ${valor === p.valor ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
           >
-            <Flag size={12} style={{ color: COLOR_NIVEL[p.valor] }} />
+            <Icono size={12} style={{ color: COLOR_NIVEL[p.valor] }} />
             {p.nombre}
           </button>
         ))}

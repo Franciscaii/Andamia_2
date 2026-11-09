@@ -10,7 +10,7 @@ import { construirRegla, describirRegla, INICIALES_DIA, leerRegla, NOMBRES_DIA, 
 import { irA, type Seccion } from "../logica/ruta";
 import { nuevoId } from "../logica/texto";
 import { LISTA_BANDEJA, type Tarea } from "../modelos/tipos";
-import { CampoNotas, claseTituloCampo, EditorSubtareas, SelectorIndole, SelectorNivel } from "./CamposTarea";
+import { CampoNotas, claseTituloCampo, EditorSubtareas, ICONO_DIFICULTAD, SelectorIndole, SelectorNivel } from "./CamposTarea";
 import { COLOR_PRIORIDAD } from "./FilaTarea";
 import { claseBoton, claseCampo } from "./Modal";
 
@@ -328,7 +328,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
           {!tarea.esEvento && (
             <>
               <SelectorNivel titulo="Importancia" ayuda="Urgencia y valor" valor={tarea.prioridad} alElegir={(prioridad) => actualizarTarea(tarea.id, { prioridad })} />
-              <SelectorNivel titulo="Dificultad" ayuda="Tiempo y esfuerzo intelectual" valor={tarea.dificultad ?? "ninguna"} alElegir={(dificultad) => actualizarTarea(tarea.id, { dificultad })} />
+              <SelectorNivel titulo="Dificultad" ayuda="Tiempo y esfuerzo intelectual" icono={ICONO_DIFICULTAD} valor={tarea.dificultad ?? "ninguna"} alElegir={(dificultad) => actualizarTarea(tarea.id, { dificultad })} />
             </>
           )}
 

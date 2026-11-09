@@ -360,3 +360,29 @@ test("tareas hoy: subir o bajar una tarea arrastrando su asa", async ({ page }) 
   await page.reload();
   await expect.poll(titulos).toEqual(["Tercera", "Segunda", "Primera"]);
 });
+
+test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
+  await page.goto("/");
+  await crearEnSemana(page, "Tarea", "Tarea de hoy");
+  // Una tarea para otro día de la semana.
+  const hoy = new Date();
+  const otro = new Date(hoy);
+  otro.setDate(hoy.getDate() + (hoy.getDay() === 0 ? -1 : 1));
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Tarea" }).click();
+  const dialogo = page.getByRole("dialog");
+  await dialogo.getByRole("textbox", { name: "Añadir tarea" }).fill("Tarea de otro día");
+  await dialogo.getByLabel("Fecha", { exact: true }).fill(otro.toLocaleDateString("sv-SE"));
+  await dialogo.getByRole("button", { name: "Crear tarea" }).click();
+
+  await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  await expect(page.getByTestId("dia-semana")).toHaveCount(7);
+  await expect(page.getByTestId("fila-tarea")).toHaveCount(2);
+  await expect(page.getByTestId("dia-semana").filter({ hasText: "Tarea de otro día" })).toHaveCount(1);
+  // Se recuerda al volver.
+  await page.reload();
+  await expect(page.getByTestId("dia-semana")).toHaveCount(7);
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
+  await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
+});

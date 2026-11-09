@@ -1,8 +1,8 @@
-import { useMemo, useState, type CSSProperties, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
+import { useState, type CSSProperties, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { CampoNotas, claseTituloCampo, EditorSubtareas, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
+import { CampoNotas, claseTituloCampo, EditorSubtareas, ICONO_DIFICULTAD, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
 import { addDays, format, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, GripVertical, Plus } from "lucide-react";
@@ -12,7 +12,7 @@ import { COLOR_NIVEL } from "../componentes/FilaTarea";
 import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
 import { irA, type Seccion } from "../logica/ruta";
-import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, type FiltroSemana } from "../logica/semana";
+import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
 import type { Prioridad, Subtarea, Tarea } from "../modelos/tipos";
 
 const SECCION: Seccion = { tipo: "vista", vista: "semana" };
@@ -97,9 +97,10 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre }: { tarea: Tarea; abie
               <span
                 data-testid="dificultad"
                 title={`Dificultad ${NOMBRE_NIVEL[dificultad].toLowerCase()}`}
-                className="rounded-sm border-l-[3px] px-1.5 leading-4 font-medium"
+                className="inline-flex items-center gap-0.5 rounded-sm border-l-[3px] px-1.5 leading-4 font-medium"
                 style={{ borderColor: COLOR_NIVEL[dificultad], background: `color-mix(in srgb, ${COLOR_NIVEL[dificultad]} 22%, transparent)` }}
               >
+                <ICONO_DIFICULTAD size={11} aria-hidden style={{ color: COLOR_NIVEL[dificultad] }} />
                 {NOMBRE_NIVEL[dificultad]}
               </span>
             )}
@@ -236,7 +237,7 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
         {!esEvento && (
           <>
             <SelectorNivel titulo="Importancia" ayuda="Urgencia y valor" valor={prioridad} alElegir={setPrioridad} />
-            <SelectorNivel titulo="Dificultad" ayuda="Tiempo y esfuerzo intelectual" valor={dificultad} alElegir={setDificultad} />
+            <SelectorNivel titulo="Dificultad" ayuda="Tiempo y esfuerzo intelectual" icono={ICONO_DIFICULTAD} valor={dificultad} alElegir={setDificultad} />
           </>
         )}
         <SelectorIndole valor={indole} alElegir={setIndole} />
@@ -304,26 +305,104 @@ export function MenuNuevo({ alElegir }: { alElegir: (tipo: TipoNuevo | "habito")
   );
 }
 
+export type Alcance = "dia" | "semana";
+const CLAVE_ALCANCE = "andamia-semana-alcance";
+
+function leerAlcance(): Alcance {
+  try {
+    return localStorage.getItem(CLAVE_ALCANCE) === "semana" ? "semana" : "dia";
+  } catch {
+    return "dia";
+  }
+}
+
+/** Eventos y la tarjeta de tareas (pendientes ordenables y completadas) de un día. */
+function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compacto }: { dia: Date; ahora: Date; verEventos: boolean; verTareas: boolean; tareaAbierta: string | null; compacto: boolean }) {
+  const tareas = useTienda((s) => s.tareas);
+  const listas = useTienda((s) => s.listas);
+  const contenido = contenidoDelDia(tareas, listas, dia, ahora);
+  const pendientes = contenido.tareas.filter((t) => t.estado === "pendiente");
+  const hechas = contenido.tareas.filter((t) => t.estado === "completada");
+  const esHoy = isSameDay(dia, ahora);
+
+  if (compacto && (!verEventos || contenido.eventos.length === 0) && (!verTareas || contenido.tareas.length === 0)) {
+    return <p className="px-1 py-1 text-sm text-tenue">Nada este día.</p>;
+  }
+
+  return (
+    <>
+      {verEventos && contenido.eventos.length > 0 && (
+        <ul aria-label="Eventos" className="mb-3 space-y-1">
+          {contenido.eventos.map((e) => (
+            <FilaEvento key={e.id} evento={e} abierta={e.id === tareaAbierta} />
+          ))}
+        </ul>
+      )}
+      {!compacto && !verTareas && contenido.eventos.length === 0 && <p className="mt-8 text-center text-sm text-tenue">No hay eventos este día. Toca + para añadir.</p>}
+
+      {verTareas && (!compacto || contenido.tareas.length > 0) && (
+        <div data-testid="tarjeta-tareas" className="overflow-hidden rounded-xl border border-borde bg-panel">
+          <section aria-label="Tareas del día" className="px-2 pt-3 pb-2">
+            <div className="px-2">
+              <h2 className="text-sm font-semibold">{esHoy ? "Tareas hoy" : "Tareas del día"}</h2>
+              <BarraProgreso {...contenido.progreso} />
+            </div>
+            {pendientes.length > 0 ? (
+              <PendientesOrdenables tareas={pendientes} tareaAbierta={tareaAbierta} hoy={ahora} />
+            ) : (
+              <p className="px-2 py-4 text-sm text-tenue">{hechas.length ? "¡Todo listo por hoy!" : "No hay tareas este día. Toca + para añadir."}</p>
+            )}
+          </section>
+          {(!compacto || hechas.length > 0) && (
+            <section aria-label="Completadas" data-testid="tarjeta-completada" className="border-t border-borde px-2 pt-3 pb-2">
+              <h2 className="px-2 text-sm font-semibold text-tenue">Completadas</h2>
+              {hechas.length > 0 ? (
+                <ul className="mt-1">
+                  {hechas.map((t) => (
+                    <FilaTareaSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={ahora} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="px-2 py-3 text-sm text-tenue">Aún no completas tareas este día.</p>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
   const ahora = new Date();
   const [elegido, setElegido] = useState(() => new Date());
   const [filtro, setFiltro] = useState<FiltroSemana>("todos");
+  const [alcance, setAlcanceEstado] = useState<Alcance>(leerAlcance);
   const [creando, setCreando] = useState<TipoNuevo | "habito" | null>(null);
 
+  const setAlcance = (a: Alcance) => {
+    setAlcanceEstado(a);
+    try {
+      localStorage.setItem(CLAVE_ALCANCE, a);
+    } catch {
+      // Sin almacenamiento: se recuerda solo mientras la página siga abierta.
+    }
+  };
+
   const dias = diasDeSemana(elegido);
-  const contenido = useMemo(() => contenidoDelDia(tareas, listas, elegido, new Date()), [tareas, listas, elegido]);
-  const pendientes = contenido.tareas.filter((t) => t.estado === "pendiente");
-  const hechas = contenido.tareas.filter((t) => t.estado === "completada");
   const verEventos = filtro !== "tareas";
   const verTareas = filtro !== "eventos";
   const mesCorto = format(elegido, "MMM", { locale: es }).replace(".", "");
   const mes = (mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1)) + (elegido.getFullYear() !== ahora.getFullYear() ? ` ${elegido.getFullYear()}` : "");
-  const esHoyElegido = isSameDay(elegido, ahora);
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
-
+  const elegirDia = (d: Date) => {
+    setElegido(d);
+    // En la vista de 7 días, tocar un día lleva hasta él.
+    if (alcance === "semana") document.getElementById(`dia-${format(d, "yyyy-MM-dd")}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="px-4 pt-4 pb-2 sm:px-6">
@@ -355,7 +434,28 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
           <MenuNuevo alElegir={setCreando} />
         </div>
 
-        <div className="mt-3 grid grid-cols-7 gap-1" role="group" aria-label="Días de la semana">
+        <div className="mt-3 flex justify-end">
+          <div role="group" aria-label="Ver" className="flex gap-0.5 rounded-md bg-suave p-0.5">
+            {(
+              [
+                { id: "dia", nombre: "Día" },
+                { id: "semana", nombre: "7 días" },
+              ] as const
+            ).map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                aria-pressed={alcance === o.id}
+                onClick={() => setAlcance(o.id)}
+                className={`rounded px-2.5 py-1 text-xs ${alcance === o.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+              >
+                {o.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-2 grid grid-cols-7 gap-1" role="group" aria-label="Días de la semana">
           {dias.map((d) => {
             const activo = isSameDay(d, elegido);
             const esHoy = isSameDay(d, ahora);
@@ -364,13 +464,13 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               <button
                 key={d.toISOString()}
                 type="button"
-                aria-pressed={activo}
+                aria-pressed={alcance === "dia" && activo}
                 aria-label={format(d, "EEEE d 'de' MMMM", { locale: es })}
-                onClick={() => setElegido(d)}
+                onClick={() => elegirDia(d)}
                 className="flex flex-col items-center gap-0.5 rounded-lg py-1 hover:bg-suave"
               >
                 <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
-                <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums ${activo ? "bg-acento font-semibold text-sobre-acento" : esHoy ? "border-2 border-acento font-semibold" : ""}`}>
+                <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums ${alcance === "dia" && activo ? "bg-acento font-semibold text-sobre-acento" : esHoy ? "border-2 border-acento font-semibold" : ""}`}>
                   {format(d, "d")}
                 </span>
                 <span data-testid={conAlgo ? "punto-dia" : undefined} className={`h-1.5 w-1.5 rounded-full ${conAlgo ? "bg-acento" : "bg-transparent"}`} />
@@ -381,41 +481,15 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
-        {verEventos && contenido.eventos.length > 0 && (
-          <ul aria-label="Eventos" className="mb-3 space-y-1">
-            {contenido.eventos.map((e) => (
-              <FilaEvento key={e.id} evento={e} abierta={e.id === tareaAbierta} />
-            ))}
-          </ul>
-        )}
-        {!verTareas && contenido.eventos.length === 0 && <p className="mt-8 text-center text-sm text-tenue">No hay eventos este día. Toca + para añadir.</p>}
-
-        {verTareas && (
-          <div data-testid="tarjeta-tareas" className="overflow-hidden rounded-xl border border-borde bg-panel">
-            <section aria-label="Tareas del día" className="px-2 pt-3 pb-2">
-              <div className="px-2">
-                <h2 className="text-sm font-semibold">{esHoyElegido ? "Tareas hoy" : "Tareas del día"}</h2>
-                <BarraProgreso {...contenido.progreso} />
-              </div>
-              {pendientes.length > 0 ? (
-                <PendientesOrdenables tareas={pendientes} tareaAbierta={tareaAbierta} hoy={ahora} />
-              ) : (
-                <p className="px-2 py-4 text-sm text-tenue">{hechas.length ? "¡Todo listo por hoy!" : "No hay tareas este día. Toca + para añadir."}</p>
-              )}
+        {alcance === "dia" ? (
+          <ContenidoDia dia={elegido} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto={false} />
+        ) : (
+          dias.map((d) => (
+            <section key={d.toISOString()} id={`dia-${format(d, "yyyy-MM-dd")}`} aria-label={tituloDelDia(d, ahora)} data-testid="dia-semana" className="mb-5 scroll-mt-2">
+              <h2 className={`mb-2 text-sm font-semibold ${isSameDay(d, ahora) ? "text-acento" : ""}`}>{tituloDelDia(d, ahora)}</h2>
+              <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto />
             </section>
-            <section aria-label="Completadas" data-testid="tarjeta-completada" className="border-t border-borde px-2 pt-3 pb-2">
-              <h2 className="px-2 text-sm font-semibold text-tenue">Completadas</h2>
-              {hechas.length > 0 ? (
-                <ul className="mt-1">
-                  {hechas.map((t) => (
-                    <FilaTareaSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={ahora} />
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-2 py-3 text-sm text-tenue">Aún no completas tareas este día.</p>
-              )}
-            </section>
-          </div>
+          ))
         )}
       </div>
 
