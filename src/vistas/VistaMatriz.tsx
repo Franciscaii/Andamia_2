@@ -28,7 +28,7 @@ function TarjetaMatriz({ tarea, abierta }: { tarea: Tarea; abierta: boolean }) {
   );
 }
 
-function ZonaCuadrante({ cuadrante, tareas, tareaAbierta, listaId, etiqueta }: { cuadrante: Cuadrante; tareas: Tarea[]; tareaAbierta: string | null; listaId: string | null; etiqueta: string | null }) {
+function ZonaCuadrante({ numero, cuadrante, tareas, tareaAbierta, listaId, etiqueta }: { numero: number; cuadrante: Cuadrante; tareas: Tarea[]; tareaAbierta: string | null; listaId: string | null; etiqueta: string | null }) {
   const crearTarea = useTienda((s) => s.crearTarea);
   const listas = useTienda((s) => s.listas);
   const { setNodeRef, isOver } = useDroppable({ id: cuadrante.id });
@@ -46,7 +46,9 @@ function ZonaCuadrante({ cuadrante, tareas, tareaAbierta, listaId, etiqueta }: {
   return (
     <section ref={setNodeRef} aria-label={cuadrante.nombre} data-testid="cuadrante" className={`flex min-h-64 min-w-0 flex-col rounded-xl border bg-panel p-3 lg:min-h-0 ${isOver ? "border-acento bg-acento-suave" : "border-borde"}`}>
       <header className="mb-2 flex items-start gap-2">
-        <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLOR_PRIORIDAD[cuadrante.prioridad] }} />
+        <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold" style={{ borderColor: COLOR_PRIORIDAD[cuadrante.prioridad], color: COLOR_PRIORIDAD[cuadrante.prioridad] }}>
+          {numero}
+        </span>
         <div className="min-w-0">
           <h2 className="text-sm font-semibold">
             {cuadrante.nombre} <span className="font-normal text-tenue">{tareas.length}</span>
@@ -129,8 +131,8 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
         }}
       >
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-5 pb-5 lg:grid-cols-2 lg:grid-rows-2">
-          {CUADRANTES.map((c) => (
-            <ZonaCuadrante key={c.id} cuadrante={c} tareas={reparto[c.id]} tareaAbierta={tareaAbierta} listaId={listaId} etiqueta={etiqueta} />
+          {CUADRANTES.map((c, i) => (
+            <ZonaCuadrante key={c.id} numero={i + 1} cuadrante={c} tareas={reparto[c.id]} tareaAbierta={tareaAbierta} listaId={listaId} etiqueta={etiqueta} />
           ))}
         </div>
         <DragOverlay dropAnimation={null}>
