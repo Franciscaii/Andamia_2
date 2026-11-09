@@ -326,3 +326,37 @@ test("nueva tarea en ventana: fecha, importancia, dificultad, índole, notas y s
   await page.getByRole("menuitem", { name: "Evento" }).click();
   await expect(page.getByRole("dialog", { name: "Nuevo evento" }).getByRole("group", { name: "Importancia" })).toHaveCount(0);
 });
+
+test("tareas hoy: subir o bajar una tarea arrastrando su asa", async ({ page }) => {
+  await page.goto("/");
+  for (const t of ["Tercera", "Segunda", "Primera"]) await crearEnSemana(page, "Tarea", t);
+  const lista = page.getByRole("list", { name: "Tareas" });
+  const titulos = async () => (await lista.getByTestId("fila-tarea").allInnerTexts()).map((x) => x.trim().split("\n")[0].trim());
+  await expect.poll(titulos).toEqual(["Primera", "Segunda", "Tercera"]);
+
+  // Con el teclado: Espacio toma, flecha baja, Espacio suelta.
+  await page.getByRole("button", { name: "Mover Primera" }).focus();
+  await page.keyboard.press("Space");
+  // dnd-kit mide las filas al tomar la tarea; moverla antes no la mueve.
+  await expect(page.getByRole("list", { name: "Tareas" }).getByTestId("fila-tarea").first()).toHaveClass(/shadow-lg/);
+  await page.keyboard.press("ArrowDown");
+  await page.waitForTimeout(600);
+  await page.keyboard.press("Space");
+  await expect.poll(titulos).toEqual(["Segunda", "Primera", "Tercera"]);
+
+  // Con el ratón: Tercera sube arriba de todo.
+  const asa = page.getByRole("button", { name: "Mover Tercera" });
+  const destino = lista.getByTestId("fila-tarea").first();
+  const a = (await asa.boundingBox())!;
+  const d = (await destino.boundingBox())!;
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2, a.y - 10, { steps: 5 });
+  await page.mouse.move(a.x + a.width / 2, d.y + 4, { steps: 10 });
+  await page.waitForTimeout(200);
+  await page.mouse.up();
+  await expect.poll(titulos).toEqual(["Tercera", "Segunda", "Primera"]);
+
+  await page.reload();
+  await expect.poll(titulos).toEqual(["Tercera", "Segunda", "Primera"]);
+});

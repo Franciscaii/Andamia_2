@@ -1,8 +1,11 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
 import { addDays, format, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, Plus } from "lucide-react";
+import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, GripVertical, Plus } from "lucide-react";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { DialogoHabito } from "./VistaHabitos";
 import { COLOR_NIVEL } from "../componentes/FilaTarea";
@@ -44,7 +47,14 @@ export function FilaEvento({ evento, abierta }: { evento: Tarea; abierta: boolea
   );
 }
 
-function FilaTareaSemana({ tarea, abierta, hoy }: { tarea: Tarea; abierta: boolean; hoy: Date }) {
+interface Arrastre {
+  ref: (n: HTMLElement | null) => void;
+  estilo: CSSProperties;
+  asa: HTMLAttributes<HTMLButtonElement>;
+  arrastrando: boolean;
+}
+
+function FilaTareaSemana({ tarea, abierta, hoy, arrastre }: { tarea: Tarea; abierta: boolean; hoy: Date; arrastre?: Arrastre }) {
   const completarTarea = useTienda((s) => s.completarTarea);
   const etiquetas = useTienda((s) => s.etiquetas);
   const hecha = tarea.estado === "completada";
@@ -56,7 +66,17 @@ function FilaTareaSemana({ tarea, abierta, hoy }: { tarea: Tarea; abierta: boole
   const etiqueta = tarea.etiquetas[0] ? etiquetas.find((e) => e.nombre === tarea.etiquetas[0]) : undefined;
 
   return (
-    <li data-testid="fila-tarea" className={`flex items-center gap-2.5 rounded-lg px-2 py-2 ${abierta ? "bg-acento-suave" : "hover:bg-suave"}`}>
+    <li
+      ref={arrastre?.ref}
+      style={arrastre?.estilo}
+      data-testid="fila-tarea"
+      className={`flex items-center gap-2.5 rounded-lg py-2 ${arrastre ? "pr-2 pl-0.5" : "px-2"} ${abierta ? "bg-acento-suave" : "hover:bg-suave"} ${arrastre?.arrastrando ? "relative z-10 bg-panel shadow-lg" : ""}`}
+    >
+      {arrastre && (
+        <button type="button" aria-label={`Mover ${tarea.titulo}`} title="Arrastra para subir o bajar" className="-mr-1.5 shrink-0 cursor-grab touch-none rounded p-0.5 text-tenue opacity-60 hover:opacity-100" {...arrastre.asa}>
+          <GripVertical size={16} />
+        </button>
+      )}
       <button
         type="button"
         role="checkbox"
@@ -97,6 +117,51 @@ function FilaTareaSemana({ tarea, abierta, hoy }: { tarea: Tarea; abierta: boole
         </span>
       )}
     </li>
+  );
+}
+
+function FilaOrdenableSemana({ tarea, abierta, hoy }: { tarea: Tarea; abierta: boolean; hoy: Date }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tarea.id });
+  return (
+    <FilaTareaSemana
+      tarea={tarea}
+      abierta={abierta}
+      hoy={hoy}
+      arrastre={{ ref: setNodeRef, estilo: { transform: CSS.Translate.toString(transform), transition }, asa: { ...attributes, ...listeners }, arrastrando: isDragging }}
+    />
+  );
+}
+
+/** Pendientes del día: se suben o bajan arrastrando el asa (o con Espacio y las flechas). */
+function PendientesOrdenables({ tareas, tareaAbierta, hoy }: { tareas: Tarea[]; tareaAbierta: string | null; hoy: Date }) {
+  const reordenar = useTienda((s) => s.reordenar);
+  const sensores = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const alSoltar = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const ids = tareas.map((t) => t.id);
+    void reordenar(arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id))), String(active.id));
+  };
+  return (
+    <DndContext
+      sensors={sensores}
+      collisionDetection={closestCenter}
+      onDragEnd={alSoltar}
+      accessibility={{
+        screenReaderInstructions: { draggable: "Pulsa Espacio para tomar la tarea, usa las flechas para subirla o bajarla y Espacio para soltarla. Esc cancela." },
+        announcements: { onDragStart: () => "Tarea tomada.", onDragOver: () => "Tarea movida.", onDragEnd: () => "Tarea soltada.", onDragCancel: () => "Movimiento cancelado." },
+      }}
+    >
+      <SortableContext items={tareas.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+        <ul aria-label="Tareas" className="mt-2">
+          {tareas.map((t) => (
+            <FilaOrdenableSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={hoy} />
+          ))}
+        </ul>
+      </SortableContext>
+    </DndContext>
   );
 }
 
@@ -333,11 +398,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                 <BarraProgreso {...contenido.progreso} />
               </div>
               {pendientes.length > 0 ? (
-                <ul aria-label="Tareas" className="mt-2">
-                  {pendientes.map((t) => (
-                    <FilaTareaSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={ahora} />
-                  ))}
-                </ul>
+                <PendientesOrdenables tareas={pendientes} tareaAbierta={tareaAbierta} hoy={ahora} />
               ) : (
                 <p className="px-2 py-4 text-sm text-tenue">{hechas.length ? "¡Todo listo por hoy!" : "No hay tareas este día. Toca + para añadir."}</p>
               )}
