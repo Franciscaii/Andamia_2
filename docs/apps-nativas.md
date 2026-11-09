@@ -45,3 +45,9 @@ Cambios en el código web para la app de Android (`src/logica/plataforma.ts`):
 - Inicia Firebase Auth con `initializeAuth` + IndexedDB (sin ventanas emergentes).
 - Oculta "Continuar con Google" y el botón "Instalar".
 - El botón "atrás" del teléfono vuelve atrás o deja la app en segundo plano.
+
+## Widget "Hoy" de Android
+
+Muestra las tareas de hoy y las atrasadas (hasta 30). Tocar el círculo la marca como hecha: el widget la quita al tiro y la app la completa en Andamia la próxima vez que se abra. Tocar el texto abre la tarea; el "+" abre "Añadir tarea".
+
+La app le envía las tareas al widget cada vez que cambian (`src/logica/widgetAndroid.ts`). Si la app no se abre en todo el día, el widget muestra la lista del día anterior y lo indica en el título.

@@ -18,7 +18,39 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Enlaces del widget: andamia://hoy, andamia://nueva, andamia://tarea/ID -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="andamia" />
+            </intent-filter>
         </activity>
+
+        <!-- Widget "Hoy" de la pantalla de inicio -->
+        <receiver
+            android:name=".HoyWidget"
+            android:exported="false"
+            android:label="@string/widget_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_hoy_info" />
+        </receiver>
+
+        <service
+            android:name=".ServicioListaHoy"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <activity
+            android:name=".AccionWidgetActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

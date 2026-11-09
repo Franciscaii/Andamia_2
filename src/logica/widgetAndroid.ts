@@ -1,0 +1,119 @@
+import { registerPlugin } from "@capacitor/core";
+import { App } from "@capacitor/app";
+import { format } from "date-fns";
+import { useTienda } from "../datos/tienda";
+import type { Lista, Prioridad, Tarea } from "../modelos/tipos";
+import { diasHasta, fechaDeTarea } from "./fechas";
+import { irA } from "./ruta";
+import { tareasDeVista } from "./vistas";
+
+/** Puente con el widget "Hoy" de Android (android/app/src/main/java/cl/andamia/app). */
+interface PluginWidget {
+  actualizar(opciones: { datos: string }): Promise<void>;
+  pendientes(): Promise<{ ids: string[] }>;
+}
+
+const widget = registerPlugin<PluginWidget>("AndamiaWidget");
+
+const MAX_TAREAS = 30;
+const NIVEL: Record<Prioridad, number> = { ninguna: 0, baja: 1, media: 2, alta: 3 };
+
+/** Lo que el widget muestra: solo lo necesario para dibujar cada fila. */
+export function datosDelWidget(tareas: Tarea[], listas: Lista[], ahora: Date = new Date()) {
+  const nombreLista = new Map(listas.map((l) => [l.id, l.nombre]));
+  const deHoy = tareasDeVista(tareas, "hoy", listas, ahora).slice(0, MAX_TAREAS);
+  return {
+    fecha: format(ahora, "yyyy-MM-dd"),
+    tareas: deHoy.map((t) => {
+      const fecha = fechaDeTarea(t);
+      const hora = fecha && !t.todoElDia ? format(fecha, "HH:mm") : "";
+      const lista = t.listaId !== "bandeja" ? nombreLista.get(t.listaId) ?? "" : "";
+      return {
+        id: t.id,
+        titulo: t.titulo,
+        detalle: [hora, lista].filter(Boolean).join(" · "),
+        atrasada: (diasHasta(t, ahora) ?? 0) < 0,
+        prioridad: NIVEL[t.prioridad] ?? 0,
+      };
+    }),
+  };
+}
+
+let ultimoEnviado = "";
+let temporizador: ReturnType<typeof setTimeout> | null = null;
+
+function enviarAlWidget(): void {
+  const { cargando, tareas, listas } = useTienda.getState();
+  if (cargando) return;
+  const datos = JSON.stringify(datosDelWidget(tareas, listas));
+  if (datos === ultimoEnviado) return;
+  ultimoEnviado = datos;
+  void widget.actualizar({ datos }).catch(() => {
+    ultimoEnviado = "";
+  });
+}
+
+function programarEnvio(): void {
+  if (temporizador) clearTimeout(temporizador);
+  temporizador = setTimeout(enviarAlWidget, 400);
+}
+
+/** Completa en Andamia las tareas que se marcaron como hechas desde el widget. */
+async function aplicarMarcadasEnWidget(): Promise<void> {
+  const estado = useTienda.getState();
+  if (estado.cargando) return;
+  const { ids } = await widget.pendientes();
+  for (const id of ids) {
+    const tarea = useTienda.getState().tareas.find((t) => t.id === id);
+    if (tarea && tarea.estado === "pendiente" && tarea.eliminadaEn === null) {
+      await useTienda.getState().completarTarea(id, true);
+    }
+  }
+  ultimoEnviado = "";
+  programarEnvio();
+}
+
+function enfocarEntradaRapida(intentos = 0): void {
+  const campo = document.getElementById("entrada-rapida");
+  if (campo) campo.focus();
+  else if (intentos < 30) setTimeout(() => enfocarEntradaRapida(intentos + 1), 100);
+}
+
+/** Abre lo que pidió el widget: andamia://hoy, andamia://nueva o andamia://tarea/ID. */
+export function abrirEnlace(url: string): void {
+  let destino: URL;
+  try {
+    destino = new URL(url);
+  } catch {
+    return;
+  }
+  if (destino.protocol !== "andamia:") return;
+  const hoy = { tipo: "vista", vista: "hoy" } as const;
+  if (destino.host === "nueva") {
+    irA(hoy);
+    enfocarEntradaRapida();
+  } else if (destino.host === "tarea") {
+    const id = decodeURIComponent(destino.pathname.replace(/^\//, ""));
+    irA(hoy, id || null);
+  } else {
+    irA(hoy);
+  }
+}
+
+export async function iniciarWidgetAndroid(): Promise<void> {
+  useTienda.subscribe((estado, previo) => {
+    if (previo.cargando && !estado.cargando) void aplicarMarcadasEnWidget();
+    if (estado.tareas !== previo.tareas || estado.listas !== previo.listas || estado.cargando !== previo.cargando) programarEnvio();
+  });
+  await App.addListener("appUrlOpen", ({ url }) => abrirEnlace(url));
+  await App.addListener("resume", () => {
+    void aplicarMarcadasEnWidget();
+    // Al volver otro día, "Hoy" cambia aunque no cambien las tareas.
+    ultimoEnviado = "";
+    programarEnvio();
+  });
+  const inicio = await App.getLaunchUrl();
+  if (inicio?.url) abrirEnlace(inicio.url);
+  void aplicarMarcadasEnWidget();
+  programarEnvio();
+}

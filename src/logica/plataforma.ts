@@ -11,4 +11,6 @@ export async function prepararAppNativa(): Promise<void> {
     if (canGoBack) window.history.back();
     else void App.minimizeApp();
   });
+  const { iniciarWidgetAndroid } = await import("./widgetAndroid");
+  await iniciarWidgetAndroid();
 }

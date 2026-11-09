@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_fondo">#F2222120</color>
+    <color name="widget_texto">#ECEAE5</color>
+    <color name="widget_texto_tenue">#A29E95</color>
+    <color name="widget_acento">#4F9A88</color>
+    <color name="widget_boton_texto">#FFFFFF</color>
+    <color name="widget_atrasada">#E07A66</color>
+    <color name="widget_prioridad_alta">#E8705A</color>
+    <color name="widget_prioridad_media">#E5A84A</color>
+    <color name="widget_prioridad_baja">#6E9BD6</color>
+</resources>

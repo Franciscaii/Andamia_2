@@ -4,4 +4,6 @@
     <string name="title_activity_main">Andamia</string>
     <string name="package_name">cl.andamia.app</string>
     <string name="custom_url_scheme">cl.andamia.app</string>
+    <string name="widget_nombre">Andamia · Hoy</string>
+    <string name="widget_descripcion">Tus tareas de hoy. Toca el círculo para marcarlas como hechas.</string>
 </resources>
