@@ -38,7 +38,12 @@ export interface Tarea {
   titulo: string;
   descripcion: string;
   estado: EstadoTarea;
+  /** Importancia: urgencia y valor de la tarea. */
   prioridad: Prioridad;
+  /** Dificultad: tiempo y esfuerzo intelectual. Las tareas antiguas no la tienen. */
+  dificultad?: Prioridad;
+  /** Un evento se muestra en la barra morada de la semana: sin casilla y sin contar en el progreso. */
+  esEvento?: boolean;
   /** "AAAA-MM-DD" si es de todo el día; fecha-hora ISO si lleva hora; null sin fecha. */
   vence: string | null;
   todoElDia: boolean;

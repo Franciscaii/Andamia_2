@@ -14,6 +14,8 @@ export interface DatosNuevaTarea {
   listaId?: string;
   descripcion?: string;
   prioridad?: Prioridad;
+  dificultad?: Prioridad;
+  esEvento?: boolean;
   vence?: string | null;
   todoElDia?: boolean;
   etiquetas?: string[];
@@ -156,6 +158,8 @@ export async function crearTarea(datos: DatosNuevaTarea): Promise<{ tarea: Tarea
     descripcion: datos.descripcion ?? "",
     estado: "pendiente",
     prioridad: datos.prioridad ?? "ninguna",
+    dificultad: datos.dificultad ?? "ninguna",
+    esEvento: datos.esEvento ?? false,
     vence: datos.vence ?? null,
     todoElDia: datos.todoElDia ?? false,
     zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone,

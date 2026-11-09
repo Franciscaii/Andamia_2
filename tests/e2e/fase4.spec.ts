@@ -50,7 +50,7 @@ test.describe("matriz", () => {
     // La prioridad cambió de verdad y persiste.
     await page.reload();
     await page.getByRole("button", { name: /^Ordenar correo/ }).click();
-    await expect(page.getByRole("complementary", { name: "Detalle de la tarea" }).getByRole("button", { name: "Media" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("complementary", { name: "Detalle de la tarea" }).getByRole("group", { name: "Importancia" }).getByRole("button", { name: "Media" })).toHaveAttribute("aria-pressed", "true");
   });
 
   test("añadir en un cuadrante y filtrar", async ({ page }) => {

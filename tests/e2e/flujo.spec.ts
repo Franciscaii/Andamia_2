@@ -46,12 +46,47 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
 
 test("el menú no muestra Todas, Hoy, Mañana, Bandeja de entrada ni Enfoque", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: "Próximos 7 días" })).toBeVisible();
+  await expect(page.getByTestId("progreso-dia")).toContainText("Hoy,");
   const menu = page.getByRole("navigation");
   for (const nombre of ["Todas", "Hoy", "Mañana", "Bandeja de entrada", "Enfoque"]) {
     await expect(menu.getByRole("link", { name: new RegExp(`^${nombre}`) })).toHaveCount(0);
   }
-  await expect(menu.getByRole("link", { name: /^Próximos 7 días/ })).toBeVisible();
+  await expect(menu.getByRole("link", { name: /^Semana/ })).toBeVisible();
+});
+
+test("semana: eventos arriba, progreso del día y tareas con dificultad e importancia", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Nueva tarea" }).click();
+  const entradaTarea = page.getByRole("textbox", { name: "Añadir tarea" });
+  await entradaTarea.fill("Leer paper !alta #universidad");
+  await entradaTarea.press("Enter");
+  await entradaTarea.fill("Comprar pan");
+  await entradaTarea.press("Enter");
+  await expect(page.getByTestId("progreso-dia")).toContainText("0/2 (0%)");
+
+  await page.getByRole("checkbox", { name: "Completar: Comprar pan" }).click();
+  await expect(page.getByTestId("progreso-dia")).toContainText("1/2 (50%)");
+
+  const fila = page.getByTestId("fila-tarea").filter({ hasText: "Leer paper" });
+  await expect(fila.getByTestId("importancia")).toHaveText("Alta");
+  await expect(fila).toContainText("universidad");
+  await fila.getByRole("button", { name: /^Leer paper/ }).click();
+  await page.getByRole("group", { name: "Dificultad" }).getByRole("button", { name: "Media" }).click();
+  await expect(page.getByRole("checkbox", { name: "Completar: Leer paper" })).toHaveAttribute("title", "Dificultad media");
+  await page.keyboard.press("Escape");
+
+  // Un evento va arriba y no cuenta en el progreso.
+  await page.getByRole("button", { name: "Eventos" }).click();
+  const entradaEvento = page.getByRole("textbox", { name: "Añadir evento" });
+  await entradaEvento.fill("Cumpleaños de Ana");
+  await entradaEvento.press("Enter");
+  await page.getByRole("button", { name: "Todos" }).click();
+  await expect(page.getByTestId("fila-evento")).toContainText("Cumpleaños de Ana");
+  await expect(page.getByTestId("progreso-dia")).toContainText("1/2 (50%)");
+
+  // Otro día de la semana.
+  await page.getByRole("button", { name: "Semana siguiente" }).click();
+  await expect(page.getByTestId("progreso-dia")).toContainText("0/0 (0%)");
 });
 
 test("detalle, papelera y restaurar", async ({ page }) => {
@@ -62,7 +97,7 @@ test("detalle, papelera y restaurar", async ({ page }) => {
 
   const detalle = page.getByRole("complementary", { name: "Detalle de la tarea" });
   await expect(detalle.getByLabel("Título")).toHaveValue("Revisar contrato");
-  await expect(detalle.getByRole("button", { name: "Alta" })).toHaveAttribute("aria-pressed", "true");
+  await expect(detalle.getByRole("group", { name: "Importancia" }).getByRole("button", { name: "Alta" })).toHaveAttribute("aria-pressed", "true");
 
   await detalle.getByLabel("Notas").fill("Pedir la versión firmada");
   await detalle.getByLabel("Nueva subtarea").fill("Leer cláusulas");

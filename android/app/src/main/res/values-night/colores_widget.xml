@@ -9,4 +9,10 @@
     <color name="widget_prioridad_alta">#E8705A</color>
     <color name="widget_prioridad_media">#E5A84A</color>
     <color name="widget_prioridad_baja">#6E9BD6</color>
+    <color name="widget_barra_fondo">#3A3936</color>
+    <color name="widget_evento">#B98AE6</color>
+    <color name="widget_evento_suave">#34264A</color>
+    <color name="widget_nivel_alta">#EF7A66</color>
+    <color name="widget_nivel_media">#F0C94A</color>
+    <color name="widget_nivel_baja">#6FB0F0</color>
 </resources>

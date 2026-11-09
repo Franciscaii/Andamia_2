@@ -14,6 +14,7 @@ import { VistaCalendario } from "./vistas/VistaCalendario";
 import { VistaEnfoque } from "./vistas/VistaEnfoque";
 import { VistaHabitos } from "./vistas/VistaHabitos";
 import { VistaMatriz } from "./vistas/VistaMatriz";
+import { VistaSemana } from "./vistas/VistaSemana";
 import { VistaTareas } from "./vistas/VistaTareas";
 
 function MotorEnfoque() {
@@ -59,6 +60,13 @@ export default function App() {
         if (campo) {
           e.preventDefault();
           campo.focus();
+        } else {
+          // En la semana el campo aparece con el botón +.
+          const boton = document.querySelector<HTMLButtonElement>("[data-nueva-tarea]");
+          if (boton) {
+            e.preventDefault();
+            boton.click();
+          }
         }
       }
     };
@@ -104,6 +112,8 @@ export default function App() {
           <VistaHabitos />
         ) : ruta.seccion.tipo === "ajustes" ? (
           <VistaAjustes />
+        ) : ruta.seccion.tipo === "vista" && ruta.seccion.vista === "semana" ? (
+          <VistaSemana tareaAbierta={ruta.tareaId} />
         ) : (
           <VistaTareas seccion={ruta.seccion} tareaAbierta={ruta.tareaId} />
         )}
