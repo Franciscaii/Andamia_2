@@ -241,7 +241,7 @@ test("estadística de tareas: por etiqueta, circular y en el tiempo; tocar una e
   await filas.nth(1).click();
   await expect(filas.nth(1)).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("grafico-circular")).toContainText("33%");
-  await expect(page.getByTestId("lista-hechos").getByRole("listitem")).toHaveCount(1);
+  await expect(page.getByTestId("lista-hechos")).toHaveCount(0);
   await expect(page.locator('[data-testid="grafico-circular"] path[data-clave="vidacotidiana"]')).toHaveAttribute("opacity", "0.22");
   await expect(page.locator('[data-testid="grafico-areas"] path[data-clave="universidad"]')).toHaveAttribute("fill-opacity", "0.85");
 

@@ -1,6 +1,4 @@
 import { useMemo, useState } from "react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTienda } from "../datos/tienda";
 import {
@@ -232,7 +230,6 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   // Si el grupo elegido no tiene nada en este período, se suelta.
   const elegidoVisible = elegido !== null && resumen.filas.some((f) => f.clave === elegido) ? elegido : null;
   const alElegir = (clave: string) => setElegido((e) => (e === clave ? null : clave));
-  const lista = elegidoVisible === null ? resumen.hechos : resumen.hechos.filter((h) => h.grupo === elegidoVisible);
   const unidad = esTareas ? (resumen.total === 1 ? "completada" : "completadas") : resumen.total === 1 ? "día cumplido" : "días cumplidos";
 
   return (
@@ -301,21 +298,6 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
               <Areas resumen={resumen} elegido={elegidoVisible} alElegir={alElegir} />
             </section>
 
-            <section className="rounded-xl border border-borde bg-panel p-4">
-              <h2 className="text-sm font-semibold">
-                {esTareas ? "Tareas" : "Días cumplidos"}
-                {elegidoVisible !== null && <span className="font-normal text-tenue"> · {resumen.filas.find((f) => f.clave === elegidoVisible)?.nombre}</span>}
-              </h2>
-              <ul data-testid="lista-hechos" className="mt-2 divide-y divide-borde">
-                {lista.slice(0, 100).map((h) => (
-                  <li key={h.id} className="flex items-center gap-2 py-1.5 text-sm">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: resumen.filas.find((f) => f.clave === h.grupo)?.color }} />
-                    <span className="min-w-0 flex-1 truncate">{h.titulo || "Sin título"}</span>
-                    <span className="shrink-0 text-xs text-tenue">{format(h.momento, esTareas ? "d MMM HH:mm" : "d MMM", { locale: es })}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
           </div>
         )}
       </div>
