@@ -11,6 +11,7 @@ import type { NombreTabla } from "../datos/bd";
 import { cantidadDe, crearCopia, nombreArchivoCopia, validarCopia, type Copia } from "../logica/copia";
 import { alCambiarInstalacion, estaInstalada, instalar, sePuedeInstalar } from "../logica/pwa";
 import { esAppNativa } from "../logica/plataforma";
+import { PALETAS } from "../logica/paletas";
 
 function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
@@ -18,6 +19,46 @@ function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) 
       <h2 className="mb-3 font-semibold">{titulo}</h2>
       {children}
     </section>
+  );
+}
+
+/** Tema claro u oscuro y color de la app; se guarda en este dispositivo. */
+function Apariencia() {
+  const tema = useTienda((s) => s.tema);
+  const fijarTema = useTienda((s) => s.fijarTema);
+  const paleta = useTienda((s) => s.paleta);
+  const fijarPaleta = useTienda((s) => s.fijarPaleta);
+  return (
+    <div className="space-y-4">
+      <div role="group" aria-label="Tema" className="flex w-fit gap-0.5 rounded-md bg-suave p-0.5">
+        {(
+          [
+            { id: "claro", nombre: "Claro" },
+            { id: "oscuro", nombre: "Oscuro" },
+          ] as const
+        ).map((t) => (
+          <button key={t.id} type="button" aria-pressed={tema === t.id} onClick={() => fijarTema(t.id)} className={`rounded px-3 py-1 text-sm ${tema === t.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}>
+            {t.nombre}
+          </button>
+        ))}
+      </div>
+      <div role="radiogroup" aria-label="Color de la app" className="flex flex-wrap gap-3">
+        {PALETAS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            role="radio"
+            aria-checked={paleta === p.id}
+            onClick={() => fijarPaleta(p.id)}
+            className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-2 text-xs ${paleta === p.id ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
+          >
+            <span className="h-7 w-7 rounded-full" style={{ background: p.muestra }} />
+            {p.nombre}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-tenue">Se guarda en este dispositivo: puedes elegir un color distinto en el computador y en el celular.</p>
+    </div>
   );
 }
 
@@ -315,6 +356,9 @@ export function VistaAjustes() {
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-2xl space-y-4 p-5">
         <h1 className="text-xl font-semibold">Cuenta y ajustes</h1>
+        <Seccion titulo="Apariencia">
+          <Apariencia />
+        </Seccion>
         <Seccion titulo="Cuenta">
           {!configurada ? (
             <p data-testid="sin-firebase" className="text-sm text-tenue">Las cuentas aún no están configuradas en esta instalación. Tus datos se guardan solo en este navegador. La guía está en docs/firebase-paso-a-paso.md.</p>

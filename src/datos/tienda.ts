@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Carpeta, Columna, EstadoHabito, Etiqueta, Habito, Lista, ModoLista, RegistroHabito, SesionEnfoque, Tarea } from "../modelos/tipos";
 import * as repo from "./repositorio";
+import { aplicarPaleta, leerPaleta, PALETA_INICIAL, type Paleta } from "../logica/paletas";
 
 export type Tema = "claro" | "oscuro";
 
@@ -20,6 +21,8 @@ interface Estado {
   cerrarError: () => void;
   alternarTema: () => void;
   fijarTema: (tema: Tema) => void;
+  paleta: Paleta;
+  fijarPaleta: (paleta: Paleta) => void;
   crearTarea: (datos: repo.DatosNuevaTarea) => Promise<Tarea | null>;
   actualizarTarea: (id: string, cambios: Partial<Omit<Tarea, "id" | "creadaEn">>) => void;
   agregarEtiquetaATarea: (tarea: Tarea, nombre: string) => Promise<void>;
@@ -92,6 +95,11 @@ export const useTienda = create<Estado>((set, get) => {
     habitos: [],
     registros: [],
     tema: typeof document === "undefined" ? "claro" : temaInicial(),
+    paleta: typeof document === "undefined" ? PALETA_INICIAL : leerPaleta(),
+    fijarPaleta: (paleta) => {
+      aplicarPaleta(paleta);
+      set({ paleta });
+    },
 
     cargar: async () => {
       try {

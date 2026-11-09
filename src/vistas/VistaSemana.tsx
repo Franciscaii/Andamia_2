@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties, type FormEvent, type HTMLAttri
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { CampoNotas, claseTituloCampo, EditorSubtareas, ICONO_DIFICULTAD, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
+import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
 import { addDays, format, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, GripVertical, Plus } from "lucide-react";
@@ -38,7 +38,7 @@ export function FilaEvento({ evento, abierta }: { evento: Tarea; abierta: boolea
         data-testid="fila-evento"
         onClick={() => irA(SECCION, evento.id)}
         className={`flex w-full items-center gap-2 rounded-md border-l-4 px-3 py-1.5 text-left text-sm ${abierta ? "ring-2 ring-acento" : ""}`}
-        style={{ borderColor: "var(--evento)", background: "var(--evento-suave)" }}
+        style={estiloEvento(evento.colorEvento)}
       >
         <span className="min-w-0 flex-1 truncate font-medium">{evento.titulo || "Sin título"}</span>
         {hora(evento) && <span className="shrink-0 text-xs text-tenue tabular-nums">{hora(evento)}</span>}
@@ -200,6 +200,7 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
   const [indole, setIndole] = useState<string | null>(null);
   const [notas, setNotas] = useState("");
   const [subtareas, setSubtareas] = useState<Subtarea[]>([]);
+  const [colorEvento, setColorEvento] = useState<string | null>(null);
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
@@ -207,6 +208,7 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
     await crearTarea({
       titulo,
       esEvento,
+      colorEvento: esEvento ? colorEvento : null,
       vence: fecha,
       todoElDia: true,
       prioridad: esEvento ? "ninguna" : prioridad,
@@ -238,6 +240,7 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
           <span className={`${claseTituloCampo} block`}>Fecha</span>
           <input type="date" required aria-label="Fecha" className={claseCampo} value={fecha} onChange={(e) => setFecha(e.target.value)} />
         </label>
+        {esEvento && <SelectorColorEvento valor={colorEvento} alElegir={setColorEvento} />}
         {!esEvento && (
           <>
             <SelectorNivel titulo="Importancia" ayuda="Urgencia y valor" valor={prioridad} alElegir={setPrioridad} />

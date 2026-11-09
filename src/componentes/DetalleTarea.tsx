@@ -10,7 +10,7 @@ import { construirRegla, describirRegla, INICIALES_DIA, leerRegla, NOMBRES_DIA, 
 import { irA, type Seccion } from "../logica/ruta";
 import { nuevoId } from "../logica/texto";
 import { LISTA_BANDEJA, type Tarea } from "../modelos/tipos";
-import { CampoNotas, claseTituloCampo, EditorSubtareas, ICONO_DIFICULTAD, SelectorIndole, SelectorNivel } from "./CamposTarea";
+import { CampoNotas, claseTituloCampo, EditorSubtareas, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "./CamposTarea";
 import { COLOR_PRIORIDAD } from "./FilaTarea";
 import { claseBoton, claseCampo } from "./Modal";
 
@@ -325,6 +325,8 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
               </div>
             </section>
           )}
+
+          {tarea.esEvento && <SelectorColorEvento valor={tarea.colorEvento ?? null} alElegir={(colorEvento) => actualizarTarea(tarea.id, { colorEvento })} />}
 
           {!tarea.esEvento && (
             <>

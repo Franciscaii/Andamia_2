@@ -450,3 +450,24 @@ test("calendario mes: 'n más' lleva a la Semana en Hoy con ese día elegido", a
   await expect(page.getByRole("button", { name: new RegExp(`^${dia.toLocaleDateString("es-CL", { weekday: "long" })}`), pressed: true })).toBeVisible();
   await expect(page.getByTestId("fila-tarea")).toHaveCount(8);
 });
+
+test("temas de color y color de un evento", async ({ page }) => {
+  await page.goto("/");
+  // Por defecto ya no es verde: Océano.
+  await expect(page.locator("html")).toHaveAttribute("data-paleta", "oceano");
+  await page.goto("/#/ajustes");
+  await page.getByRole("radiogroup", { name: "Color de la app" }).getByRole("radio", { name: "Lavanda" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-paleta", "lavanda");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#7a52c7");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-paleta", "lavanda");
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Evento" }).click();
+  const dialogo = page.getByRole("dialog");
+  await dialogo.getByRole("textbox", { name: "Añadir evento" }).fill("Cumpleaños");
+  await dialogo.getByRole("radiogroup", { name: "Color del evento" }).getByRole("radio", { name: "#e0245e" }).click();
+  await dialogo.getByRole("button", { name: "Crear evento" }).click();
+  await expect(page.getByTestId("fila-evento")).toHaveAttribute("style", /border-color: rgb\(224, 36, 94\)/);
+});

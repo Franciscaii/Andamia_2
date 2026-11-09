@@ -1,15 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <shape>
-            <corners android:radius="6dp" />
-            <solid android:color="@color/widget_evento" />
-        </shape>
-    </item>
-    <item android:left="4dp">
-        <shape>
-            <corners android:topRightRadius="6dp" android:bottomRightRadius="6dp" />
-            <solid android:color="@color/widget_evento_suave" />
-        </shape>
-    </item>
-</layer-list>
+<!-- Fondo de la fila de un evento; el color va en la franja evento_color. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="6dp" />
+    <solid android:color="@color/widget_evento_suave" />
+</shape>

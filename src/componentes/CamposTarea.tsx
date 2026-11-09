@@ -1,8 +1,8 @@
-import { useState, type KeyboardEvent } from "react";
+import { useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Brain, Check, Flag, X, type LucideIcon } from "lucide-react";
 import { useTienda } from "../datos/tienda";
 import { nuevoId } from "../logica/texto";
-import { PRIORIDADES, type Prioridad, type Subtarea } from "../modelos/tipos";
+import { COLORES_ETIQUETA, PRIORIDADES, type Prioridad, type Subtarea } from "../modelos/tipos";
 import { COLOR_NIVEL } from "./FilaTarea";
 import { claseCampo } from "./Modal";
 
@@ -132,6 +132,43 @@ export function EditorSubtareas({ subtareas, alCambiar }: { subtareas: Subtarea[
         })}
       </ul>
       <input aria-label="Nueva subtarea" className={`${claseCampo} mt-1.5`} placeholder="Añadir subtarea y pulsar Enter" value={nueva} onChange={(e) => setNueva(e.target.value)} onKeyDown={alPulsar} />
+    </section>
+  );
+}
+
+/** Borde y fondo de un evento: su color elegido o el morado de siempre. */
+export function estiloEvento(color?: string | null): CSSProperties {
+  return color ? { borderColor: color, background: `color-mix(in srgb, ${color} 18%, transparent)` } : { borderColor: "var(--evento)", background: "var(--evento-suave)" };
+}
+
+/** Color del evento: morado (por defecto), uno de la lista o cualquiera con el selector. */
+export function SelectorColorEvento({ valor, alElegir }: { valor: string | null; alElegir: (color: string | null) => void }) {
+  const opciones: { color: string | null; nombre: string }[] = [{ color: null, nombre: "Morado (por defecto)" }, ...COLORES_ETIQUETA.map((c) => ({ color: c, nombre: c }))];
+  const personalizado = valor !== null && !COLORES_ETIQUETA.includes(valor);
+  return (
+    <section role="radiogroup" aria-label="Color del evento">
+      <h3 className={claseTituloCampo}>Color</h3>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {opciones.map((o) => {
+          const elegido = valor === o.color;
+          return (
+            <button
+              key={o.color ?? "morado"}
+              type="button"
+              role="radio"
+              aria-checked={elegido}
+              aria-label={o.nombre}
+              title={o.nombre}
+              onClick={() => alElegir(o.color)}
+              className={`h-6 w-6 rounded-full ${elegido ? "ring-2 ring-texto ring-offset-2 ring-offset-panel" : ""}`}
+              style={{ background: o.color ?? "var(--evento)" }}
+            />
+          );
+        })}
+        <label title="Otro color" className={`relative h-6 w-6 cursor-pointer overflow-hidden rounded-full border border-borde ${personalizado ? "ring-2 ring-texto ring-offset-2 ring-offset-panel" : ""}`} style={{ background: personalizado ? valor : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}>
+          <input type="color" aria-label="Otro color" className="absolute inset-0 cursor-pointer opacity-0" value={valor ?? "#9b5cd6"} onChange={(e) => alElegir(e.target.value)} />
+        </label>
+      </div>
     </section>
   );
 }

@@ -40,6 +40,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         int dificultad;
         String etiqueta = "";
         String colorEtiqueta = "";
+        String color = "";
     }
 
     private final Context contexto;
@@ -73,6 +74,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                     f.id = e.optString("id");
                     f.titulo = e.optString("titulo");
                     f.detalle = e.optString("hora");
+                    f.color = e.optString("color");
                     filas.add(f);
                 }
             }
@@ -166,6 +168,13 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setTextViewText(R.id.evento_titulo, f.titulo);
         vista.setTextViewText(R.id.evento_hora, f.detalle);
         vista.setViewVisibility(R.id.evento_hora, f.detalle.isEmpty() ? View.GONE : View.VISIBLE);
+        int colorEvento = color(R.color.widget_evento);
+        try {
+            if (!f.color.isEmpty()) colorEvento = Color.parseColor(f.color);
+        } catch (IllegalArgumentException e) {
+            // Color desconocido: se queda el morado.
+        }
+        vista.setInt(R.id.evento_color, "setBackgroundColor", colorEvento);
         Intent abrir = new Intent();
         abrir.setData(Uri.parse("andamia://tarea/" + Uri.encode(f.id)));
         vista.setOnClickFillInIntent(R.id.evento_fila, abrir);

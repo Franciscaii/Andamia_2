@@ -1,10 +1,10 @@
 // Genera los iconos de la PWA a partir del diseño propio de Andamia: un andamio simple.
-// Uso: node scripts/generar-iconos.cjs (requiere Google Chrome).
+// Uso: node scripts/generar-iconos.cjs (requiere Google Chrome, o CHROME_RUTA con la ruta de otro Chromium).
 const { chromium } = require("@playwright/test");
 const { mkdirSync, writeFileSync } = require("node:fs");
 const { join } = require("node:path");
 
-const COLOR = "#2f6b5e";
+const COLOR = "#2f6fb0";
 const dibujo = (escala) => {
   const t = (32 - 32 * escala) / 2;
   return `<g transform="translate(${t} ${t}) scale(${escala})"><path d="M9 6v20M23 6v20M9 12h14M9 20h14M9 20l14-8" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none"/></g>`;
@@ -17,7 +17,7 @@ const svgAdaptable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32
   const dir = join(__dirname, "..", "public", "iconos");
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "icono.svg"), svgNormal);
-  const navegador = await chromium.launch({ channel: "chrome" });
+  const navegador = await chromium.launch(process.env.CHROME_RUTA ? { executablePath: process.env.CHROME_RUTA } : { channel: "chrome" });
   const salidas = [
     ["icono-192.png", 192, svgNormal],
     ["icono-512.png", 512, svgNormal],

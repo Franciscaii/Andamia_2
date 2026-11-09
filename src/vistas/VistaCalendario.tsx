@@ -3,6 +3,7 @@ import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, u
 import { addMonths, addWeeks, format, isSameDay, isSameMonth, parseISO, startOfDay, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
+import { estiloEvento } from "../componentes/CamposTarea";
 import { colisionPunteroOTeclado } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
 import { COLOR_NIVEL, COLOR_PRIORIDAD } from "../componentes/FilaTarea";
@@ -77,7 +78,7 @@ function ChipMes({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: Pr
       className={`flex w-full min-w-0 items-center gap-1 overflow-hidden rounded px-0.5 py-0.5 text-left text-[11px] leading-tight sm:text-xs ${
         evento ? "border-l-[3px] font-medium" : "hover:bg-suave"
       } ${movible ? "cursor-grab touch-none" : "cursor-pointer"} ${esOcurrencia ? "opacity-55" : ""} ${isDragging ? "opacity-30" : ""}`}
-      style={evento ? { borderColor: "var(--evento)", background: "var(--evento-suave)" } : undefined}
+      style={evento ? estiloEvento(tarea.colorEvento) : undefined}
       {...(movible ? { ...attributes, ...listeners } : {})}
     >
       {!evento && (

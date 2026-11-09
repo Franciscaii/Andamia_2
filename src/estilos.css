@@ -72,6 +72,58 @@
   color-scheme: dark;
 }
 
+/* Temas de color (src/logica/paletas.ts). Sin data-paleta o con "verde" queda el verde original. */
+html[data-paleta="oceano"] {
+  --acento: #2f6fb0;
+  --acento-suave: #dde8f5;
+  --sobre-acento: #ffffff;
+}
+html.dark[data-paleta="oceano"] {
+  --acento: #7cb0e8;
+  --acento-suave: #1f3047;
+  --sobre-acento: #0e1a28;
+}
+html[data-paleta="lavanda"] {
+  --acento: #7a52c7;
+  --acento-suave: #ebe2f8;
+  --sobre-acento: #ffffff;
+}
+html.dark[data-paleta="lavanda"] {
+  --acento: #b59ae8;
+  --acento-suave: #34284a;
+  --sobre-acento: #1a1226;
+}
+html[data-paleta="coral"] {
+  --acento: #c4553f;
+  --acento-suave: #f8e1db;
+  --sobre-acento: #ffffff;
+}
+html.dark[data-paleta="coral"] {
+  --acento: #ef8f78;
+  --acento-suave: #4a2a23;
+  --sobre-acento: #22110d;
+}
+html[data-paleta="rosa"] {
+  --acento: #c2457f;
+  --acento-suave: #f8dfeb;
+  --sobre-acento: #ffffff;
+}
+html.dark[data-paleta="rosa"] {
+  --acento: #ec8fb8;
+  --acento-suave: #47243a;
+  --sobre-acento: #220f19;
+}
+html[data-paleta="grafito"] {
+  --acento: #4a5058;
+  --acento-suave: #e4e6e9;
+  --sobre-acento: #ffffff;
+}
+html.dark[data-paleta="grafito"] {
+  --acento: #b4bac2;
+  --acento-suave: #30353b;
+  --sobre-acento: #15181b;
+}
+
 html,
 body,
 #raiz {

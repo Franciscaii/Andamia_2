@@ -16,6 +16,7 @@ export interface DatosNuevaTarea {
   prioridad?: Prioridad;
   dificultad?: Prioridad;
   esEvento?: boolean;
+  colorEvento?: string | null;
   vence?: string | null;
   todoElDia?: boolean;
   etiquetas?: string[];
@@ -206,6 +207,7 @@ export async function crearTarea(datos: DatosNuevaTarea): Promise<{ tarea: Tarea
     prioridad: datos.prioridad ?? "ninguna",
     dificultad: datos.dificultad ?? "ninguna",
     esEvento: datos.esEvento ?? false,
+    colorEvento: datos.esEvento ? (datos.colorEvento ?? null) : null,
     vence: datos.vence ?? null,
     todoElDia: datos.todoElDia ?? false,
     zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone,

@@ -30,7 +30,7 @@ export function datosDelWidget(tareas: Tarea[], listas: Lista[], ahora: Date = n
   return {
     fecha: format(ahora, "yyyy-MM-dd"),
     titulo: tituloDelDia(ahora, ahora),
-    eventos: hoy.eventos.slice(0, MAX_TAREAS).map((t) => ({ id: t.id, titulo: t.titulo, hora: hora(t) })),
+    eventos: hoy.eventos.slice(0, MAX_TAREAS).map((t) => ({ id: t.id, titulo: t.titulo, hora: hora(t), color: t.colorEvento ?? "" })),
     tareas: hoy.tareas.slice(0, MAX_TAREAS).map((t) => {
       const lista = t.listaId !== "bandeja" ? nombreLista.get(t.listaId) ?? "" : "";
       const etiqueta = t.etiquetas[0] ? etiquetaPorNombre.get(t.etiquetas[0]) : undefined;

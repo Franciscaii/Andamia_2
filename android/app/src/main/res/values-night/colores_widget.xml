@@ -3,7 +3,7 @@
     <color name="widget_fondo">#F2222120</color>
     <color name="widget_texto">#ECEAE5</color>
     <color name="widget_texto_tenue">#A29E95</color>
-    <color name="widget_acento">#4F9A88</color>
+    <color name="widget_acento">#7CB0E8</color>
     <color name="widget_boton_texto">#FFFFFF</color>
     <color name="widget_atrasada">#E07A66</color>
     <color name="widget_prioridad_alta">#E8705A</color>
@@ -11,7 +11,7 @@
     <color name="widget_prioridad_baja">#6E9BD6</color>
     <color name="widget_barra_fondo">#3A3936</color>
     <color name="widget_evento">#B98AE6</color>
-    <color name="widget_evento_suave">#34264A</color>
+    <color name="widget_evento_suave">#2F2E2B</color>
     <color name="widget_nivel_alta">#EF7A66</color>
     <color name="widget_nivel_media">#F0C94A</color>
     <color name="widget_nivel_baja">#6FB0F0</color>
