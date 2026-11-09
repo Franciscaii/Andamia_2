@@ -69,7 +69,7 @@ test.describe("matriz", () => {
     await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
     await expect(page.getByTestId("fila-tarea")).toContainText("Con etiqueta");
     await page.getByLabel("Filtrar por etiqueta").selectOption("");
-    await page.getByLabel("Filtrar por lista").selectOption({ label: "Bandeja de entrada" });
+    await expect(page.getByLabel("Filtrar por lista")).toHaveCount(0);
     await expect(page.getByTestId("fila-tarea")).toHaveCount(2);
   });
 });

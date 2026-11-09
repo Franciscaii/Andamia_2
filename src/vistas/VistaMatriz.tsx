@@ -80,7 +80,7 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
   const listas = useTienda((s) => s.listas);
   const etiquetas = useTienda((s) => s.etiquetas);
   const actualizarTarea = useTienda((s) => s.actualizarTarea);
-  const [listaId, setListaId] = useState<string | null>(null);
+  const listaId: string | null = null;
   const [etiqueta, setEtiqueta] = useState<string | null>(null);
   const [activa, setActiva] = useState<Tarea | null>(null);
 
@@ -100,15 +100,6 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
       <header className="flex flex-wrap items-center gap-2 px-5 pt-5 pb-3">
         <h1 className="text-xl font-semibold">Matriz de Eisenhower</h1>
         <div className="flex flex-wrap gap-2 sm:ml-auto">
-          <select aria-label="Filtrar por lista" className={`${claseCampo} !w-auto`} value={listaId ?? ""} onChange={(e) => setListaId(e.target.value || null)}>
-            <option value="">Todas las listas</option>
-            <option value={LISTA_BANDEJA}>Bandeja de entrada</option>
-            {listas.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.nombre}
-              </option>
-            ))}
-          </select>
           <select aria-label="Filtrar por etiqueta" className={`${claseCampo} !w-auto`} value={etiqueta ?? ""} onChange={(e) => setEtiqueta(e.target.value || null)}>
             <option value="">Todas las etiquetas</option>
             {etiquetas.map((e) => (
