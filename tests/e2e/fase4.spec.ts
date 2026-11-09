@@ -101,7 +101,7 @@ test.describe("enfoque", () => {
     });
     await page.goto("/#/tareas/bandeja");
     await agregar(page, "Escribir capítulo");
-    await enlace(page, "Enfoque").click();
+    await page.goto("/#/enfoque");
 
     await expect(page.getByTestId("tiempo")).toHaveText("25:00");
     await page.getByRole("combobox", { name: "Tarea de esta sesión" }).selectOption({ label: "Escribir capítulo" });
@@ -110,7 +110,6 @@ test.describe("enfoque", () => {
     // Diez minutos después sigue contando desde la marca de tiempo.
     await page.clock.fastForward("10:00");
     await expect(page.getByTestId("tiempo")).toHaveText(/^1[45]:\d\d$/);
-    await expect(page.getByTestId("tiempo-lateral")).toBeVisible();
 
     // Sobrevive a recargar la página.
     await page.reload();

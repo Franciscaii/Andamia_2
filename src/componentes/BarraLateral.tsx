@@ -1,10 +1,9 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, Timer, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
 import { useCuenta } from "../datos/cuenta";
-import { textoTemporizador, useAhora, useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
-import { hashDe, irA, type Seccion } from "../logica/ruta";
+import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
 import type { Carpeta, Lista } from "../modelos/tipos";
 import { BotonAvisos } from "./Avisos";
 import { DialogoCarpeta, DialogoLista } from "./Dialogos";
@@ -19,6 +18,9 @@ const ICONOS: Record<VistaInteligente, ReactNode> = {
   completadas: <CheckCheck size={17} />,
   papelera: <Trash2 size={17} />,
 };
+
+/** Francisca pidió quitar Todas, Hoy, Mañana y Bandeja de entrada del menú. */
+const VISTAS_EN_MENU: VistaInteligente[] = ["semana"];
 
 const claseFila = (activa: boolean) =>
   `group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${activa ? "bg-acento-suave font-medium" : "hover:bg-suave"}`;
@@ -81,23 +83,6 @@ function FilaAjustes({ activa }: { activa: boolean }) {
         <span className="shrink-0 text-tenue">{icono}</span>
         <span className="truncate">Cuenta y ajustes</span>
         {estado && <span data-testid="estado-sync" className="ml-auto pl-1 text-xs text-tenue">{estado}</span>}
-      </a>
-    </div>
-  );
-}
-
-/** Muestra el tiempo que queda desde cualquier pantalla. */
-function FilaEnfoque({ activa }: { activa: boolean }) {
-  const t = useEnfoque((s) => s.temporizador);
-  const ahora = useAhora(t.estado === "corriendo");
-  return (
-    <div className={claseFila(activa)}>
-      <a href={hashDe({ tipo: "enfoque" })} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="shrink-0 text-tenue">
-          <Timer size={17} />
-        </span>
-        <span className="truncate">Enfoque</span>
-        {t.estado !== "listo" && <span data-testid="tiempo-lateral" className="ml-auto pl-1 text-xs font-medium text-acento tabular-nums">{textoTemporizador(t, ahora)}</span>}
       </a>
     </div>
   );
@@ -183,7 +168,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
 
       <nav aria-label="Navegación" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
         <Fila href={hashDe({ tipo: "buscar" })} activa={seccion.tipo === "buscar"} icono={<Search size={17} />} nombre="Buscar" />
-        {VISTAS_INTELIGENTES.filter((v) => !["completadas", "papelera"].includes(v.id)).map((v) => (
+        {VISTAS_INTELIGENTES.filter((v) => VISTAS_EN_MENU.includes(v.id)).map((v) => (
           <Fila
             key={v.id}
             href={hashDe({ tipo: "vista", vista: v.id })}
@@ -195,7 +180,6 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
         ))}
         <Fila href={hashDe({ tipo: "calendario", modo: seccion.tipo === "calendario" ? seccion.modo : "mes" })} activa={seccion.tipo === "calendario"} icono={<CalendarRange size={17} />} nombre="Calendario" />
         <Fila href={hashDe({ tipo: "matriz" })} activa={seccion.tipo === "matriz"} icono={<Grid2x2 size={17} />} nombre="Matriz" />
-        <FilaEnfoque activa={seccion.tipo === "enfoque"} />
         <Fila href={hashDe({ tipo: "habitos" })} activa={seccion.tipo === "habitos"} icono={<Flame size={17} />} nombre="Hábitos" />
 
         {titulo(
@@ -272,7 +256,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
           alCerrar={() => setDialogo(null)}
           alConfirmar={() => {
             void borrarLista(dialogo.lista.id);
-            if (seccion.tipo === "lista" && seccion.id === dialogo.lista.id) irA({ tipo: "vista", vista: "hoy" });
+            if (seccion.tipo === "lista" && seccion.id === dialogo.lista.id) irA(INICIO);
           }}
         />
       )}
@@ -293,7 +277,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
           alCerrar={() => setDialogo(null)}
           alConfirmar={() => {
             void borrarEtiqueta(dialogo.nombre);
-            if (seccion.tipo === "etiqueta" && seccion.nombre === dialogo.nombre) irA({ tipo: "vista", vista: "hoy" });
+            if (seccion.tipo === "etiqueta" && seccion.nombre === dialogo.nombre) irA(INICIO);
           }}
         />
       )}

@@ -27,7 +27,8 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
   await expect(fila).not.toContainText("propuesta mañana");
   await expect(page.getByRole("navigation").getByRole("link", { name: /^trabajo/ })).toBeVisible();
 
-  await navegar(page, "Mañana");
+  // Mañana ya no está en el menú, pero su dirección sigue funcionando.
+  await page.goto("/#/tareas/manana");
   await expect(page.getByRole("heading", { level: 1, name: "Mañana" })).toBeVisible();
   const enManana = page.getByTestId("fila-tarea").filter({ hasText: "Enviar propuesta" });
   await expect(enManana).toContainText("Proyecto");
@@ -41,6 +42,16 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
   // Los datos deben seguir ahí después de recargar: viven en IndexedDB.
   await page.reload();
   await expect(page.getByTestId("fila-tarea").filter({ hasText: "Enviar propuesta" })).toBeVisible();
+});
+
+test("el menú no muestra Todas, Hoy, Mañana, Bandeja de entrada ni Enfoque", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1, name: "Próximos 7 días" })).toBeVisible();
+  const menu = page.getByRole("navigation");
+  for (const nombre of ["Todas", "Hoy", "Mañana", "Bandeja de entrada", "Enfoque"]) {
+    await expect(menu.getByRole("link", { name: new RegExp(`^${nombre}`) })).toHaveCount(0);
+  }
+  await expect(menu.getByRole("link", { name: /^Próximos 7 días/ })).toBeVisible();
 });
 
 test("detalle, papelera y restaurar", async ({ page }) => {
@@ -68,7 +79,7 @@ test("detalle, papelera y restaurar", async ({ page }) => {
   await page.getByRole("button", { name: "Restaurar Revisar contrato" }).click();
   await expect(page.getByTestId("fila-tarea")).toHaveCount(0);
 
-  await navegar(page, "Bandeja");
+  await page.goto("/#/tareas/bandeja");
   await expect(page.getByTestId("fila-tarea").filter({ hasText: "Revisar contrato" })).toBeVisible();
 });
 

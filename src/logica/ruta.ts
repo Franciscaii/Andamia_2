@@ -19,7 +19,8 @@ export interface Ruta {
   tareaId: string | null;
 }
 
-const INICIO: Seccion = { tipo: "vista", vista: "hoy" };
+/** Pantalla de inicio. Hoy, Mañana, Todas y Bandeja ya no están en el menú, aunque sus direcciones siguen funcionando. */
+export const INICIO: Seccion = { tipo: "vista", vista: "semana" };
 
 export function leerRuta(hash: string): Ruta {
   const partes = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
