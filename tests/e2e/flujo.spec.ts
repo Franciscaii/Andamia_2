@@ -340,7 +340,9 @@ test("tareas hoy: subir o bajar una tarea arrastrando su asa", async ({ page }) 
   // dnd-kit mide las filas al tomar la tarea; moverla antes no la mueve.
   await expect(page.getByRole("list", { name: "Tareas" }).getByTestId("fila-tarea").first()).toHaveClass(/shadow-lg/);
   await page.keyboard.press("ArrowDown");
-  await page.waitForTimeout(600);
+  // Soltar solo cuando la fila ya bajó; antes, dnd-kit la deja donde estaba.
+  await expect(lista.getByTestId("fila-tarea").first()).toHaveAttribute("style", /translate3d\(0px, [1-9]/);
+  await page.waitForTimeout(300);
   await page.keyboard.press("Space");
   await expect.poll(titulos).toEqual(["Segunda", "Primera", "Tercera"]);
 
