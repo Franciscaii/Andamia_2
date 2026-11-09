@@ -4,26 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Andamia</title>
-    <meta name="theme-color" content="#2f6fb0" />
+    <meta name="theme-color" content="#1a3e7a" />
     <meta name="description" content="Gestor de tareas, hábitos y enfoque." />
     <link rel="icon" type="image/svg+xml" href="/iconos/icono.svg" />
     <link rel="apple-touch-icon" href="/iconos/icono-apple-180.png" />
     <script>
+      // Tema guardado (ver src/logica/temas.ts), aplicado antes de pintar para que no parpadee.
       try {
-        var t = localStorage.getItem("andamia-tema");
-        var o = t === "oscuro" || (!t && matchMedia("(prefers-color-scheme: dark)").matches);
-        document.documentElement.classList.toggle("dark", o);
+        var g = JSON.parse(localStorage.getItem("andamia-tema-variables") || "null");
+        var r = document.documentElement;
+        if (g && g.vars) {
+          for (var k in g.vars) r.style.setProperty(k, g.vars[k]);
+          r.style.fontSize = g.escala + "%";
+          r.classList.toggle("dark", !!g.oscuro);
+          r.dataset.tema = g.id;
+          document.querySelector('meta[name="theme-color"]').setAttribute("content", g.color);
+        } else {
+          r.classList.toggle("dark", localStorage.getItem("andamia-tema") === "oscuro");
+        }
       } catch (e) {}
-      try {
-        // Tema de color (ver src/logica/paletas.ts); por defecto Océano.
-        var colores = { oceano: "#2f6fb0", lavanda: "#7a52c7", coral: "#c4553f", rosa: "#c2457f", grafito: "#4a5058", verde: "#2f6b5e" };
-        var p = localStorage.getItem("andamia-paleta");
-        if (!colores[p]) p = "oceano";
-        document.documentElement.dataset.paleta = p;
-        document.querySelector('meta[name="theme-color"]').setAttribute("content", colores[p]);
-      } catch (e) {
-        document.documentElement.dataset.paleta = "oceano";
-      }
     </script>
   </head>
   <body>

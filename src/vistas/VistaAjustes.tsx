@@ -11,7 +11,7 @@ import type { NombreTabla } from "../datos/bd";
 import { cantidadDe, crearCopia, nombreArchivoCopia, validarCopia, type Copia } from "../logica/copia";
 import { alCambiarInstalacion, estaInstalada, instalar, sePuedeInstalar } from "../logica/pwa";
 import { esAppNativa } from "../logica/plataforma";
-import { PALETAS } from "../logica/paletas";
+import { capaFondo, leerImagenFondo, TEMAS, temaEfectivo, type Tema, type TipoFondo } from "../logica/temas";
 
 function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
@@ -22,50 +22,152 @@ function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) 
   );
 }
 
-/** Tema claro u oscuro y color de la app; se guarda en este dispositivo. */
+/** Miniatura de un tema: menú de color, fondo y una tarjeta con el acento. */
+function MiniaturaTema({ tema }: { tema: Tema }) {
+  return (
+    <span aria-hidden="true" className="flex h-14 w-20 overflow-hidden rounded-md border border-borde" style={{ background: capaFondo(tema) }}>
+      <span className="flex w-5 flex-col items-center gap-1 pt-1.5" style={{ background: tema.lateral }}>
+        <span className="h-1 w-3 rounded-sm" style={{ background: tema.lateralTexto }} />
+        <span className="h-1 w-3 rounded-sm opacity-60" style={{ background: tema.lateralTexto }} />
+        <span className="h-1 w-3 rounded-sm opacity-60" style={{ background: tema.lateralTexto }} />
+      </span>
+      <span className="flex flex-1 flex-col gap-1 p-1.5">
+        <span className="h-1.5 w-1/2 rounded-sm" style={{ background: tema.acento }} />
+        <span className="flex flex-1 flex-col gap-1 rounded-sm p-1" style={{ background: tema.panel, opacity: Math.max(0.6, tema.opacidadPaneles / 100) }}>
+          <span className="h-1 w-full rounded-sm opacity-50" style={{ background: tema.texto }} />
+          <span className="h-1 w-2/3 rounded-sm opacity-50" style={{ background: tema.texto }} />
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function CampoColor({ etiqueta, valor, alCambiar }: { etiqueta: string; valor: string; alCambiar: (v: string) => void }) {
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <input type="color" aria-label={etiqueta} value={valor} onChange={(e) => alCambiar(e.target.value)} className="h-7 w-9 cursor-pointer rounded border border-borde bg-transparent p-0.5" />
+      {etiqueta}
+    </label>
+  );
+}
+
+function Deslizador({ etiqueta, valor, min, max, unidad, alCambiar }: { etiqueta: string; valor: number; min: number; max: number; unidad: string; alCambiar: (v: number) => void }) {
+  return (
+    <label className="block text-sm">
+      <span className="flex justify-between">
+        {etiqueta}
+        <span className="text-tenue">
+          {valor}
+          {unidad}
+        </span>
+      </span>
+      <input type="range" aria-label={etiqueta} min={min} max={max} value={valor} onChange={(e) => alCambiar(Number(e.target.value))} className="w-full accent-[var(--app-acento)]" />
+    </label>
+  );
+}
+
+/** Personalizar el tema actual, como el panel de HorarioWidgets. */
+function PersonalizarTema() {
+  const eleccion = useTienda((s) => s.eleccionTema);
+  const ajustar = useTienda((s) => s.ajustarTema);
+  const restablecer = useTienda((s) => s.restablecerTema);
+  const t = temaEfectivo(eleccion);
+  const [error, setError] = useState<string | null>(null);
+  const archivo = useRef<HTMLInputElement>(null);
+
+  const elegirImagen = async (f: File | undefined) => {
+    if (!f) return;
+    try {
+      setError(null);
+      ajustar({ imagen: await leerImagenFondo(f), tipoFondo: "imagen" });
+    } catch {
+      setError("No se pudo usar esa imagen.");
+    }
+  };
+
+  const fondos: { id: TipoFondo; nombre: string }[] = [
+    { id: "solido", nombre: "Sólido" },
+    { id: "degradado", nombre: "Degradado" },
+    { id: "imagen", nombre: "Imagen" },
+  ];
+
+  return (
+    <details className="rounded-lg border border-borde">
+      <summary className="cursor-pointer px-3 py-2 text-sm font-medium">Personalizar tema</summary>
+      <div className="space-y-4 border-t border-borde p-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <CampoColor etiqueta="Menú" valor={t.lateral} alCambiar={(v) => ajustar({ lateral: v })} />
+          <CampoColor etiqueta="Texto del menú" valor={t.lateralTexto} alCambiar={(v) => ajustar({ lateralTexto: v })} />
+          <CampoColor etiqueta="Acento" valor={t.acento} alCambiar={(v) => ajustar({ acento: v })} />
+          <CampoColor etiqueta="Tarjetas" valor={t.panel} alCambiar={(v) => ajustar({ panel: v })} />
+          <CampoColor etiqueta="Textos" valor={t.texto} alCambiar={(v) => ajustar({ texto: v })} />
+        </div>
+
+        <div className="space-y-2">
+          <div role="group" aria-label="Fondo" className="flex w-fit gap-0.5 rounded-md bg-suave p-0.5">
+            {fondos.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                aria-pressed={t.tipoFondo === f.id}
+                onClick={() => (f.id === "imagen" && !t.imagen ? archivo.current?.click() : ajustar({ tipoFondo: f.id }))}
+                className={`rounded px-3 py-1 text-sm ${t.tipoFondo === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+              >
+                {f.nombre}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {t.tipoFondo !== "imagen" && <CampoColor etiqueta="Fondo" valor={t.fondo} alCambiar={(v) => ajustar({ fondo: v })} />}
+            {t.tipoFondo === "degradado" && <CampoColor etiqueta="Fondo 2" valor={t.fondo2} alCambiar={(v) => ajustar({ fondo2: v })} />}
+            {t.tipoFondo === "imagen" && (
+              <button type="button" className={claseBoton} onClick={() => archivo.current?.click()}>
+                Cambiar imagen
+              </button>
+            )}
+            <input ref={archivo} type="file" accept="image/*" aria-label="Imagen de fondo" className="hidden" onChange={(e) => void elegirImagen(e.target.files?.[0])} />
+          </div>
+          {error && <p className="text-xs text-peligro">{error}</p>}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Deslizador etiqueta="Opacidad del menú" valor={t.opacidadLateral} min={0} max={100} unidad="%" alCambiar={(v) => ajustar({ opacidadLateral: v })} />
+          <Deslizador etiqueta="Opacidad de las tarjetas" valor={t.opacidadPaneles} min={30} max={100} unidad="%" alCambiar={(v) => ajustar({ opacidadPaneles: v })} />
+          <Deslizador etiqueta="Esquinas" valor={t.radio} min={0} max={20} unidad=" px" alCambiar={(v) => ajustar({ radio: v })} />
+          <Deslizador etiqueta="Tamaño del texto" valor={t.escalaTexto} min={85} max={125} unidad="%" alCambiar={(v) => ajustar({ escalaTexto: v })} />
+        </div>
+
+        <button type="button" className={claseBoton} onClick={restablecer}>
+          Restablecer tema
+        </button>
+      </div>
+    </details>
+  );
+}
+
+/** Tema de colores de la app; se guarda en este dispositivo. */
 function Apariencia() {
-  const tema = useTienda((s) => s.tema);
-  const fijarTema = useTienda((s) => s.fijarTema);
-  const paleta = useTienda((s) => s.paleta);
-  const fijarPaleta = useTienda((s) => s.fijarPaleta);
+  const eleccion = useTienda((s) => s.eleccionTema);
+  const elegirTema = useTienda((s) => s.elegirTema);
   return (
     <div className="space-y-4">
-      <div role="group" aria-label="Tema" className="flex w-fit gap-0.5 rounded-md bg-suave p-0.5">
-        {(
-          [
-            { id: "claro", nombre: "Claro" },
-            { id: "oscuro", nombre: "Oscuro" },
-          ] as const
-        ).map((t) => (
-          <button key={t.id} type="button" aria-pressed={tema === t.id} onClick={() => fijarTema(t.id)} className={`rounded px-3 py-1 text-sm ${tema === t.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}>
+      <div role="radiogroup" aria-label="Tema de la app" className="flex flex-wrap gap-2">
+        {TEMAS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="radio"
+            aria-checked={eleccion.id === t.id}
+            onClick={() => elegirTema(t.id)}
+            className={`flex flex-col items-center gap-1 rounded-lg border p-2 text-xs ${eleccion.id === t.id ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
+          >
+            <MiniaturaTema tema={t} />
             {t.nombre}
           </button>
         ))}
       </div>
-      <div role="radiogroup" aria-label="Color de la app" className="flex flex-wrap gap-3">
-        {PALETAS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            role="radio"
-            aria-checked={paleta === p.id}
-            onClick={() => fijarPaleta(p.id)}
-            className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-2 text-xs ${paleta === p.id ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
-          >
-            {/* Miniatura del tema: menú, fondo, una tarjeta y el acento. */}
-            <span aria-hidden="true" className="flex h-12 w-16 overflow-hidden rounded-md border border-borde" style={{ background: p.fondo }}>
-              <span className="w-4" style={{ background: p.lateral }} />
-              <span className="flex flex-1 flex-col gap-1 p-1.5">
-                <span className="h-1.5 w-full rounded-sm" style={{ background: p.muestra }} />
-                <span className="h-1.5 w-3/4 rounded-sm bg-white/90 shadow-sm" />
-                <span className="h-1.5 w-3/4 rounded-sm bg-white/90 shadow-sm" />
-              </span>
-            </span>
-            {p.nombre}
-          </button>
-        ))}
-      </div>
-      <p className="text-xs text-tenue">Se guarda en este dispositivo: puedes elegir un color distinto en el computador y en el celular.</p>
+      <PersonalizarTema />
+      <p className="text-xs text-tenue">Se guarda en este dispositivo: puedes usar un tema distinto en el computador y en el celular.</p>
     </div>
   );
 }

@@ -162,7 +162,7 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
   );
 
   return (
-    <aside className="flex h-full flex-col border-r border-borde bg-lateral">
+    <aside className="barra-lateral flex h-full flex-col border-r border-borde">
       <div className="flex items-center gap-2 px-4 pt-4 pb-3">
         <Marca />
         <span className="text-base font-semibold">Andamia</span>

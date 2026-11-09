@@ -453,14 +453,26 @@ test("calendario mes: 'n más' lleva a la Semana en Hoy con ese día elegido", a
 
 test("temas de color y color de un evento", async ({ page }) => {
   await page.goto("/");
-  // Por defecto ya no es verde: Océano.
-  await expect(page.locator("html")).toHaveAttribute("data-paleta", "oceano");
+  // Por defecto, Clásico (azul): el menú es la "cabecera" de color.
+  await expect(page.locator("html")).toHaveAttribute("data-tema", "clasico");
   await page.goto("/#/ajustes");
-  await page.getByRole("radiogroup", { name: "Color de la app" }).getByRole("radio", { name: "Lavanda" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-paleta", "lavanda");
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#7a52c7");
+  await page.getByRole("radiogroup", { name: "Tema de la app" }).getByRole("radio", { name: "Lavanda" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-tema", "lavanda");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#6d28d9");
+  // Personalizar: color del menú y fondo degradado.
+  await page.getByText("Personalizar tema").click();
+  await page.getByLabel("Menú", { exact: true }).fill("#123456");
+  await page.getByRole("group", { name: "Fondo" }).getByRole("button", { name: "Degradado" }).click();
   await page.reload();
-  await expect(page.locator("html")).toHaveAttribute("data-paleta", "lavanda");
+  await expect(page.locator("html")).toHaveAttribute("data-tema", "lavanda");
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector(".barra-lateral")!).backgroundColor)).toBe("rgb(18, 52, 86)");
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundImage)).toContain("linear-gradient");
+  // El sol y la luna pasan a un tema oscuro y vuelven.
+  await page.getByRole("button", { name: "Usar tema oscuro" }).first().click();
+  await expect(page.locator("html")).toHaveAttribute("data-tema", "noche");
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await page.getByRole("button", { name: "Usar tema claro" }).first().click();
+  await expect(page.locator("html")).toHaveAttribute("data-tema", "lavanda");
 
   await page.goto("/");
   await page.getByRole("button", { name: "Añadir", exact: true }).click();

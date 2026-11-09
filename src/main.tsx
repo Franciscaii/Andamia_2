@@ -3,8 +3,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { prepararAppNativa } from "./logica/plataforma";
 import { registrarPwa } from "./logica/pwa";
+import { aplicarTema, leerEleccion } from "./logica/temas";
 import "./estilos.css";
 
+aplicarTema(leerEleccion());
 registrarPwa();
 void prepararAppNativa();
 

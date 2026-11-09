@@ -118,7 +118,7 @@ export default function App() {
         <BarraLateral seccion={ruta.seccion} alOcultar={() => setMenuOculto(true)} />
       </div>
       {menuOculto && (
-        <div className="hidden shrink-0 border-r border-borde bg-lateral px-1.5 pt-4 lg:block">
+        <div className="barra-lateral hidden shrink-0 border-r border-borde px-1.5 pt-4 lg:block">
           <button type="button" aria-label="Mostrar menú" title="Mostrar menú" className="rounded-md p-1.5 text-tenue hover:bg-suave" onClick={() => setMenuOculto(false)}>
             <PanelLeftOpen size={18} />
           </button>
@@ -126,7 +126,7 @@ export default function App() {
       )}
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2 border-b border-borde px-3 py-2 lg:hidden">
+        <div className="barra-lateral flex items-center gap-2 border-b border-borde px-3 py-2 lg:hidden">
           <button type="button" aria-label="Abrir menú" className="rounded-md p-1.5 hover:bg-suave" onClick={() => setLateralAbierta(true)}>
             <Menu size={20} />
           </button>
