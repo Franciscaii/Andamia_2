@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { CalendarClock, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
 import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
@@ -108,6 +109,9 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const [plegadas, setPlegadas] = useState<Set<string>>(new Set());
 
+  // Sin listas creadas y con la opción apagada, la sección entera desaparece.
+  const mostrarListas = listasActivas || listas.length > 0 || carpetas.length > 0;
+
   const pendientesPorLista = useMemo(() => {
     const m = new Map<string, number>();
     for (const t of tareas) if (estaPendiente(t)) m.set(t.listaId, (m.get(t.listaId) ?? 0) + 1);
@@ -182,9 +186,9 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
         <Fila href={hashDe({ tipo: "matriz" })} activa={seccion.tipo === "matriz"} icono={<Grid2x2 size={17} />} nombre="Matriz" />
         <Fila href={hashDe({ tipo: "habitos" })} activa={seccion.tipo === "habitos"} icono={<Flame size={17} />} nombre="Hábitos" />
 
-        {titulo(
+        {mostrarListas && titulo(
           "Listas",
-          <>
+          listasActivas && <>
             <BotonIcono etiqueta="Nueva carpeta" alPulsar={() => setDialogo({ tipo: "carpeta", carpeta: null })}>
               <FolderPlus size={15} />
             </BotonIcono>
@@ -193,7 +197,7 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
             </BotonIcono>
           </>,
         )}
-        {!listas.length && !carpetas.length && <p className="px-2 text-xs text-tenue">Crea listas para ordenar tus tareas por tema.</p>}
+        {listasActivas && !listas.length && !carpetas.length && <p className="px-2 text-xs text-tenue">Crea listas para ordenar tus tareas por tema.</p>}
         {carpetas.map((c) => {
           const plegada = plegadas.has(c.id);
           return (
