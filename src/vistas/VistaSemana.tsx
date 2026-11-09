@@ -78,10 +78,10 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre, estrecha = false }: { 
       ref={arrastre?.ref}
       style={arrastre?.estilo}
       data-testid="fila-tarea"
-      className={`flex items-center gap-2.5 rounded-lg py-2 ${arrastre ? "pr-2 pl-0.5" : "px-2"} ${abierta ? "bg-acento-suave" : "hover:bg-suave"} ${arrastre?.arrastrando ? "relative z-10 bg-panel shadow-lg" : ""}`}
+      className={`flex items-start gap-2.5 rounded-lg py-2 ${arrastre ? "pr-2 pl-0.5" : "px-2"} ${abierta ? "bg-acento-suave" : "hover:bg-suave"} ${arrastre?.arrastrando ? "relative z-10 bg-panel shadow-lg" : ""}`}
     >
       {arrastre && (
-        <button type="button" aria-label={`Mover ${tarea.titulo}`} title="Arrastra para subir o bajar" className="-mr-1.5 shrink-0 cursor-grab touch-none rounded p-0.5 text-tenue opacity-60 hover:opacity-100" {...arrastre.asa}>
+        <button type="button" aria-label={`Mover ${tarea.titulo}`} title="Arrastra para subir o bajar" className="-mr-1.5 shrink-0 cursor-grab touch-none rounded p-0.5 leading-none text-tenue opacity-60 hover:opacity-100" {...arrastre.asa}>
           <GripVertical size={16} />
         </button>
       )}
@@ -93,6 +93,7 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre, estrecha = false }: { 
         title={tarea.prioridad !== "ninguna" ? `Importancia ${NOMBRE_NIVEL[tarea.prioridad].toLowerCase()}` : "Sin importancia"}
         onClick={() => void completarTarea(tarea.id, !hecha)}
         style={{ borderColor: colorCasilla, background: hecha ? colorCasilla : undefined }}
+        // Alineada con la primera línea del título (text-sm: 20 px de alto).
         className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2"
       >
         {hecha && <Check size={13} strokeWidth={3} className="text-white" />}
