@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, PanelLeftOpen, X } from "lucide-react";
 import { BarraLateral } from "./componentes/BarraLateral";
 import { DetalleTarea } from "./componentes/DetalleTarea";
 import { useTienda } from "./datos/tienda";
@@ -37,6 +37,22 @@ export default function App() {
   const cargar = useTienda((s) => s.cargar);
   const cerrarError = useTienda((s) => s.cerrarError);
   const [lateralAbierta, setLateralAbierta] = useState(false);
+  // En el computador el menú se puede ocultar y volver a mostrar; se recuerda.
+  const [menuOculto, setMenuOcultoEstado] = useState(() => {
+    try {
+      return localStorage.getItem("andamia-menu-oculto") === "si";
+    } catch {
+      return false;
+    }
+  });
+  const setMenuOculto = (oculto: boolean) => {
+    setMenuOcultoEstado(oculto);
+    try {
+      localStorage.setItem("andamia-menu-oculto", oculto ? "si" : "no");
+    } catch {
+      // Sin almacenamiento: se recuerda mientras la página siga abierta.
+    }
+  };
 
   useEffect(() => {
     // Primero se sabe quién usa la app; así no se ven por un instante datos de otra sesión.
@@ -98,9 +114,16 @@ export default function App() {
   return (
     <div className="flex h-full overflow-hidden">
       {lateralAbierta && <div className="fixed inset-0 z-20 bg-black/40 lg:hidden" onClick={() => setLateralAbierta(false)} />}
-      <div className={`fixed inset-y-0 left-0 z-30 w-72 shrink-0 transition-transform lg:static lg:translate-x-0 ${lateralAbierta ? "translate-x-0" : "-translate-x-full"}`}>
-        <BarraLateral seccion={ruta.seccion} />
+      <div className={`fixed inset-y-0 left-0 z-30 w-72 shrink-0 transition-transform lg:static lg:translate-x-0 ${lateralAbierta ? "translate-x-0" : "-translate-x-full"} ${menuOculto ? "lg:hidden" : ""}`}>
+        <BarraLateral seccion={ruta.seccion} alOcultar={() => setMenuOculto(true)} />
       </div>
+      {menuOculto && (
+        <div className="hidden shrink-0 border-r border-borde bg-lateral px-1.5 pt-4 lg:block">
+          <button type="button" aria-label="Mostrar menú" title="Mostrar menú" className="rounded-md p-1.5 text-tenue hover:bg-suave" onClick={() => setMenuOculto(false)}>
+            <PanelLeftOpen size={18} />
+          </button>
+        </div>
+      )}
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2 border-b border-borde px-3 py-2 lg:hidden">

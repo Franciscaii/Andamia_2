@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2 } from "lucide-react";
+import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
 import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
@@ -97,7 +97,7 @@ type Dialogo =
   | { tipo: "etiqueta"; etiqueta: Etiqueta | null }
   | { tipo: "borrar-etiqueta"; nombre: string; visible: string };
 
-export function BarraLateral({ seccion }: { seccion: Seccion }) {
+export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcultar?: () => void }) {
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
   const carpetas = useTienda((s) => s.carpetas);
@@ -169,6 +169,11 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
         <button type="button" aria-label={tema === "oscuro" ? "Usar tema claro" : "Usar tema oscuro"} title={tema === "oscuro" ? "Usar tema claro" : "Usar tema oscuro"} className="ml-auto rounded-md p-1.5 text-tenue hover:bg-suave" onClick={alternarTema}>
           {tema === "oscuro" ? <Sun size={17} /> : <Moon size={17} />}
         </button>
+        {alOcultar && (
+          <button type="button" aria-label="Ocultar menú" title="Ocultar menú" className="hidden rounded-md p-1.5 text-tenue hover:bg-suave lg:block" onClick={alOcultar}>
+            <PanelLeftClose size={17} />
+          </button>
+        )}
       </div>
 
       <nav aria-label="Navegación" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">

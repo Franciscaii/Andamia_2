@@ -437,7 +437,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
             <div role="group" aria-label="Ver" className="ml-auto flex gap-0.5 rounded-md bg-suave p-0.5">
               {(
                 [
-                  { id: "dia", nombre: "Día" },
+                  { id: "dia", nombre: "Hoy" },
                   { id: "semana", nombre: "7 días" },
                 ] as const
               ).map((o) => (

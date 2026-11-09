@@ -391,6 +391,18 @@ test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   await expect(page.getByTestId("dia-semana")).toHaveCount(0);
   await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Hoy", exact: true }).click();
   await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
+});
+
+test("en el computador el menú se oculta y se vuelve a mostrar", async ({ page }) => {
+  await page.goto("/");
+  const menu = page.getByRole("navigation", { name: "Navegación" });
+  await expect(menu).toBeVisible();
+  await page.getByRole("button", { name: "Ocultar menú" }).click();
+  await expect(menu).toBeHidden();
+  await page.reload();
+  await expect(menu).toBeHidden();
+  await page.getByRole("button", { name: "Mostrar menú" }).click();
+  await expect(menu).toBeVisible();
 });
