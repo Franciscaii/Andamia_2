@@ -1,7 +1,7 @@
 import { parseISO } from "date-fns";
 import { bd, TABLAS } from "./bd";
 import type { DatosCopia } from "../logica/copia";
-import { COLORES_LISTA, LISTA_BANDEJA, type Carpeta, type Columna, type EstadoHabito, type Etiqueta, type Habito, type Lista, type Prioridad, type RegistroHabito, type RepetirDesde, type SesionEnfoque, type Subtarea, type Tarea } from "../modelos/tipos";
+import { COLORES_LISTA, ETIQUETAS_INICIALES, LISTA_BANDEJA, type Carpeta, type Columna, type EstadoHabito, type Etiqueta, type Habito, type Lista, type Prioridad, type RegistroHabito, type RepetirDesde, type SesionEnfoque, type Subtarea, type Tarea } from "../modelos/tipos";
 import { NOMBRE_COLUMNA_INICIAL } from "../logica/columnas";
 import { siguienteOcurrencia, venceDesde } from "../logica/repeticion";
 import { claveEtiqueta, nuevoId } from "../logica/texto";
@@ -145,6 +145,51 @@ export async function asegurarEtiquetas(nombres: string[]): Promise<Etiqueta[]> 
     creadas.push(etiqueta);
   }
   return creadas;
+}
+
+/** Agrega las etiquetas iniciales que falten. No toca las que ya existen. */
+export async function sembrarEtiquetasIniciales(): Promise<Etiqueta[]> {
+  return bd.transaction("rw", bd.etiquetas, async () => {
+    const creadas: Etiqueta[] = [];
+    let orden = await bd.etiquetas.count();
+    for (const { nombreVisible, color } of ETIQUETAS_INICIALES) {
+      const clave = claveEtiqueta(nombreVisible);
+      if (await bd.etiquetas.get(clave)) continue;
+      const etiqueta: Etiqueta = { nombre: clave, nombreVisible, color, orden: orden++ };
+      await bd.etiquetas.put(etiqueta);
+      creadas.push(etiqueta);
+    }
+    return creadas;
+  });
+}
+
+export class EtiquetaRepetida extends Error {
+  constructor(nombre: string) {
+    super(`Ya existe la etiqueta "${nombre}".`);
+  }
+}
+
+/**
+ * Crea una etiqueta (anterior = null) o la edita. Si cambia el nombre, las tareas
+ * que la tenían pasan a tener la nueva.
+ */
+export async function guardarEtiqueta(anterior: string | null, datos: { nombreVisible: string; color: string }): Promise<Etiqueta> {
+  const nombreVisible = datos.nombreVisible.trim();
+  const clave = claveEtiqueta(nombreVisible);
+  return bd.transaction("rw", bd.etiquetas, bd.tareas, async () => {
+    const vieja = anterior ? await bd.etiquetas.get(anterior) : undefined;
+    if (clave !== anterior && (await bd.etiquetas.get(clave))) throw new EtiquetaRepetida(nombreVisible);
+    const etiqueta: Etiqueta = { nombre: clave, nombreVisible, color: datos.color, orden: vieja?.orden ?? (await bd.etiquetas.count()) };
+    if (anterior && clave !== anterior) {
+      await bd.tareas.filter((t) => t.etiquetas.includes(anterior)).modify((t) => {
+        t.etiquetas = [...new Set(t.etiquetas.map((e) => (e === anterior ? clave : e)))];
+        t.modificadaEn = ahoraIso();
+      });
+      await bd.etiquetas.delete(anterior);
+    }
+    await bd.etiquetas.put(etiqueta);
+    return etiqueta;
+  });
 }
 
 export async function crearTarea(datos: DatosNuevaTarea): Promise<{ tarea: Tarea; etiquetasNuevas: Etiqueta[] }> {

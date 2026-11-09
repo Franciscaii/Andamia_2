@@ -46,7 +46,8 @@ test("descargar y restaurar una copia, con confirmación", async ({ page }) => {
   const dialogo = page.getByRole("dialog", { name: "¿Reemplazar todos tus datos?" });
   await expect(dialogo).toContainText("1 tarea");
   await expect(dialogo).not.toContainText("1 tareas");
-  await expect(dialogo).toContainText("1 etiqueta");
+  // 1 etiqueta propia y las 8 iniciales.
+  await expect(dialogo).toContainText("9 etiquetas");
 
   // Cancelar no cambia nada.
   await dialogo.getByRole("button", { name: "Cancelar" }).click();

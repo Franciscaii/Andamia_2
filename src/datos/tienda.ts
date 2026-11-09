@@ -35,6 +35,9 @@ interface Estado {
   renombrarCarpeta: (id: string, nombre: string) => Promise<void>;
   borrarCarpeta: (id: string) => Promise<void>;
   borrarEtiqueta: (nombre: string) => Promise<void>;
+  /** Devuelve un mensaje si no se pudo (por ejemplo, nombre repetido). */
+  guardarEtiqueta: (anterior: string | null, datos: { nombreVisible: string; color: string }) => Promise<string | null>;
+  sembrarEtiquetas: () => Promise<void>;
   marcarAviso: (id: string, clave: string) => Promise<boolean>;
   cambiarModoLista: (id: string, modo: ModoLista) => Promise<void>;
   asegurarColumnas: (listaId: string) => Promise<void>;
@@ -193,6 +196,23 @@ export const useTienda = create<Estado>((set, get) => {
     borrarCarpeta: async (id) => {
       await guardar(() => repo.borrarCarpeta(id));
       await recargar();
+    },
+
+    guardarEtiqueta: async (anterior, datos) => {
+      try {
+        await repo.guardarEtiqueta(anterior, datos);
+      } catch (e) {
+        if (e instanceof repo.EtiquetaRepetida) return e.message;
+        console.error(e);
+        return "No se pudo guardar la etiqueta.";
+      }
+      await recargar();
+      return null;
+    },
+
+    sembrarEtiquetas: async () => {
+      const creadas = await guardar(() => repo.sembrarEtiquetasIniciales());
+      if (creadas?.length) await recargar();
     },
 
     borrarEtiqueta: async (nombre) => {

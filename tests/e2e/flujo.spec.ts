@@ -69,7 +69,7 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
 
   const fila = page.getByTestId("fila-tarea").filter({ hasText: "Leer paper" });
   await expect(fila.getByTestId("importancia")).toHaveText("Alta");
-  await expect(fila).toContainText("universidad");
+  await expect(fila).toContainText("Universidad");
   await fila.getByRole("button", { name: /^Leer paper/ }).click();
   await page.getByRole("group", { name: "Dificultad" }).getByRole("button", { name: "Media" }).click();
   await expect(page.getByRole("checkbox", { name: "Completar: Leer paper" })).toHaveAttribute("title", "Dificultad media");
@@ -170,4 +170,42 @@ test("reordenar con el teclado y borrar una lista con sus tareas", async ({ page
 
   await navegar(page, "Papelera");
   await expect(page.getByTestId("fila-tarea")).toHaveCount(3);
+});
+
+test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, editar y borrar", async ({ page }) => {
+  await page.goto("/");
+  const menu = page.getByRole("navigation");
+  for (const nombre of ["Otro", "Vinculos", "Universidad", "NecesidadBiologica", "CuidadoPersonal", "DisfrutePersonal", "VidaCotidiana", "DesarrolloProfesional"]) {
+    await expect(menu.getByRole("link", { name: new RegExp(`^${nombre}`) })).toBeVisible();
+  }
+
+  await page.getByRole("button", { name: "Nueva etiqueta" }).click();
+  const dialogo = page.getByRole("dialog", { name: "Nueva etiqueta" });
+  await dialogo.getByLabel("Nombre").fill("Deporte");
+  await dialogo.getByRole("button", { name: "Crear etiqueta" }).click();
+  await expect(menu.getByRole("link", { name: /^Deporte/ })).toBeVisible();
+
+  // Renombrar mantiene la etiqueta en las tareas.
+  await page.getByRole("button", { name: "Nueva tarea" }).click();
+  await page.getByRole("textbox", { name: "Añadir tarea" }).fill("Correr #deporte");
+  await page.getByRole("textbox", { name: "Añadir tarea" }).press("Enter");
+  await menu.getByRole("link", { name: /^Deporte/ }).hover();
+  await page.getByRole("button", { name: "Editar etiqueta Deporte" }).click();
+  const edicion = page.getByRole("dialog", { name: "Editar etiqueta" });
+  await edicion.getByLabel("Nombre").fill("Universidad");
+  await edicion.getByRole("button", { name: "Guardar" }).click();
+  await expect(edicion.getByRole("alert")).toContainText("Ya existe");
+  await edicion.getByLabel("Nombre").fill("Ejercicio");
+  await edicion.getByRole("button", { name: "Guardar" }).click();
+  await expect(menu.getByRole("link", { name: /^Ejercicio/ })).toBeVisible();
+  await expect(page.getByTestId("fila-tarea").filter({ hasText: "Correr" })).toContainText("Ejercicio");
+
+  await menu.getByRole("link", { name: /^Otro/ }).hover();
+  await page.getByRole("button", { name: "Borrar etiqueta Otro" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Borrar etiqueta" }).click();
+  await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
+  // Al recargar no vuelve.
+  await page.reload();
+  await expect(menu.getByRole("link", { name: /^Universidad/ })).toBeVisible();
+  await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
 });

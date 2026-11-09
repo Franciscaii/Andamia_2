@@ -313,6 +313,8 @@ test("Calendario semanal: hora, cambio de semana y ocurrencias", async ({ page }
 
 test("los datos de la fase 2 sobreviven a la actualización", async ({ page }) => {
   await page.goto("/");
+  // Espera a que la app termine de agregar las etiquetas iniciales antes de borrar su base.
+  await expect(page.getByRole("navigation").getByRole("link", { name: /^Otro/ })).toBeVisible();
   // Reemplaza la base por una de la versión anterior antes de que la app la abra.
   await page.evaluate(async () => {
     await new Promise<void>((ok, mal) => {

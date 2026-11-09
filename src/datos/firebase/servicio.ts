@@ -153,11 +153,16 @@ export function almacenDe(uid: string): AlmacenRemoto {
 export interface Ajustes {
   tema?: string;
   enfoque?: Record<string, number>;
+  /** Ya se agregaron las etiquetas iniciales en esta cuenta (una sola vez, en cualquier equipo). */
+  etiquetasIniciales?: boolean;
 }
 
-export function escucharAjustes(uid: string, alCambiar: (a: Ajustes) => void): () => void {
-  return onSnapshot(doc(conectar().db, "users", uid, "settings", "app"), (d) => {
-    if (d.exists() && !d.metadata.hasPendingWrites) alCambiar(d.data() as Ajustes);
+/** `desdeServidor` indica que lo leído es lo último de la nube y no una copia local. */
+export function escucharAjustes(uid: string, alCambiar: (a: Ajustes, desdeServidor: boolean) => void): () => void {
+  return onSnapshot(doc(conectar().db, "users", uid, "settings", "app"), { includeMetadataChanges: true }, (d) => {
+    if (d.metadata.hasPendingWrites) return;
+    if (d.exists()) alCambiar(d.data() as Ajustes, !d.metadata.fromCache);
+    else if (!d.metadata.fromCache) alCambiar({}, true);
   });
 }
 

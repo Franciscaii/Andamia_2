@@ -6,7 +6,9 @@ import { useTienda } from "./datos/tienda";
 import { irA, useRuta } from "./logica/ruta";
 import { PanelAvisos } from "./componentes/Avisos";
 import { DialogoMigracion } from "./componentes/DialogoMigracion";
-import { iniciarCuenta } from "./datos/cuenta";
+import { iniciarCuenta, useCuenta } from "./datos/cuenta";
+
+const MARCA_ETIQUETAS = "andamia-etiquetas-iniciales";
 import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes } from "./vistas/VistaAjustes";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
@@ -37,7 +39,21 @@ export default function App() {
 
   useEffect(() => {
     // Primero se sabe quién usa la app; así no se ven por un instante datos de otra sesión.
-    void iniciarCuenta().then(cargar);
+    void iniciarCuenta()
+      .then(cargar)
+      .then(() => {
+        // Sin Firebase, las etiquetas iniciales se agregan una vez en este equipo.
+        // Con Firebase se agregan al entrar a la cuenta (ver sincronizarAjustes); así
+        // no aparecen como "datos sin cuenta" que haya que copiar.
+        if (useCuenta.getState().configurada) return;
+        try {
+          if (localStorage.getItem(MARCA_ETIQUETAS)) return;
+          localStorage.setItem(MARCA_ETIQUETAS, "si");
+        } catch {
+          return;
+        }
+        void useTienda.getState().sembrarEtiquetas();
+      });
   }, [cargar]);
 
   // Al navegar en pantallas angostas la barra lateral se cierra sola.

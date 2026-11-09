@@ -5,9 +5,9 @@ import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
 import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
 import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
-import type { Carpeta, Lista } from "../modelos/tipos";
+import type { Carpeta, Etiqueta, Lista } from "../modelos/tipos";
 import { BotonAvisos } from "./Avisos";
-import { DialogoCarpeta, DialogoLista } from "./Dialogos";
+import { DialogoCarpeta, DialogoEtiqueta, DialogoLista } from "./Dialogos";
 import { Confirmar } from "./Modal";
 
 const ICONOS: Record<VistaInteligente, ReactNode> = {
@@ -94,6 +94,7 @@ type Dialogo =
   | { tipo: "carpeta"; carpeta: Carpeta | null }
   | { tipo: "borrar-lista"; lista: Lista }
   | { tipo: "borrar-carpeta"; carpeta: Carpeta }
+  | { tipo: "etiqueta"; etiqueta: Etiqueta | null }
   | { tipo: "borrar-etiqueta"; nombre: string; visible: string };
 
 export function BarraLateral({ seccion }: { seccion: Seccion }) {
@@ -223,8 +224,13 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
         })}
         {listas.filter((l) => !l.carpetaId || !carpetas.some((c) => c.id === l.carpetaId)).map(filaLista)}
 
-        {titulo("Etiquetas")}
-        {!etiquetas.length && <p className="px-2 text-xs text-tenue">Escribe #etiqueta al crear una tarea.</p>}
+        {titulo(
+          "Etiquetas",
+          <BotonIcono etiqueta="Nueva etiqueta" alPulsar={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
+            <Plus size={15} />
+          </BotonIcono>,
+        )}
+        {!etiquetas.length && <p className="px-2 text-xs text-tenue">Crea etiquetas con el + o escribe #etiqueta al crear una tarea.</p>}
         {etiquetas.map((e) => (
           <Fila
             key={e.nombre}
@@ -234,9 +240,14 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
             nombre={e.nombreVisible}
             contador={pendientesPorEtiqueta.get(e.nombre)}
             acciones={
-              <BotonIcono etiqueta={`Borrar etiqueta ${e.nombreVisible}`} alPulsar={() => setDialogo({ tipo: "borrar-etiqueta", nombre: e.nombre, visible: e.nombreVisible })}>
-                <Trash2 size={14} />
-              </BotonIcono>
+              <>
+                <BotonIcono etiqueta={`Editar etiqueta ${e.nombreVisible}`} alPulsar={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
+                  <Pencil size={14} />
+                </BotonIcono>
+                <BotonIcono etiqueta={`Borrar etiqueta ${e.nombreVisible}`} alPulsar={() => setDialogo({ tipo: "borrar-etiqueta", nombre: e.nombre, visible: e.nombreVisible })}>
+                  <Trash2 size={14} />
+                </BotonIcono>
+              </>
             }
           />
         ))}
@@ -251,6 +262,20 @@ export function BarraLateral({ seccion }: { seccion: Seccion }) {
       </nav>
 
       {dialogo?.tipo === "lista" && <DialogoLista lista={dialogo.lista} alCerrar={() => setDialogo(null)} />}
+      {dialogo?.tipo === "etiqueta" && (
+        <DialogoEtiqueta
+          etiqueta={dialogo.etiqueta}
+          alCerrar={() => {
+            const anterior = dialogo.etiqueta;
+            setDialogo(null);
+            // Si se renombró la etiqueta abierta, la vista pasa a la nueva.
+            if (anterior && seccion.tipo === "etiqueta" && seccion.nombre === anterior.nombre) {
+              const actual = useTienda.getState().etiquetas.find((x) => x.orden === anterior.orden);
+              if (actual && actual.nombre !== anterior.nombre) irA({ tipo: "etiqueta", nombre: actual.nombre });
+            }
+          }}
+        />
+      )}
       {dialogo?.tipo === "carpeta" && <DialogoCarpeta carpeta={dialogo.carpeta} alCerrar={() => setDialogo(null)} />}
       {dialogo?.tipo === "borrar-lista" && (
         <Confirmar

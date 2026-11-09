@@ -148,10 +148,20 @@ function seguirEscritura(promesa: Promise<void>) {
     .catch(() => undefined);
 }
 
-function sincronizarAjustes(s: Servicio, uid: string) {
+function sincronizarAjustes(s: Servicio, uid: string, datosListos: Promise<void>) {
   let aplicando = false;
+  let sembrando = false;
   detener.push(
-    s.escucharAjustes(uid, (a) => {
+    s.escucharAjustes(uid, (a, desdeServidor) => {
+      // Las etiquetas iniciales se agregan una sola vez por cuenta: si se borra una, no vuelve.
+      if (desdeServidor && !a.etiquetasIniciales && !sembrando) {
+        sembrando = true;
+        // Espera a tener los datos de la nube para no pisar una etiqueta que ya exista allá.
+        void datosListos
+          .then(() => useTienda.getState().sembrarEtiquetas())
+          .then(() => s.guardarAjustes(uid, { etiquetasIniciales: true }))
+          .catch(console.error);
+      }
       aplicando = true;
       const t = useTienda.getState();
       if ((a.tema === "claro" || a.tema === "oscuro") && a.tema !== t.tema) t.fijarTema(a.tema as Tema);
@@ -178,8 +188,14 @@ async function activarCuenta(u: UsuarioCuenta) {
   await useTienda.getState().cargar();
 
   let temporizador = 0;
+  let avisarDatosListos = () => {};
+  const datosListos = new Promise<void>((listo) => {
+    avisarDatosListos = listo;
+    window.setTimeout(listo, 8000);
+  });
   const detenerEspejo = iniciarEspejo(db, s.almacenDe(u.uid), {
     alAplicar: () => {
+      window.setTimeout(avisarDatosListos, 1500);
       // Varias fotos seguidas se leen una sola vez.
       window.clearTimeout(temporizador);
       temporizador = window.setTimeout(() => void useTienda.getState().cargar(), 120);
@@ -191,7 +207,7 @@ async function activarCuenta(u: UsuarioCuenta) {
     },
   });
   detener.push(detenerEspejo, () => window.clearTimeout(temporizador));
-  sincronizarAjustes(s, u.uid);
+  sincronizarAjustes(s, u.uid, datosListos);
 
   useCuenta.setState({ usuario: u, migracion: null });
   if (!localStorage.getItem(marcaMigracion(u.uid))) {
