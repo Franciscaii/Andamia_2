@@ -73,8 +73,8 @@ export function contenidoDelDia(tareas: Tarea[], listas: Lista[], dia: Date, aho
   return { eventos, tareas: deTareas, progreso: progresoDe(deTareas) };
 }
 
-/** Cuántas cosas pendientes tiene cada día, para marcarlo en la tira de la semana. */
+/** Si el día tiene alguna tarea o evento, para marcarlo con un punto en la tira de la semana. */
 export function hayAlgoElDia(tareas: Tarea[], listas: Lista[], dia: Date, ahora: Date = new Date()): boolean {
   const { eventos, tareas: deTareas } = contenidoDelDia(tareas, listas, dia, ahora);
-  return eventos.length > 0 || deTareas.some((t) => t.estado === "pendiente");
+  return eventos.length > 0 || deTareas.length > 0;
 }

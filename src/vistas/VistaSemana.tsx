@@ -7,7 +7,7 @@ import { COLOR_NIVEL } from "../componentes/FilaTarea";
 import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
 import { irA, type Seccion } from "../logica/ruta";
-import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
+import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, type FiltroSemana } from "../logica/semana";
 import type { Prioridad, Tarea } from "../modelos/tipos";
 
 const SECCION: Seccion = { tipo: "vista", vista: "semana" };
@@ -122,6 +122,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
   const dias = diasDeSemana(elegido);
   const contenido = useMemo(() => contenidoDelDia(tareas, listas, elegido, new Date()), [tareas, listas, elegido]);
+  const pendientes = contenido.tareas.filter((t) => t.estado === "pendiente");
+  const hechas = contenido.tareas.filter((t) => t.estado === "completada");
   const verEventos = filtro !== "tareas";
   const verTareas = filtro !== "eventos";
   const mes = format(elegido, "MMMM yyyy", { locale: es });
@@ -185,7 +187,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                 <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums ${activo ? "bg-acento font-semibold text-sobre-acento" : esHoy ? "border-2 border-acento font-semibold" : ""}`}>
                   {format(d, "d")}
                 </span>
-                <span className={`h-1 w-1 rounded-full ${conAlgo ? "bg-tenue" : "bg-transparent"}`} />
+                <span data-testid={conAlgo ? "punto-dia" : undefined} className={`h-1.5 w-1.5 rounded-full ${conAlgo ? "bg-acento" : "bg-transparent"}`} />
               </button>
             );
           })}
@@ -211,12 +213,24 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
         {verTareas && (
           <>
-            <BarraProgreso titulo={tituloDelDia(elegido, ahora)} {...contenido.progreso} />
-            <ul aria-label="Tareas" className="mt-2">
-              {contenido.tareas.map((t) => (
-                <FilaTareaSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={ahora} />
-              ))}
-            </ul>
+            <BarraProgreso titulo="Avance Tareas" {...contenido.progreso} />
+            {pendientes.length > 0 && (
+              <ul aria-label="Tareas" className="mt-2">
+                {pendientes.map((t) => (
+                  <FilaTareaSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={ahora} />
+                ))}
+              </ul>
+            )}
+            {hechas.length > 0 && (
+              <section aria-label="Completada" data-testid="tarjeta-completada" className="mt-4 rounded-xl border border-borde bg-panel px-2 py-3">
+                <h2 className="mb-1 px-2 text-sm font-semibold text-tenue">Completada</h2>
+                <ul>
+                  {hechas.map((t) => (
+                    <FilaTareaSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={ahora} />
+                  ))}
+                </ul>
+              </section>
+            )}
           </>
         )}
 

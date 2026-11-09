@@ -27,6 +27,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     private static final int TIPO_EVENTO = 0;
     private static final int TIPO_PROGRESO = 1;
     private static final int TIPO_TAREA = 2;
+    private static final int TIPO_SECCION = 3;
 
     private static final class Fila {
         int tipo;
@@ -108,7 +109,19 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                 progreso.tipo = TIPO_PROGRESO;
                 filas.add(progreso);
             }
-            filas.addAll(deTareas);
+            // Pendientes primero; las completadas abajo, bajo "Completada".
+            boolean conSeccion = false;
+            for (Fila f : deTareas) if (!f.hecha) filas.add(f);
+            for (Fila f : deTareas) {
+                if (!f.hecha) continue;
+                if (!conSeccion) {
+                    Fila seccion = new Fila();
+                    seccion.tipo = TIPO_SECCION;
+                    filas.add(seccion);
+                    conSeccion = true;
+                }
+                filas.add(f);
+            }
         } catch (Exception e) {
             filas.clear();
             hechas = 0;
@@ -121,7 +134,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     @Override public void onDestroy() { filas.clear(); }
     @Override public int getCount() { return filas.size(); }
     @Override public RemoteViews getLoadingView() { return null; }
-    @Override public int getViewTypeCount() { return 3; }
+    @Override public int getViewTypeCount() { return 4; }
     @Override public long getItemId(int posicion) { return posicion; }
     @Override public boolean hasStableIds() { return false; }
 
@@ -228,6 +241,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         switch (f.tipo) {
             case TIPO_EVENTO: return filaEvento(f);
             case TIPO_PROGRESO: return filaProgreso();
+            case TIPO_SECCION: return new RemoteViews(contexto.getPackageName(), R.layout.widget_seccion);
             default: return filaTarea(f);
         }
     }

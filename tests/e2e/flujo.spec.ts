@@ -46,7 +46,7 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
 
 test("el menú no muestra Todas, Hoy, Mañana, Bandeja de entrada ni Enfoque", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByTestId("progreso-dia")).toContainText("Hoy,");
+  await expect(page.getByTestId("progreso-dia")).toContainText("Avance Tareas");
   const menu = page.getByRole("navigation");
   for (const nombre of ["Todas", "Hoy", "Mañana", "Bandeja de entrada", "Enfoque"]) {
     await expect(menu.getByRole("link", { name: new RegExp(`^${nombre}`) })).toHaveCount(0);
@@ -66,6 +66,10 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
 
   await page.getByRole("checkbox", { name: "Completar: Comprar pan" }).click();
   await expect(page.getByTestId("progreso-dia")).toContainText("1/2 (50%)");
+  // Lo completado baja a la tarjeta "Completada", y el día queda marcado con un punto.
+  await expect(page.getByTestId("tarjeta-completada")).toContainText("Comprar pan");
+  await expect(page.getByRole("list", { name: "Tareas" })).not.toContainText("Comprar pan");
+  await expect(page.getByRole("button", { name: /^lunes|^martes|^miércoles|^jueves|^viernes|^sábado|^domingo/, pressed: true }).getByTestId("punto-dia")).toHaveCount(1);
 
   const fila = page.getByTestId("fila-tarea").filter({ hasText: "Leer paper" });
   await expect(fila.getByTestId("importancia")).toHaveText("Alta");
