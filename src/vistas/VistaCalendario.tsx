@@ -19,7 +19,17 @@ import type { Tarea } from "../modelos/tipos";
 
 const NOMBRES_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const HORAS = Array.from({ length: 24 }, (_, i) => i);
-const MAX_EN_CELDA = 3;
+/** Medidas de una celda del mes, en px: número del día con sus márgenes, cada entrada y el "n más". */
+const ALTO_CABECERA_CELDA = 32;
+const ALTO_ENTRADA = 21;
+const ALTO_MAS = 16;
+
+/** Cuántas entradas caben en una celda de `alto` px; si no caben todas, se reserva lugar para "n más". */
+function entradasQueCaben(alto: number, total: number): number {
+  const libre = alto - ALTO_CABECERA_CELDA;
+  if (total * ALTO_ENTRADA <= libre) return total;
+  return Math.max(1, Math.floor((libre - ALTO_MAS) / ALTO_ENTRADA));
+}
 const ALTO_HORA = 48;
 const PREFIJO_TAREA = "tarea:";
 
@@ -175,6 +185,21 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const [filtro, setFiltro] = useState<FiltroSemana>("todos");
   const [nuevo, setNuevo] = useState<TipoNuevo | "habito" | null>(null);
   const rejilla = useRef<HTMLDivElement>(null);
+  // Alto real de una celda del mes, para mostrar tantas entradas como quepan.
+  const rejillaMes = useRef<HTMLDivElement>(null);
+  const [altoCelda, setAltoCelda] = useState(96);
+  useEffect(() => {
+    const nodo = rejillaMes.current;
+    if (!nodo) return;
+    const medir = () => {
+      const celda = nodo.firstElementChild as HTMLElement | null;
+      if (celda) setAltoCelda(celda.getBoundingClientRect().height);
+    };
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(nodo);
+    return () => observador.disconnect();
+  }, [modo, fecha]);
   const hoy = new Date();
 
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
@@ -309,14 +334,14 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                   </div>
                 ))}
               </div>
-              <div className="grid min-h-0 flex-1 grid-cols-7 auto-rows-fr overflow-y-auto">
+              <div ref={rejillaMes} className="grid min-h-0 flex-1 grid-cols-7 auto-rows-fr overflow-y-auto">
                 {dias.map((dia, i) => {
                   const delMes = isSameMonth(dia, fecha);
                   const delDia = delMes ? entradasDelDia(entradas, dia) : [];
                   // Eventos primero, como en la Semana.
                   delDia.sort((a, b) => Number(b.tarea.esEvento === true) - Number(a.tarea.esEvento === true));
-                  // Si no caben todas, el "n más" ocupa el lugar de la última, para no salirse del día.
-                  const visibles = delDia.length > MAX_EN_CELDA ? MAX_EN_CELDA - 1 : delDia.length;
+                  // Tantas como quepan en el recuadro; si sobran, "n más" al final, sin salirse del día.
+                  const visibles = entradasQueCaben(altoCelda, delDia.length);
                   const resto = delDia.length - visibles;
                   const ultimaFila = i >= dias.length - 7;
                   return (
