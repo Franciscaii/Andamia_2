@@ -49,7 +49,7 @@ function ChipMes({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: Pr
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: idArrastre ?? PREFIJO_TAREA + tarea.id, disabled: !movible });
   const hecha = tarea.estado === "completada";
   const evento = tarea.esEvento === true;
-  const color = COLOR_NIVEL[tarea.dificultad ?? "ninguna"];
+  const color = COLOR_NIVEL[tarea.prioridad];
   return (
     <div
       ref={setNodeRef}

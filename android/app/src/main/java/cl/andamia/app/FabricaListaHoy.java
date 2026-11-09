@@ -196,15 +196,15 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             vista.setTextColor(R.id.fila_titulo, color(R.color.widget_texto));
         }
 
-        // Casilla: color de la dificultad.
+        // Casilla: color de la importancia.
         vista.setTextViewText(R.id.fila_circulo, f.hecha ? "☑" : "☐");
-        vista.setTextColor(R.id.fila_circulo, colorNivel(f.dificultad));
+        vista.setTextColor(R.id.fila_circulo, colorNivel(f.prioridad));
 
-        // Insignia: importancia.
-        String importancia = nombreNivel(f.prioridad);
-        vista.setTextViewText(R.id.fila_importancia, importancia);
-        vista.setTextColor(R.id.fila_importancia, colorNivel(f.prioridad));
-        vista.setViewVisibility(R.id.fila_importancia, importancia.isEmpty() ? View.GONE : View.VISIBLE);
+        // Insignia bajo el título: dificultad.
+        String dificultad = nombreNivel(f.dificultad);
+        vista.setTextViewText(R.id.fila_importancia, dificultad);
+        vista.setTextColor(R.id.fila_importancia, colorNivel(f.dificultad));
+        vista.setViewVisibility(R.id.fila_importancia, dificultad.isEmpty() ? View.GONE : View.VISIBLE);
 
         String detalle = f.atrasada ? (f.detalle.isEmpty() ? "Atrasada" : "Atrasada · " + f.detalle) : f.detalle;
         vista.setTextViewText(R.id.fila_detalle, detalle);

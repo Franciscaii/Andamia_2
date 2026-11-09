@@ -1,17 +1,16 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { CampoNotas, claseTituloCampo, EditorSubtareas, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
 import { addDays, format, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, Plus } from "lucide-react";
-import { datosDesdeEntrada } from "../componentes/EntradaRapida";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
-import { interpretarEntrada } from "../logica/entradaRapida";
 import { DialogoHabito } from "./VistaHabitos";
 import { COLOR_NIVEL } from "../componentes/FilaTarea";
 import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
 import { irA, type Seccion } from "../logica/ruta";
 import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, type FiltroSemana } from "../logica/semana";
-import type { Prioridad, Tarea } from "../modelos/tipos";
+import type { Prioridad, Subtarea, Tarea } from "../modelos/tipos";
 
 const SECCION: Seccion = { tipo: "vista", vista: "semana" };
 
@@ -49,8 +48,9 @@ function FilaTareaSemana({ tarea, abierta, hoy }: { tarea: Tarea; abierta: boole
   const completarTarea = useTienda((s) => s.completarTarea);
   const etiquetas = useTienda((s) => s.etiquetas);
   const hecha = tarea.estado === "completada";
+  // Casilla: color de la importancia. Insignia de abajo: dificultad.
   const dificultad = dificultadDe(tarea);
-  const colorCasilla = COLOR_NIVEL[dificultad];
+  const colorCasilla = COLOR_NIVEL[tarea.prioridad];
   const fecha = fechaDeTarea(tarea);
   const atrasada = !hecha && fecha !== null && fecha < hoy && !isSameDay(fecha, hoy);
   const etiqueta = tarea.etiquetas[0] ? etiquetas.find((e) => e.nombre === tarea.etiquetas[0]) : undefined;
@@ -62,7 +62,7 @@ function FilaTareaSemana({ tarea, abierta, hoy }: { tarea: Tarea; abierta: boole
         role="checkbox"
         aria-checked={hecha}
         aria-label={hecha ? `Marcar como pendiente: ${tarea.titulo}` : `Completar: ${tarea.titulo}`}
-        title={dificultad !== "ninguna" ? `Dificultad ${NOMBRE_NIVEL[dificultad].toLowerCase()}` : "Sin dificultad"}
+        title={tarea.prioridad !== "ninguna" ? `Importancia ${NOMBRE_NIVEL[tarea.prioridad].toLowerCase()}` : "Sin importancia"}
         onClick={() => void completarTarea(tarea.id, !hecha)}
         style={{ borderColor: colorCasilla, background: hecha ? colorCasilla : undefined }}
         className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2"
@@ -71,15 +71,16 @@ function FilaTareaSemana({ tarea, abierta, hoy }: { tarea: Tarea; abierta: boole
       </button>
       <button type="button" onClick={() => irA(SECCION, tarea.id)} className="min-w-0 flex-1 text-left">
         <span className={`block text-sm break-words ${hecha ? "text-tenue line-through" : ""}`}>{tarea.titulo || "Sin título"}</span>
-        {(tarea.prioridad !== "ninguna" || hora(tarea) || atrasada) && (
+        {(dificultad !== "ninguna" || hora(tarea) || atrasada) && (
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
-            {tarea.prioridad !== "ninguna" && (
+            {dificultad !== "ninguna" && (
               <span
-                data-testid="importancia"
+                data-testid="dificultad"
+                title={`Dificultad ${NOMBRE_NIVEL[dificultad].toLowerCase()}`}
                 className="rounded-sm border-l-[3px] px-1.5 leading-4 font-medium"
-                style={{ borderColor: COLOR_NIVEL[tarea.prioridad], background: `color-mix(in srgb, ${COLOR_NIVEL[tarea.prioridad]} 22%, transparent)` }}
+                style={{ borderColor: COLOR_NIVEL[dificultad], background: `color-mix(in srgb, ${COLOR_NIVEL[dificultad]} 22%, transparent)` }}
               >
-                {NOMBRE_NIVEL[tarea.prioridad]}
+                {NOMBRE_NIVEL[dificultad]}
               </span>
             )}
             {hora(tarea) && <span className="text-tenue tabular-nums">{hora(tarea)}</span>}
@@ -115,46 +116,72 @@ function BarraProgreso({ hechas, total, porcentaje }: { hechas: number; total: n
 
 export type TipoNuevo = "tarea" | "evento";
 
-/** Crear una tarea o un evento para el día elegido. Entiende "9am", "!alta" y "#etiqueta". */
+/**
+ * Ventana para crear una tarea o un evento con todos sus datos, como la de hábitos:
+ * título, fecha, (importancia y dificultad), índole, notas y subtareas.
+ */
 export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Date; alCerrar: () => void }) {
-  const listas = useTienda((s) => s.listas);
   const crearTarea = useTienda((s) => s.crearTarea);
-  const [texto, setTexto] = useState("");
-  const lectura = useMemo(() => (texto.trim() ? interpretarEntrada(texto, dia, listas) : null), [texto, dia, listas]);
   const esEvento = tipo === "evento";
+  const [titulo, setTitulo] = useState("");
+  const [fecha, setFecha] = useState(format(dia, "yyyy-MM-dd"));
+  const [prioridad, setPrioridad] = useState<Prioridad>("ninguna");
+  const [dificultad, setDificultad] = useState<Prioridad>("ninguna");
+  const [indole, setIndole] = useState<string | null>(null);
+  const [notas, setNotas] = useState("");
+  const [subtareas, setSubtareas] = useState<Subtarea[]>([]);
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
-    if (!lectura?.titulo) return;
-    await crearTarea(datosDesdeEntrada(lectura, { vence: format(dia, "yyyy-MM-dd"), esEvento }));
+    if (!titulo.trim()) return;
+    await crearTarea({
+      titulo,
+      esEvento,
+      vence: fecha || null,
+      todoElDia: true,
+      prioridad: esEvento ? "ninguna" : prioridad,
+      dificultad: esEvento ? "ninguna" : dificultad,
+      etiquetas: indole ? [indole] : [],
+      descripcion: notas,
+      subtareas,
+    });
     alCerrar();
   };
 
   return (
     <Modal titulo={esEvento ? "Nuevo evento" : "Nueva tarea"} alCerrar={alCerrar}>
       <form onSubmit={enviar} className="space-y-4">
-        <label className="block text-sm">
-          <span className="mb-1 block text-tenue">{esEvento ? "Evento" : "Tarea"}</span>
+        <label className="block text-xs text-tenue">
+          <span className={`${claseTituloCampo} block`}>{esEvento ? "Evento" : "Tarea"}</span>
           <input
             id="entrada-rapida"
             autoFocus
             autoComplete="off"
             aria-label={esEvento ? "Añadir evento" : "Añadir tarea"}
             className={claseCampo}
-            placeholder={esEvento ? "Entrevista 15:00" : "Leer paper 9am !alta #universidad"}
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
+            placeholder={esEvento ? "Entrevista de trabajo" : "Leer paper"}
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
           />
         </label>
-        <p className="text-xs text-tenue">
-          Para el {format(lectura?.vence ? fechaDeTarea({ vence: lectura.vence })! : dia, "EEEE d 'de' MMMM", { locale: es })}
-          {lectura?.vence && !lectura.todoElDia ? ` a las ${format(fechaDeTarea({ vence: lectura.vence })!, "HH:mm")}` : ""}. La dificultad y la importancia se eligen al abrirla.
-        </p>
+        <label className="block text-xs text-tenue">
+          <span className={`${claseTituloCampo} block`}>Fecha</span>
+          <input type="date" aria-label="Fecha" className={claseCampo} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </label>
+        {!esEvento && (
+          <>
+            <SelectorNivel titulo="Importancia" ayuda="Urgencia y valor" valor={prioridad} alElegir={setPrioridad} />
+            <SelectorNivel titulo="Dificultad" ayuda="Tiempo y esfuerzo intelectual" valor={dificultad} alElegir={setDificultad} />
+          </>
+        )}
+        <SelectorIndole valor={indole} alElegir={setIndole} />
+        <CampoNotas valor={notas} alCambiar={setNotas} />
+        <EditorSubtareas subtareas={subtareas} alCambiar={setSubtareas} />
         <div className="flex justify-end gap-2">
           <button type="button" className={claseBoton} onClick={alCerrar}>
             Cancelar
           </button>
-          <button type="submit" className={claseBotonPrincipal} disabled={!lectura?.titulo}>
+          <button type="submit" className={claseBotonPrincipal} disabled={!titulo.trim()}>
             {esEvento ? "Crear evento" : "Crear tarea"}
           </button>
         </div>

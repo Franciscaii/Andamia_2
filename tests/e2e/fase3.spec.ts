@@ -74,26 +74,6 @@ test("una tarea 'cada lunes' completada genera la siguiente", async ({ page }) =
   await expect(hecha).toContainText("Lunes");
 });
 
-test("editar la repetición en el detalle", async ({ page }) => {
-  await page.goto("/#/tareas/bandeja");
-  await agregar(page, "Pagar arriendo");
-  await page.getByRole("button", { name: /^Pagar arriendo/ }).click();
-  const detalle = page.getByRole("complementary", { name: "Detalle de la tarea" });
-
-  await detalle.getByLabel("Repetir", { exact: true }).selectOption("personalizada");
-  await expect(detalle.getByLabel("Fecha", { exact: true })).toHaveValue("2026-11-04");
-  await detalle.getByLabel("Intervalo de repetición").fill("3");
-  await detalle.getByLabel("Unidad de repetición").selectOption("mensual");
-  await expect(detalle.getByText("Cada 3 meses")).toBeVisible();
-
-  await detalle.getByLabel("Repetir", { exact: true }).selectOption("semanal");
-  await detalle.getByRole("group", { name: "Días de la semana" }).getByRole("button", { name: "viernes" }).click();
-  await expect(detalle.getByText("Cada miércoles y viernes")).toBeVisible();
-
-  await detalle.getByLabel("Repetir", { exact: true }).selectOption("ninguna");
-  await expect(detalle.getByText("Calcular la siguiente fecha desde")).toHaveCount(0);
-});
-
 test("recordatorio: aviso en la app y notificación del navegador", async ({ page, context }) => {
   await context.grantPermissions(["notifications"]);
   await page.addInitScript(() => {

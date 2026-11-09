@@ -24,6 +24,7 @@ export interface DatosNuevaTarea {
   /** Minutos antes del vencimiento de cada recordatorio inicial. */
   minutosRecordatorios?: number[];
   columnaId?: string | null;
+  subtareas?: Subtarea[];
 }
 
 export async function cargarTodo() {
@@ -209,7 +210,7 @@ export async function crearTarea(datos: DatosNuevaTarea): Promise<{ tarea: Tarea
     todoElDia: datos.todoElDia ?? false,
     zonaHoraria: Intl.DateTimeFormat().resolvedOptions().timeZone,
     etiquetas: [...new Set((datos.etiquetas ?? []).map(claveEtiqueta).filter(Boolean))],
-    subtareas: [],
+    subtareas: (datos.subtareas ?? []).map((st, i) => ({ ...st, orden: i })),
     repeticion: datos.repeticion ?? null,
     repetirDesde: datos.repetirDesde ?? "vencimiento",
     repetidaDe: null,

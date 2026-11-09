@@ -9,12 +9,16 @@ async function crearLista(page: Page, nombre: string) {
 }
 
 const entrada = (page: Page) => page.getByRole("textbox", { name: "Añadir tarea" });
-/** En la semana: + → Tarea o Evento, escribir y crear. */
-async function crearEnSemana(page: Page, tipo: "Tarea" | "Evento", texto: string) {
+/** En la semana: + → Tarea o Evento, llenar la ventana y crear. */
+async function crearEnSemana(page: Page, tipo: "Tarea" | "Evento", texto: string, opciones: { importancia?: string; dificultad?: string; indole?: string } = {}) {
   await page.getByRole("button", { name: "Añadir", exact: true }).click();
   await page.getByRole("menuitem", { name: tipo }).click();
-  const campo = page.getByRole("textbox", { name: tipo === "Tarea" ? "Añadir tarea" : "Añadir evento" });
+  const dialogo = page.getByRole("dialog");
+  const campo = dialogo.getByRole("textbox", { name: tipo === "Tarea" ? "Añadir tarea" : "Añadir evento" });
   await campo.fill(texto);
+  if (opciones.importancia) await dialogo.getByRole("group", { name: "Importancia" }).getByRole("button", { name: opciones.importancia }).click();
+  if (opciones.dificultad) await dialogo.getByRole("group", { name: "Dificultad" }).getByRole("button", { name: opciones.dificultad }).click();
+  if (opciones.indole) await dialogo.getByRole("group", { name: "Índole" }).getByRole("button", { name: opciones.indole, exact: true }).click();
   await campo.press("Enter");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 }
@@ -69,7 +73,7 @@ test("el menú no muestra Todas, Hoy, Mañana, Bandeja de entrada ni Enfoque", a
 
 test("semana: eventos arriba, progreso del día y tareas con dificultad e importancia", async ({ page }) => {
   await page.goto("/");
-  await crearEnSemana(page, "Tarea", "Leer paper !alta #universidad");
+  await crearEnSemana(page, "Tarea", "Leer paper", { importancia: "Alta", indole: "Universidad" });
   await crearEnSemana(page, "Tarea", "Comprar pan");
   await expect(page.getByTestId("progreso-dia")).toContainText("0/2 (0%)");
 
@@ -81,11 +85,18 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
   await expect(page.getByRole("button", { name: /^lunes|^martes|^miércoles|^jueves|^viernes|^sábado|^domingo/, pressed: true }).getByTestId("punto-dia")).toHaveCount(1);
 
   const fila = page.getByTestId("fila-tarea").filter({ hasText: "Leer paper" });
-  await expect(fila.getByTestId("importancia")).toHaveText("Alta");
+  // La casilla lleva el color de la importancia; la insignia de abajo es la dificultad.
+  await expect(page.getByRole("checkbox", { name: "Completar: Leer paper" })).toHaveAttribute("title", "Importancia alta");
+  await expect(fila.getByTestId("dificultad")).toHaveCount(0);
   await expect(fila).toContainText("Universidad");
   await fila.getByRole("button", { name: /^Leer paper/ }).click();
-  await page.getByRole("group", { name: "Dificultad" }).getByRole("button", { name: "Media" }).click();
-  await expect(page.getByRole("checkbox", { name: "Completar: Leer paper" })).toHaveAttribute("title", "Dificultad media");
+  const detalle = page.getByRole("complementary", { name: "Detalle de la tarea" });
+  // El detalle no muestra hora, repetir, tipo ni enfocar.
+  for (const oculto of ["Hora", "Repetir"]) await expect(detalle.getByLabel(oculto, { exact: true })).toHaveCount(0);
+  await expect(detalle.getByRole("button", { name: "Enfocar" })).toHaveCount(0);
+  await expect(detalle.getByRole("button", { name: "Evento" })).toHaveCount(0);
+  await detalle.getByRole("group", { name: "Dificultad" }).getByRole("button", { name: "Media" }).click();
+  await expect(fila.getByTestId("dificultad")).toHaveText("Media");
   await page.keyboard.press("Escape");
 
   // Un evento va arriba y no cuenta en el progreso.
@@ -117,10 +128,9 @@ test("detalle, papelera y restaurar", async ({ page }) => {
   await detalle.getByLabel("Notas").fill("Pedir la versión firmada");
   await detalle.getByLabel("Nueva subtarea").fill("Leer cláusulas");
   await detalle.getByLabel("Nueva subtarea").press("Enter");
-  await detalle.getByLabel("Nueva etiqueta").fill("legal");
-  await detalle.getByLabel("Nueva etiqueta").press("Enter");
+  await detalle.getByRole("group", { name: "Índole" }).getByRole("button", { name: "Vinculos" }).click();
   await expect(page.getByTestId("fila-tarea")).toContainText("0/1");
-  await expect(page.getByTestId("fila-tarea")).toContainText("legal");
+  await expect(page.getByTestId("fila-tarea")).toContainText("Vinculos");
 
   await detalle.getByRole("button", { name: "Enviar a la papelera" }).click();
   await expect(page.getByTestId("fila-tarea")).toHaveCount(0);
@@ -201,7 +211,7 @@ test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, edi
   await expect(menu.getByRole("link", { name: /^Deporte/ })).toBeVisible();
 
   // Renombrar mantiene la etiqueta en las tareas.
-  await crearEnSemana(page, "Tarea", "Correr #deporte");
+  await crearEnSemana(page, "Tarea", "Correr", { indole: "Deporte" });
   await menu.getByRole("link", { name: /^Deporte/ }).hover();
   await page.getByRole("button", { name: "Editar etiqueta Deporte" }).click();
   const edicion = page.getByRole("dialog", { name: "Editar etiqueta" });
@@ -225,9 +235,9 @@ test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, edi
 
 test("estadística de tareas: por etiqueta, circular y en el tiempo; tocar una etiqueta atenúa las demás", async ({ page }) => {
   await page.goto("/");
-  await crearEnSemana(page, "Tarea", "Leer paper #universidad");
-  await crearEnSemana(page, "Tarea", "Cocinar #vidacotidiana");
-  await crearEnSemana(page, "Tarea", "Lavar ropa #vidacotidiana");
+  await crearEnSemana(page, "Tarea", "Leer paper", { indole: "Universidad" });
+  await crearEnSemana(page, "Tarea", "Cocinar", { indole: "VidaCotidiana" });
+  await crearEnSemana(page, "Tarea", "Lavar ropa", { indole: "VidaCotidiana" });
   for (const t of ["Leer paper", "Cocinar", "Lavar ropa"]) await page.getByRole("checkbox", { name: `Completar: ${t}` }).click();
 
   await page.getByRole("navigation").getByRole("link", { name: "Estadística Tareas" }).click();
@@ -281,4 +291,38 @@ test("calendario mes: eventos y tareas con casilla en cada día, filtros y +", a
   await page.getByRole("textbox", { name: "Añadir evento" }).press("Enter");
   await page.getByRole("button", { name: "Todos" }).click();
   await expect(hoy).toContainText("Cumpleaños");
+});
+
+test("nueva tarea en ventana: fecha, importancia, dificultad, índole, notas y subtareas", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Tarea" }).click();
+  const dialogo = page.getByRole("dialog", { name: "Nueva tarea" });
+  await dialogo.getByRole("textbox", { name: "Añadir tarea" }).fill("Preparar informe");
+  await expect(dialogo.getByLabel("Fecha", { exact: true })).toHaveValue(new Date().toLocaleDateString("sv-SE"));
+  await dialogo.getByRole("group", { name: "Importancia" }).getByRole("button", { name: "Media" }).click();
+  await dialogo.getByRole("group", { name: "Dificultad" }).getByRole("button", { name: "Alta" }).click();
+  await dialogo.getByRole("group", { name: "Índole" }).getByRole("button", { name: "Universidad" }).click();
+  await dialogo.getByLabel("Notas").fill("Con gráficos");
+  await dialogo.getByLabel("Nueva subtarea").fill("Buscar datos");
+  // Enter en la subtarea la añade sin crear la tarea todavía.
+  await dialogo.getByLabel("Nueva subtarea").press("Enter");
+  await expect(dialogo.getByLabel("Título de la subtarea")).toHaveValue("Buscar datos");
+  await dialogo.getByRole("button", { name: "Crear tarea" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  const fila = page.getByTestId("fila-tarea").filter({ hasText: "Preparar informe" });
+  await expect(fila.getByTestId("dificultad")).toHaveText("Alta");
+  await expect(fila).toContainText("Universidad");
+  await expect(page.getByRole("checkbox", { name: "Completar: Preparar informe" })).toHaveAttribute("title", "Importancia media");
+  await fila.getByRole("button", { name: /^Preparar informe/ }).click();
+  const detalle = page.getByRole("complementary", { name: "Detalle de la tarea" });
+  await expect(detalle.getByLabel("Notas")).toHaveValue("Con gráficos");
+  await expect(detalle.getByLabel("Título de la subtarea")).toHaveValue("Buscar datos");
+
+  // Un evento no pide importancia ni dificultad.
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Evento" }).click();
+  await expect(page.getByRole("dialog", { name: "Nuevo evento" }).getByRole("group", { name: "Importancia" })).toHaveCount(0);
 });
