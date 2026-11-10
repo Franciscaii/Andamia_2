@@ -88,7 +88,7 @@ export function FilaTarea({ tarea, abierta, alAbrir, mostrarLista, consulta = ""
         disabled={enPapelera}
         onClick={() => void completarTarea(tarea.id, !hecha)}
         style={{ borderColor: color, background: hecha ? color : undefined }}
-        className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2"
+        className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-2"
       >
         {hecha && <Check size={12} strokeWidth={3} className="text-panel" />}
       </button>

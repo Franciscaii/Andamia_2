@@ -408,12 +408,12 @@ function actualizarMenuBandeja() {
         },
       },
       {
-        label: "Modo escritorio (widget detrás de las ventanas)",
-        type: "radio",
-        checked: modo === "escritorio",
+        // El modo escritorio es el widget Semana: sin barra de título ni menú.
+        label: "Modo escritorio (widget Semana)",
         click: () => {
-          aplicarModo("escritorio");
-          mostrarVentana();
+          if (modoActual() !== "normal") aplicarModo("normal");
+          ventana?.hide();
+          abrirWidget("semana");
         },
       },
       {
@@ -473,7 +473,14 @@ if (!app.requestSingleInstanceLock()) {
     // La página no necesita cámara, micrófono ni ubicación.
     session.defaultSession.setPermissionRequestHandler((_wc, permiso, responder) => responder(permiso === "clipboard-sanitized-write"));
 
-    crearVentana({ oculta: process.argv.includes("--oculta") });
+    // Quien usaba el modo escritorio antiguo (ventana con barra de título) pasa al widget Semana.
+    let oculta = process.argv.includes("--oculta");
+    if (leerPrefs().modo === "escritorio") {
+      guardarPrefs({ modo: "normal" });
+      guardarPrefsWidget("semana", { abierto: true });
+      oculta = true;
+    }
+    crearVentana({ oculta });
     crearBandeja();
     abrirWidgetsGuardados();
     globalShortcut.register(ATAJO_NUEVA_TAREA, nuevaTarea);

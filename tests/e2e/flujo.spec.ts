@@ -538,11 +538,13 @@ test("matriz: subir o bajar una tarea dentro del cuadrante", async ({ page }) =>
 test("widget del escritorio: vista sola, sin menú, con barra para moverlo", async ({ page }) => {
   await page.setViewportSize({ width: 380, height: 560 });
   await page.goto("/?widget=matriz");
-  await expect(page.getByTestId("barra-widget")).toContainText("Matriz");
+  await expect(page.getByTestId("barra-widget")).toHaveAttribute("title", /Matriz/);
   await expect(page.getByRole("heading", { name: "Matriz de Eisenhower" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Navegación" })).toHaveCount(0);
   await page.goto("/?widget=semana");
-  await expect(page.getByTestId("barra-widget")).toContainText("Semana");
+  await expect(page.getByTestId("barra-widget")).toHaveAttribute("title", /Semana/);
+  // Sin barra de color ni menú: la franja para moverlo es transparente.
+  await expect(page.getByRole("button", { name: "Abrir menú" })).toHaveCount(0);
   // El widget Semana parte en los 7 días, como la Semana de la app.
   await expect(page.getByTestId("dia-semana")).toHaveCount(7);
 });

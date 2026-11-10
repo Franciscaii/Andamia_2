@@ -580,7 +580,7 @@ function BordeColumna({ etiqueta, alMover, alSoltar, alRestablecer }: { etiqueta
 }
 
 /** Ancho de un día sin tareas por hacer en la vista de 7 días: una tira angosta con el día y un resumen. */
-const ANCHO_DIA_LIBRE = "4.75rem";
+const ANCHO_DIA_LIBRE = "65px";
 
 /** Contenido de un día angosto: sus eventos (cortos) y, si tiene tareas, un "✓ hechas/total" que abre el día. */
 function ResumenDiaAngosto({ dia, ahora, verEventos, verTareas, tareaAbierta, alAbrir }: { dia: Date; ahora: Date; verEventos: boolean; verTareas: boolean; tareaAbierta: string | null; alAbrir: () => void }) {
@@ -649,7 +649,7 @@ function useAnchosSemana(lunes: string, vacios: boolean[]) {
   const refColumna = (i: number) => (el: HTMLElement | null) => {
     columnas.current[i] = el;
   };
-  const angosta = (i: number) => !manual && vacios[i];
+  const angosta = (i: number) => vacios[i];
   return { estilo, angosta, mover, soltar, restablecer, refColumna };
 }
 
