@@ -17,6 +17,7 @@ import { fechaDeTarea } from "../logica/fechas";
 import { irA, type Seccion } from "../logica/ruta";
 import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
 import { guardarAnchos, leerAnchos, moverBorde, MINIMO_MANUAL, pesosAutomaticos } from "../logica/anchosSemana";
+import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 import type { Prioridad, Subtarea, Tarea } from "../modelos/tipos";
 
 const SECCION: Seccion = { tipo: "vista", vista: "semana" };
@@ -387,16 +388,19 @@ export function MenuNuevo({ alElegir, etiqueta = "Añadir", atajo = true, pequen
 }
 
 export type Alcance = "dia" | "semana";
-const CLAVE_ALCANCE = "andamia-semana-alcance";
+const EN_WIDGET = WIDGET_ACTUAL?.id === "semana";
+// El widget recuerda "Hoy" o "7 días" aparte de la ventana grande, y parte en 7 días.
+const CLAVE_ALCANCE = EN_WIDGET ? "andamia-semana-alcance-widget" : "andamia-semana-alcance";
 
 /** La vista de 7 días es solo para pantallas de computador (1024 px o más). */
 const CONSULTA_ESCRITORIO = "(min-width: 1024px)";
 
 function useEsEscritorio(): boolean {
-  const [es, setEs] = useState(() => typeof window !== "undefined" && window.matchMedia(CONSULTA_ESCRITORIO).matches);
+  // El widget Semana del escritorio siempre ofrece los 7 días, aunque la ventana sea angosta.
+  const [es, setEs] = useState(() => EN_WIDGET || (typeof window !== "undefined" && window.matchMedia(CONSULTA_ESCRITORIO).matches));
   useEffect(() => {
     const m = window.matchMedia(CONSULTA_ESCRITORIO);
-    const alCambiar = () => setEs(m.matches);
+    const alCambiar = () => setEs(EN_WIDGET || m.matches);
     m.addEventListener("change", alCambiar);
     return () => m.removeEventListener("change", alCambiar);
   }, []);
@@ -405,7 +409,8 @@ function useEsEscritorio(): boolean {
 
 function leerAlcance(): Alcance {
   try {
-    return localStorage.getItem(CLAVE_ALCANCE) === "semana" ? "semana" : "dia";
+    const guardado = localStorage.getItem(CLAVE_ALCANCE);
+    return guardado === "semana" || (EN_WIDGET && guardado === null) ? "semana" : "dia";
   } catch {
     return "dia";
   }

@@ -543,7 +543,8 @@ test("widget del escritorio: vista sola, sin menú, con barra para moverlo", asy
   await expect(page.getByRole("navigation", { name: "Navegación" })).toHaveCount(0);
   await page.goto("/?widget=semana");
   await expect(page.getByTestId("barra-widget")).toContainText("Semana");
-  await expect(page.getByTestId("boton-dia")).toHaveCount(7);
+  // El widget Semana parte en los 7 días, como la Semana de la app.
+  await expect(page.getByTestId("dia-semana")).toHaveCount(7);
 });
 
 test("semana: los días vacíos se achican y el ancho se ajusta a mano", async ({ page }) => {
@@ -633,4 +634,21 @@ test("menú: el orden de las vistas", async ({ page }) => {
   const nombres = await page.getByRole("navigation", { name: "Navegación" }).getByRole("link").allTextContents();
   const vistas = ["Semana", "Calendario", "Estadística Tareas", "Hábitos", "Estadística Hábitos", "Matriz"];
   expect(nombres.map((n) => n.replace(/\d+$/, "").trim()).filter((n) => vistas.includes(n))).toEqual(vistas);
+});
+
+test("widget Semana del escritorio: 7 días, transparencia y esquinas", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 600 });
+  await page.goto("/?widget=semana");
+  // Aunque la ventana sea angosta, el widget parte mostrando los 7 días.
+  await expect(page.getByTestId("dia-semana")).toHaveCount(7);
+  await expect(page.locator("html")).toHaveClass(/modo-widget/);
+  await page.getByRole("button", { name: "Transparencia y esquinas" }).click();
+  const ajustes = page.getByRole("group", { name: "Aspecto del widget" });
+  await ajustes.getByLabel("Transparencia").fill("60");
+  await ajustes.getByLabel("Esquinas").fill("20");
+  await expect(page.getByTestId("fondo-widget")).toHaveCSS("opacity", "0.4");
+  await expect(page.getByTestId("marco-widget")).toHaveCSS("border-radius", "20px");
+  // Se recuerda al volver a abrir el widget.
+  await page.reload();
+  await expect(page.getByTestId("fondo-widget")).toHaveCSS("opacity", "0.4");
 });

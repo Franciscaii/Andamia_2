@@ -145,3 +145,9 @@ body {
     outline-offset: 1px;
   }
 }
+
+/* Widgets del escritorio (app de PC): la ventana es transparente y el color lo pone el marco del widget. */
+html.modo-widget,
+html.modo-widget body {
+  background: transparent;
+}
