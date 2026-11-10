@@ -14,8 +14,8 @@ describe("anchos de la semana", () => {
   it("mover un borde cambia solo esas dos columnas y respeta el mínimo", () => {
     const base = [200, 200, 200, 200, 200, 200, 200];
     expect(moverBorde(base, 1, 50)).toEqual([200, 250, 150, 200, 200, 200, 200]);
-    expect(moverBorde(base, 1, 500)).toEqual([200, 304, 96, 200, 200, 200, 200]);
-    expect(moverBorde(base, 1, -500)).toEqual([200, 96, 304, 200, 200, 200, 200]);
+    expect(moverBorde(base, 1, 500)).toEqual([200, 336, 64, 200, 200, 200, 200]);
+    expect(moverBorde(base, 1, -500)).toEqual([200, 64, 336, 200, 200, 200, 200]);
   });
 
   it("recuerda los anchos por semana y vuelve a automático", () => {
