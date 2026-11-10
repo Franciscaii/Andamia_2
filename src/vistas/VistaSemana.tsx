@@ -17,7 +17,7 @@ import { fechaDeTarea } from "../logica/fechas";
 import { irA, type Seccion } from "../logica/ruta";
 import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
 import { guardarAnchos, leerAnchos, moverBorde, MINIMO_MANUAL, pesosAutomaticos } from "../logica/anchosSemana";
-import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
+import { EVENTO_ALTO_WIDGET, WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 import type { Prioridad, Subtarea, Tarea } from "../modelos/tipos";
 
 const SECCION: Seccion = { tipo: "vista", vista: "semana" };
@@ -659,8 +659,7 @@ function useAnchosSemana(lunes: string, vacios: boolean[]) {
  */
 function useAltoAjustadoWidget(cabecera: { current: HTMLElement | null }, contenido: { current: HTMLElement | null }, deps: unknown[]) {
   useEffect(() => {
-    const puente = (window as unknown as { andamiaWidget?: { ajustarAlto?: (alto: number) => void } }).andamiaWidget;
-    if (!EN_WIDGET || !puente?.ajustarAlto) return;
+    if (!EN_WIDGET) return;
     let reloj = 0;
     const medir = () => {
       window.clearTimeout(reloj);
@@ -673,7 +672,8 @@ function useAltoAjustadoWidget(cabecera: { current: HTMLElement | null }, conten
         const zoom = caja.getBoundingClientRect().height / caja.offsetHeight || 1;
         const s = getComputedStyle(caja);
         const natural = d.offsetHeight + parseFloat(s.paddingTop) + parseFloat(s.paddingBottom);
-        puente.ajustarAlto!(Math.ceil(c.getBoundingClientRect().height + natural * zoom) + 2);
+        // El marco del widget decide la escala y el alto de la ventana con este dato (alto en pantalla, a la escala actual).
+        window.dispatchEvent(new CustomEvent(EVENTO_ALTO_WIDGET, { detail: c.getBoundingClientRect().height + natural * zoom }));
       }, 120);
     };
     medir();
