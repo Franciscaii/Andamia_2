@@ -767,7 +767,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       ) : (
         // En el computador: los 7 días uno al lado del otro, cada uno en su columna.
         <div className={`min-h-0 flex-1 overflow-auto px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-3" : "pt-2 pb-6"}`}>
-          <div className="flex min-h-full">
+          {/* En el widget cada día mide solo lo que ocupa: no queda espacio vacío abajo. */}
+          <div className={`flex ${EN_WIDGET ? "items-start" : "min-h-full"}`}>
             {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
               const angosta = anchos.angosta(i);
