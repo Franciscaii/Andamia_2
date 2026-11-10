@@ -1,14 +1,17 @@
 import { useEffect, useState, type CSSProperties, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
-import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
-import { addDays, format, isSameDay } from "date-fns";
+import { addDays, format, isSameDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, GripVertical, Plus } from "lucide-react";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { DialogoHabito } from "./VistaHabitos";
 import { COLOR_NIVEL } from "../componentes/FilaTarea";
+import { colisionTareasEnZonas } from "../componentes/colision";
+import { venceEnDia } from "../logica/calendario";
+import { ordenEntre } from "../logica/vistas";
 import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
 import { irA, type Seccion } from "../logica/ruta";
@@ -124,8 +127,12 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre, estrecha = false }: { 
   );
 }
 
-function FilaOrdenableSemana({ tarea, abierta, hoy, estrecha }: { tarea: Tarea; abierta: boolean; hoy: Date; estrecha: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tarea.id });
+const claveDia = (d: Date) => format(d, "yyyy-MM-dd");
+const ZONA_DIA = "dia:";
+const esZonaDia = (id: string) => id.startsWith(ZONA_DIA);
+
+function FilaOrdenableSemana({ tarea, abierta, hoy, estrecha, dia }: { tarea: Tarea; abierta: boolean; hoy: Date; estrecha: boolean; dia: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tarea.id, data: { dia } });
   return (
     <FilaTareaSemana
       tarea={tarea}
@@ -137,35 +144,79 @@ function FilaOrdenableSemana({ tarea, abierta, hoy, estrecha }: { tarea: Tarea; 
   );
 }
 
-/** Pendientes del día: se suben o bajan arrastrando el asa (o con Espacio y las flechas). */
-function PendientesOrdenables({ tareas, tareaAbierta, hoy, estrecha = false }: { tareas: Tarea[]; tareaAbierta: string | null; hoy: Date; estrecha?: boolean }) {
+/** Pendientes del día: se suben o bajan arrastrando el asa (o con Espacio y las flechas), o se llevan a otro día. */
+function PendientesOrdenables({ tareas, tareaAbierta, hoy, dia, estrecha = false }: { tareas: Tarea[]; tareaAbierta: string | null; hoy: Date; dia: string; estrecha?: boolean }) {
+  return (
+    <SortableContext id={`lista:${dia}`} items={tareas.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+      <ul aria-label="Tareas" className="mt-2">
+        {tareas.map((t) => (
+          <FilaOrdenableSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={hoy} estrecha={estrecha} dia={dia} />
+        ))}
+      </ul>
+    </SortableContext>
+  );
+}
+
+/** Un día al que se puede soltar una tarea: la columna (7 días) o el botón del día (Hoy). */
+function useZonaDia(dia: Date) {
+  return useDroppable({ id: ZONA_DIA + claveDia(dia) });
+}
+
+/** Arrastrar dentro de la Semana: subir o bajar en el mismo día, o llevar la tarea a otro día. */
+function ArrastreSemana({ ahora, children }: { ahora: Date; children: ReactNode }) {
+  const tareas = useTienda((s) => s.tareas);
+  const listas = useTienda((s) => s.listas);
   const reordenar = useTienda((s) => s.reordenar);
+  const actualizarTarea = useTienda((s) => s.actualizarTarea);
+  const [activa, setActiva] = useState<Tarea | null>(null);
   const sensores = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+  const pendientesDe = (dia: string) => contenidoDelDia(tareas, listas, parseISO(dia), ahora).tareas.filter((t) => t.estado === "pendiente");
+
   const alSoltar = ({ active, over }: DragEndEvent) => {
+    setActiva(null);
     if (!over || active.id === over.id) return;
-    const ids = tareas.map((t) => t.id);
-    void reordenar(arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id))), String(active.id));
+    const tarea = tareas.find((t) => t.id === active.id);
+    const origen = active.data.current?.dia as string | undefined;
+    if (!tarea || !origen) return;
+    const sobreId = String(over.id);
+    const destino = esZonaDia(sobreId) ? sobreId.slice(ZONA_DIA.length) : (over.data.current?.dia as string | undefined);
+    if (!destino) return;
+    const lista = pendientesDe(destino);
+    if (destino === origen) {
+      if (esZonaDia(sobreId)) return;
+      const ids = lista.map((t) => t.id);
+      void reordenar(arrayMove(ids, ids.indexOf(tarea.id), ids.indexOf(sobreId)), tarea.id);
+      return;
+    }
+    // A otro día: queda justo antes de la tarea sobre la que cayó, o al final si cayó sobre el día.
+    const indice = esZonaDia(sobreId) ? lista.length : Math.max(0, lista.findIndex((t) => t.id === sobreId));
+    const orden = ordenEntre(indice > 0 ? lista[indice - 1].orden : null, indice < lista.length ? lista[indice].orden : null);
+    actualizarTarea(tarea.id, { ...venceEnDia(tarea, parseISO(destino)), ...(orden !== null ? { orden } : {}) });
   };
+
   return (
     <DndContext
       sensors={sensores}
-      collisionDetection={closestCenter}
+      collisionDetection={colisionTareasEnZonas(esZonaDia)}
+      onDragStart={({ active }) => setActiva(tareas.find((t) => t.id === active.id) ?? null)}
       onDragEnd={alSoltar}
+      onDragCancel={() => setActiva(null)}
       accessibility={{
-        screenReaderInstructions: { draggable: "Pulsa Espacio para tomar la tarea, usa las flechas para subirla o bajarla y Espacio para soltarla. Esc cancela." },
+        screenReaderInstructions: { draggable: "Pulsa Espacio para tomar la tarea, usa las flechas para subirla, bajarla o llevarla a otro día y Espacio para soltarla. Esc cancela." },
         announcements: { onDragStart: () => "Tarea tomada.", onDragOver: () => "Tarea movida.", onDragEnd: () => "Tarea soltada.", onDragCancel: () => "Movimiento cancelado." },
       }}
     >
-      <SortableContext items={tareas.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <ul aria-label="Tareas" className="mt-2">
-          {tareas.map((t) => (
-            <FilaOrdenableSemana key={t.id} tarea={t} abierta={t.id === tareaAbierta} hoy={hoy} estrecha={estrecha} />
-          ))}
-        </ul>
-      </SortableContext>
+      {children}
+      <DragOverlay dropAnimation={null}>
+        {activa && (
+          <ul className="w-64 rounded-lg border border-acento bg-panel shadow-lg">
+            <FilaTareaSemana tarea={activa} abierta={false} hoy={ahora} estrecha />
+          </ul>
+        )}
+      </DragOverlay>
     </DndContext>
   );
 }
@@ -369,7 +420,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compact
               <BarraProgreso {...contenido.progreso} />
             </div>
             {pendientes.length > 0 ? (
-              <PendientesOrdenables tareas={pendientes} tareaAbierta={tareaAbierta} hoy={ahora} estrecha={compacto} />
+              <PendientesOrdenables tareas={pendientes} tareaAbierta={tareaAbierta} hoy={ahora} dia={claveDia(dia)} estrecha={compacto} />
             ) : (
               <p className="px-2 py-4 text-sm text-tenue">{hechas.length ? "¡Todo listo por hoy!" : "No hay tareas este día. Toca + para añadir."}</p>
             )}
@@ -408,9 +459,43 @@ export function verDiaEnSemana(dia: Date) {
   irA({ tipo: "vista", vista: "semana" });
 }
 
-export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
+/** Botón de un día en la tira de arriba; también recibe tareas soltadas. */
+function BotonDia({ dia, activo, ahora, alElegir }: { dia: Date; activo: boolean; ahora: Date; alElegir: () => void }) {
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
+  const { setNodeRef, isOver } = useZonaDia(dia);
+  const esHoy = isSameDay(dia, ahora);
+  const conAlgo = hayAlgoElDia(tareas, listas, dia, ahora);
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      aria-pressed={activo}
+      aria-label={format(dia, "EEEE d 'de' MMMM", { locale: es })}
+      onClick={alElegir}
+      data-testid="boton-dia"
+      className={`flex flex-col items-center gap-0.5 rounded-lg py-1 hover:bg-suave ${isOver ? "bg-acento-suave ring-2 ring-acento" : ""}`}
+    >
+      <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(dia)}</span>
+      <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums ${activo ? "bg-acento font-semibold text-sobre-acento" : esHoy ? "border-2 border-acento font-semibold" : ""}`}>
+        {format(dia, "d")}
+      </span>
+      <span data-testid={conAlgo ? "punto-dia" : undefined} className={`h-1.5 w-1.5 rounded-full ${conAlgo ? "bg-acento" : "bg-transparent"}`} />
+    </button>
+  );
+}
+
+/** Columna de un día en la vista de 7 días; también recibe tareas soltadas. */
+function ColumnaDia({ dia, esHoy, ahora, children }: { dia: Date; esHoy: boolean; ahora: Date; children: ReactNode }) {
+  const { setNodeRef, isOver } = useZonaDia(dia);
+  return (
+    <section ref={setNodeRef} aria-label={tituloDelDia(dia, ahora)} data-testid="dia-semana" className={`min-w-0 rounded-xl p-2 ${isOver ? "ring-2 ring-acento" : ""} ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}>
+      {children}
+    </section>
+  );
+}
+
+export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const ahora = new Date();
   const [elegido, setElegido] = useState(() => diaPedido ?? new Date());
   const [filtro, setFiltro] = useState<FiltroSemana>("todos");
@@ -447,6 +532,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const elegirDia = (d: Date) => setElegido(d);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <ArrastreSemana ahora={ahora}>
       <header className="px-4 pt-4 pb-2 sm:px-6">
         <div className="flex items-center gap-2">
           <div className="flex shrink-0 items-center">
@@ -499,27 +585,9 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
         {alcance === "dia" && (
         <div className="mt-2 grid grid-cols-7 gap-1" role="group" aria-label="Días de la semana">
-          {dias.map((d) => {
-            const activo = isSameDay(d, elegido);
-            const esHoy = isSameDay(d, ahora);
-            const conAlgo = hayAlgoElDia(tareas, listas, d, ahora);
-            return (
-              <button
-                key={d.toISOString()}
-                type="button"
-                aria-pressed={alcance === "dia" && activo}
-                aria-label={format(d, "EEEE d 'de' MMMM", { locale: es })}
-                onClick={() => elegirDia(d)}
-                className="flex flex-col items-center gap-0.5 rounded-lg py-1 hover:bg-suave"
-              >
-                <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
-                <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums ${alcance === "dia" && activo ? "bg-acento font-semibold text-sobre-acento" : esHoy ? "border-2 border-acento font-semibold" : ""}`}>
-                  {format(d, "d")}
-                </span>
-                <span data-testid={conAlgo ? "punto-dia" : undefined} className={`h-1.5 w-1.5 rounded-full ${conAlgo ? "bg-acento" : "bg-transparent"}`} />
-              </button>
-            );
-          })}
+          {dias.map((d) => (
+            <BotonDia key={d.toISOString()} dia={d} activo={isSameDay(d, elegido)} ahora={ahora} alElegir={() => elegirDia(d)} />
+          ))}
         </div>
         )}
       </header>
@@ -535,7 +603,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
             {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
               return (
-                <section key={d.toISOString()} aria-label={tituloDelDia(d, ahora)} data-testid="dia-semana" className={`min-w-0 rounded-xl p-2 ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}>
+                <ColumnaDia key={d.toISOString()} dia={d} esHoy={esHoy} ahora={ahora}>
                   <div className="mb-2 flex items-center gap-1 px-1">
                     <h2 className="flex min-w-0 flex-1 items-baseline gap-1.5">
                       <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
@@ -551,12 +619,14 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                     />
                   </div>
                   <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto />
-                </section>
+                </ColumnaDia>
               );
             })}
           </div>
         </div>
       )}
+
+      </ArrastreSemana>
 
       {(creando === "tarea" || creando === "evento") && <DialogoNuevo tipo={creando} dia={diaNuevo} alCerrar={() => setCreando(null)} />}
       {creando === "habito" && <DialogoHabito habito={null} alCerrar={() => setCreando(null)} />}

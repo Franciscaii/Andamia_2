@@ -47,9 +47,9 @@ describe("matriz de Eisenhower", () => {
     expect(r["urgente-importante"].map((t) => t.titulo)).toEqual(["a"]);
   });
 
-  it("ordena por fecha y deja al final las sin fecha", () => {
-    const r = repartirEnCuadrantes([tarea({ titulo: "sin" }), tarea({ titulo: "luego", vence: "2026-12-01", todoElDia: true }), tarea({ titulo: "pronto", vence: "2026-11-05", todoElDia: true })], [], filtros);
-    expect(r.ninguno.map((t) => t.titulo)).toEqual(["pronto", "luego", "sin"]);
+  it("ordena según el orden manual de cada cuadrante, no por fecha", () => {
+    const r = repartirEnCuadrantes([tarea({ titulo: "tercera", orden: 3 }), tarea({ titulo: "primera", vence: "2026-12-01", todoElDia: true, orden: 1 }), tarea({ titulo: "segunda", vence: "2026-11-05", todoElDia: true, orden: 2 })], [], filtros);
+    expect(r.ninguno.map((t) => t.titulo)).toEqual(["primera", "segunda", "tercera"]);
   });
 
   it("filtra por lista y por etiqueta", () => {
