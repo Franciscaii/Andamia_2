@@ -132,7 +132,8 @@ export function MarcoWidget({
     const base = WIDGETS.find((w) => w.id === id);
     const el = marco.current;
     if (!base || !el) return;
-    const medir = () => setEscala(escalaWidget(base, el.clientWidth, el.clientHeight));
+    // La Semana se escala solo por el ancho: así el widget se puede bajar de alto sin que la letra se achique.
+    const medir = () => setEscala(escalaWidget(base, el.clientWidth, id === "semana" ? Infinity : el.clientHeight));
     medir();
     const obs = new ResizeObserver(medir);
     obs.observe(el);
