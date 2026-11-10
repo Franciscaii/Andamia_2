@@ -458,7 +458,12 @@ test("temas de color y color de un evento", async ({ page }) => {
   await page.goto("/");
   // Por defecto, Clásico (azul): el menú es la "cabecera" de color.
   await expect(page.locator("html")).toHaveAttribute("data-tema", "clasico");
+  // El tema está en su propia entrada del menú, no en Cuenta y ajustes.
+  await page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Tema" }).click();
+  await expect(page).toHaveURL(/#\/tema$/);
   await page.goto("/#/ajustes");
+  await expect(page.getByRole("radiogroup", { name: "Tema de la app" })).toHaveCount(0);
+  await page.goto("/#/tema");
   await page.getByRole("radiogroup", { name: "Tema de la app" }).getByRole("radio", { name: "Lavanda" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-tema", "lavanda");
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#6d28d9");
@@ -501,13 +506,15 @@ async function arrastrar(page: Page, desde: import("@playwright/test").Locator, 
 test("semana: arrastrar una tarea a otro día", async ({ page }) => {
   await page.goto("/");
   await crearEnSemana(page, "Tarea", "Llevar a otro día");
-  const nombre = await page.getByTestId("boton-dia").and(page.locator('[aria-pressed="false"]')).first().getAttribute("aria-label");
+  // Un día que aún no pasa (si fuera un día pasado, la tarea seguiría en hoy como atrasada); el domingo, el sábado.
+  const botones = page.getByTestId("boton-dia");
+  const iHoy = await botones.evaluateAll((es) => es.findIndex((e) => e.getAttribute("aria-pressed") === "true"));
+  const nombre = await botones.nth(iHoy < 6 ? iHoy + 1 : iHoy - 1).getAttribute("aria-label");
   const otro = page.getByRole("button", { name: nombre!, exact: true });
-  const hoy = page.getByTestId("boton-dia").and(page.locator('[aria-pressed="true"]'));
-  const nombreHoy = await hoy.getAttribute("aria-label");
+  const nombreHoy = await botones.nth(iHoy).getAttribute("aria-label");
   await arrastrar(page, page.getByRole("button", { name: "Mover Llevar a otro día" }), otro);
   await page.getByRole("button", { name: nombreHoy!, exact: true }).click();
-  await expect(page.getByText("Llevar a otro día")).toHaveCount(0);
+  if (iHoy < 6) await expect(page.getByText("Llevar a otro día")).toHaveCount(0);
   await otro.click();
   await expect(page.getByText("Llevar a otro día")).toBeVisible();
 });
@@ -536,5 +543,112 @@ test("widget del escritorio: vista sola, sin menú, con barra para moverlo", asy
   await expect(page.getByRole("navigation", { name: "Navegación" })).toHaveCount(0);
   await page.goto("/?widget=semana");
   await expect(page.getByTestId("barra-widget")).toContainText("Semana");
-  await expect(page.getByTestId("boton-dia")).toHaveCount(7);
+  // El widget Semana parte en los 7 días, como la Semana de la app.
+  await expect(page.getByTestId("dia-semana")).toHaveCount(7);
+});
+
+test("semana: los días vacíos se achican y el ancho se ajusta a mano", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/");
+  await crearEnSemana(page, "Tarea", "Tarea con espacio");
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  const anchos = () => page.getByTestId("dia-semana").evaluateAll((es) => es.map((e) => Math.round(e.getBoundingClientRect().width)));
+  const hoy = await page.getByTestId("dia-semana").evaluateAll((es) => es.findIndex((e) => e.textContent?.includes("Tarea con espacio")));
+  const auto = await anchos();
+  const vacio = hoy === 0 ? 1 : 0;
+  expect(auto[hoy]).toBeGreaterThan(auto[vacio] * 2);
+
+  // Arrastrar el borde derecho de la primera columna.
+  const borde = await page.getByTestId("borde-columna").first().boundingBox();
+  await page.mouse.move(borde!.x + 6, borde!.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(borde!.x + 66, borde!.y + 100, { steps: 6 });
+  await page.mouse.up();
+  const manual = await anchos();
+  expect(Math.abs(manual[0] - auto[0] - 60)).toBeLessThan(6);
+  // Se recuerda, y doble clic vuelve a automático.
+  await page.reload();
+  await expect(page.getByTestId("dia-semana")).toHaveCount(7);
+  await expect.poll(async () => Math.abs((await anchos())[0] - manual[0])).toBeLessThan(4);
+  await page.getByTestId("borde-columna").first().dblclick();
+  await expect.poll(anchos).toEqual(auto);
+});
+
+test("semana: un evento se arrastra a otro día y la casilla completada queda plomo", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Evento" }).click();
+  await page.getByRole("dialog").getByRole("textbox", { name: "Añadir evento" }).fill("Entrevista");
+  await page.getByRole("dialog").getByRole("button", { name: "Crear evento" }).click();
+  await crearEnSemana(page, "Tarea", "Tarea lista");
+  await page.getByRole("checkbox", { name: "Completar: Tarea lista" }).click();
+  await expect.poll(() => page.getByRole("checkbox", { name: /Tarea lista/ }).evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgb(156, 163, 175)");
+
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  const columnas = page.getByTestId("dia-semana");
+  const iHoy = await columnas.evaluateAll((es) => es.findIndex((e) => e.textContent?.includes("Entrevista")));
+  const destino = columnas.nth(iHoy < 6 ? iHoy + 1 : iHoy - 1);
+  await arrastrar(page, page.getByTestId("fila-evento"), destino);
+  await expect(destino.getByTestId("fila-evento")).toHaveText(/Entrevista/);
+  await expect(columnas.nth(iHoy).getByTestId("fila-evento")).toHaveCount(0);
+  // Un toque sin arrastrar lo sigue abriendo.
+  // (Justo después de soltar, dnd-kit se traga un clic: se reintenta como lo haría una persona.)
+  await expect(async () => {
+    await destino.getByTestId("fila-evento").click();
+    await expect(page.getByRole("complementary", { name: "Detalle de la tarea" })).toBeVisible({ timeout: 500 });
+  }).toPass();
+});
+
+test("matriz: ajustar el ancho de las columnas y el alto de las filas", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/#/matriz");
+  const tam = () => page.getByTestId("cuadrante").evaluateAll((es) => es.map((e) => [Math.round(e.getBoundingClientRect().width), Math.round(e.getBoundingClientRect().height)]));
+  await expect(page.getByTestId("cuadrante")).toHaveCount(4);
+  const inicio = await tam();
+  let b = (await page.getByTestId("borde-columnas").boundingBox())!;
+  await page.mouse.move(b.x + 6, b.y + 50);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 206, b.y + 50, { steps: 8 });
+  await page.mouse.up();
+  b = (await page.getByTestId("borde-filas").boundingBox())!;
+  await page.mouse.move(b.x + 50, b.y + 6);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 50, b.y + 106, { steps: 8 });
+  await page.mouse.up();
+  const movido = await tam();
+  expect(movido[0][0]).toBeGreaterThan(inicio[0][0] + 150);
+  expect(movido[1][0]).toBeLessThan(inicio[1][0] - 150);
+  expect(movido[0][1]).toBeGreaterThan(inicio[0][1] + 70);
+  expect(movido[2][1]).toBeLessThan(inicio[2][1] - 70);
+  await page.reload();
+  await expect.poll(tam).toEqual(movido);
+  await page.getByTestId("borde-columnas").dblclick();
+  await page.getByTestId("borde-filas").dblclick();
+  await expect.poll(tam).toEqual(inicio);
+});
+
+test("menú: el orden de las vistas", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Matriz" })).toBeVisible();
+  const nombres = await page.getByRole("navigation", { name: "Navegación" }).getByRole("link").allTextContents();
+  const vistas = ["Semana", "Calendario", "Estadística Tareas", "Hábitos", "Estadística Hábitos", "Matriz"];
+  expect(nombres.map((n) => n.replace(/\d+$/, "").trim()).filter((n) => vistas.includes(n))).toEqual(vistas);
+});
+
+test("widget Semana del escritorio: 7 días, transparencia y esquinas", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 600 });
+  await page.goto("/?widget=semana");
+  // Aunque la ventana sea angosta, el widget parte mostrando los 7 días.
+  await expect(page.getByTestId("dia-semana")).toHaveCount(7);
+  await expect(page.locator("html")).toHaveClass(/modo-widget/);
+  await page.getByRole("button", { name: "Transparencia y esquinas" }).click();
+  const ajustes = page.getByRole("group", { name: "Aspecto del widget" });
+  await ajustes.getByLabel("Transparencia").fill("60");
+  await ajustes.getByLabel("Esquinas").fill("20");
+  await expect(page.getByTestId("fondo-widget")).toHaveCSS("opacity", "0.4");
+  await expect(page.getByTestId("marco-widget")).toHaveCSS("border-radius", "20px");
+  // Se recuerda al volver a abrir el widget.
+  await page.reload();
+  await expect(page.getByTestId("fondo-widget")).toHaveCSS("opacity", "0.4");
 });

@@ -1,5 +1,5 @@
-import { useEffect, useState, type CSSProperties, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
-import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as EventoTeclado, type PointerEvent as EventoPuntero, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
@@ -8,7 +8,7 @@ import { es } from "date-fns/locale";
 import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, GripVertical, Plus } from "lucide-react";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { DialogoHabito } from "./VistaHabitos";
-import { COLOR_NIVEL } from "../componentes/FilaTarea";
+import { COLOR_HECHA, COLOR_NIVEL } from "../componentes/FilaTarea";
 import { colisionTareasEnZonas } from "../componentes/colision";
 import { venceEnDia } from "../logica/calendario";
 import { ordenEntre } from "../logica/vistas";
@@ -16,9 +16,12 @@ import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
 import { irA, type Seccion } from "../logica/ruta";
 import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
+import { guardarAnchos, leerAnchos, moverBorde, MINIMO_MANUAL, pesosAutomaticos } from "../logica/anchosSemana";
+import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 import type { Prioridad, Subtarea, Tarea } from "../modelos/tipos";
 
 const SECCION: Seccion = { tipo: "vista", vista: "semana" };
+const PREFIJO_EVENTO = "evento:";
 
 const NOMBRE_NIVEL: Record<Prioridad, string> = { alta: "Alta", media: "Media", baja: "Baja", ninguna: "" };
 
@@ -33,14 +36,16 @@ function hora(t: Tarea): string {
   return fecha && !t.todoElDia ? format(fecha, "HH:mm") : "";
 }
 
-export function FilaEvento({ evento, abierta }: { evento: Tarea; abierta: boolean }) {
+export function FilaEvento({ evento, abierta, arrastre }: { evento: Tarea; abierta: boolean; arrastre?: { ref: (n: HTMLElement | null) => void; alPresionar?: (e: EventoPuntero) => void; arrastrando: boolean } }) {
   return (
-    <li>
+    <li ref={arrastre?.ref} className={arrastre?.arrastrando ? "opacity-30" : ""}>
       <button
         type="button"
         data-testid="fila-evento"
+        title={arrastre ? "Toca para abrir; arrastra para llevarlo a otro día" : undefined}
         onClick={() => irA(SECCION, evento.id)}
-        className={`flex w-full items-center gap-2 rounded-md border-l-4 px-3 py-1.5 text-left text-sm ${abierta ? "ring-2 ring-acento" : ""}`}
+        onPointerDown={arrastre?.alPresionar}
+        className={`flex w-full items-center gap-2 rounded-md border-l-4 px-3 py-1.5 text-left text-sm ${arrastre ? "cursor-grab touch-none" : ""} ${abierta ? "ring-2 ring-acento" : ""}`}
         style={estiloEvento(evento.colorEvento)}
       >
         <span className="min-w-0 flex-1 truncate font-medium">{evento.titulo || "Sin título"}</span>
@@ -48,6 +53,12 @@ export function FilaEvento({ evento, abierta }: { evento: Tarea; abierta: boolea
       </button>
     </li>
   );
+}
+
+/** Evento de la Semana que se arrastra entero a otro día; un toque sin mover lo abre. */
+function EventoArrastrable({ evento, abierta, dia }: { evento: Tarea; abierta: boolean; dia: string }) {
+  const { setNodeRef, listeners, isDragging } = useDraggable({ id: PREFIJO_EVENTO + evento.id, data: { dia, evento: true } });
+  return <FilaEvento evento={evento} abierta={abierta} arrastre={{ ref: setNodeRef, alPresionar: listeners?.onPointerDown as ((e: EventoPuntero) => void) | undefined, arrastrando: isDragging }} />;
 }
 
 interface Arrastre {
@@ -63,7 +74,7 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre, estrecha = false }: { 
   const hecha = tarea.estado === "completada";
   // Casilla: color de la importancia. Insignia de abajo: dificultad.
   const dificultad = dificultadDe(tarea);
-  const colorCasilla = COLOR_NIVEL[tarea.prioridad];
+  const colorCasilla = hecha ? COLOR_HECHA : COLOR_NIVEL[tarea.prioridad];
   const fecha = fechaDeTarea(tarea);
   const atrasada = !hecha && fecha !== null && fecha < hoy && !isSameDay(fecha, hoy);
   const etiqueta = tarea.etiquetas[0] ? etiquetas.find((e) => e.nombre === tarea.etiquetas[0]) : undefined;
@@ -178,6 +189,14 @@ function ArrastreSemana({ ahora, children }: { ahora: Date; children: ReactNode 
   const alSoltar = ({ active, over }: DragEndEvent) => {
     setActiva(null);
     if (!over || active.id === over.id) return;
+    if (active.data.current?.evento) {
+      // Un evento cambia de día y conserva su hora.
+      const evento = tareas.find((t) => PREFIJO_EVENTO + t.id === active.id);
+      const sobre = String(over.id);
+      const destino = esZonaDia(sobre) ? sobre.slice(ZONA_DIA.length) : (over.data.current?.dia as string | undefined);
+      if (evento && destino && destino !== active.data.current.dia) actualizarTarea(evento.id, venceEnDia(evento, parseISO(destino)));
+      return;
+    }
     const tarea = tareas.find((t) => t.id === active.id);
     const origen = active.data.current?.dia as string | undefined;
     if (!tarea || !origen) return;
@@ -201,7 +220,7 @@ function ArrastreSemana({ ahora, children }: { ahora: Date; children: ReactNode 
     <DndContext
       sensors={sensores}
       collisionDetection={colisionTareasEnZonas(esZonaDia)}
-      onDragStart={({ active }) => setActiva(tareas.find((t) => t.id === active.id) ?? null)}
+      onDragStart={({ active }) => setActiva(tareas.find((t) => t.id === active.id || PREFIJO_EVENTO + t.id === active.id) ?? null)}
       onDragEnd={alSoltar}
       onDragCancel={() => setActiva(null)}
       accessibility={{
@@ -211,11 +230,16 @@ function ArrastreSemana({ ahora, children }: { ahora: Date; children: ReactNode 
     >
       {children}
       <DragOverlay dropAnimation={null}>
-        {activa && (
-          <ul className="w-64 rounded-lg border border-acento bg-panel shadow-lg">
-            <FilaTareaSemana tarea={activa} abierta={false} hoy={ahora} estrecha />
-          </ul>
-        )}
+        {activa &&
+          (activa.esEvento ? (
+            <ul className="w-56 rounded-md bg-panel shadow-lg">
+              <FilaEvento evento={activa} abierta={false} />
+            </ul>
+          ) : (
+            <ul className="w-64 rounded-lg border border-acento bg-panel shadow-lg">
+              <FilaTareaSemana tarea={activa} abierta={false} hoy={ahora} estrecha />
+            </ul>
+          ))}
       </DragOverlay>
     </DndContext>
   );
@@ -364,16 +388,19 @@ export function MenuNuevo({ alElegir, etiqueta = "Añadir", atajo = true, pequen
 }
 
 export type Alcance = "dia" | "semana";
-const CLAVE_ALCANCE = "andamia-semana-alcance";
+const EN_WIDGET = WIDGET_ACTUAL?.id === "semana";
+// El widget recuerda "Hoy" o "7 días" aparte de la ventana grande, y parte en 7 días.
+const CLAVE_ALCANCE = EN_WIDGET ? "andamia-semana-alcance-widget" : "andamia-semana-alcance";
 
 /** La vista de 7 días es solo para pantallas de computador (1024 px o más). */
 const CONSULTA_ESCRITORIO = "(min-width: 1024px)";
 
 function useEsEscritorio(): boolean {
-  const [es, setEs] = useState(() => typeof window !== "undefined" && window.matchMedia(CONSULTA_ESCRITORIO).matches);
+  // El widget Semana del escritorio siempre ofrece los 7 días, aunque la ventana sea angosta.
+  const [es, setEs] = useState(() => EN_WIDGET || (typeof window !== "undefined" && window.matchMedia(CONSULTA_ESCRITORIO).matches));
   useEffect(() => {
     const m = window.matchMedia(CONSULTA_ESCRITORIO);
-    const alCambiar = () => setEs(m.matches);
+    const alCambiar = () => setEs(EN_WIDGET || m.matches);
     m.addEventListener("change", alCambiar);
     return () => m.removeEventListener("change", alCambiar);
   }, []);
@@ -382,7 +409,8 @@ function useEsEscritorio(): boolean {
 
 function leerAlcance(): Alcance {
   try {
-    return localStorage.getItem(CLAVE_ALCANCE) === "semana" ? "semana" : "dia";
+    const guardado = localStorage.getItem(CLAVE_ALCANCE);
+    return guardado === "semana" || (EN_WIDGET && guardado === null) ? "semana" : "dia";
   } catch {
     return "dia";
   }
@@ -406,7 +434,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compact
       {verEventos && contenido.eventos.length > 0 && (
         <ul aria-label="Eventos" className="mb-3 space-y-1">
           {contenido.eventos.map((e) => (
-            <FilaEvento key={e.id} evento={e} abierta={e.id === tareaAbierta} />
+            <EventoArrastrable key={e.id} evento={e} abierta={e.id === tareaAbierta} dia={claveDia(dia)} />
           ))}
         </ul>
       )}
@@ -486,13 +514,109 @@ function BotonDia({ dia, activo, ahora, alElegir }: { dia: Date; activo: boolean
 }
 
 /** Columna de un día en la vista de 7 días; también recibe tareas soltadas. */
-function ColumnaDia({ dia, esHoy, ahora, children }: { dia: Date; esHoy: boolean; ahora: Date; children: ReactNode }) {
+function ColumnaDia({ dia, esHoy, ahora, estilo, refColumna, children }: { dia: Date; esHoy: boolean; ahora: Date; estilo: CSSProperties; refColumna: (el: HTMLElement | null) => void; children: ReactNode }) {
   const { setNodeRef, isOver } = useZonaDia(dia);
   return (
-    <section ref={setNodeRef} aria-label={tituloDelDia(dia, ahora)} data-testid="dia-semana" className={`min-w-0 rounded-xl p-2 ${isOver ? "ring-2 ring-acento" : ""} ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}>
+    <section
+      ref={(el) => {
+        setNodeRef(el);
+        refColumna(el);
+      }}
+      style={estilo}
+      aria-label={tituloDelDia(dia, ahora)}
+      data-testid="dia-semana"
+      className={`min-w-0 rounded-xl p-2 ${isOver ? "ring-2 ring-acento" : ""} ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}
+    >
       {children}
     </section>
   );
+}
+
+/** Borde entre dos columnas: se arrastra para cambiar el ancho; doble clic vuelve a automático. */
+function BordeColumna({ etiqueta, alMover, alSoltar, alRestablecer }: { etiqueta: string; alMover: (dx: number, inicio: boolean) => void; alSoltar: () => void; alRestablecer: () => void }) {
+  const inicio = useRef<number | null>(null);
+  const tecla = (e: EventoTeclado) => {
+    const paso = e.key === "ArrowLeft" ? -24 : e.key === "ArrowRight" ? 24 : 0;
+    if (!paso) return;
+    e.preventDefault();
+    alMover(paso, true);
+    alSoltar();
+  };
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={etiqueta}
+      title="Arrastra para cambiar el ancho. Doble clic: ancho automático."
+      tabIndex={0}
+      data-testid="borde-columna"
+      className="group flex w-3 shrink-0 cursor-col-resize touch-none justify-center outline-none"
+      onPointerDown={(e: EventoPuntero) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        inicio.current = e.clientX;
+        alMover(0, true);
+      }}
+      onPointerMove={(e: EventoPuntero) => {
+        if (inicio.current !== null) alMover(e.clientX - inicio.current, false);
+      }}
+      onPointerUp={() => {
+        if (inicio.current === null) return;
+        inicio.current = null;
+        alSoltar();
+      }}
+      onLostPointerCapture={() => {
+        if (inicio.current === null) return;
+        inicio.current = null;
+        alSoltar();
+      }}
+      onDoubleClick={alRestablecer}
+      onKeyDown={tecla}
+    >
+      <span className="my-2 w-0.5 rounded-full bg-transparent transition-colors group-hover:bg-acento/60 group-focus-visible:bg-acento" />
+    </div>
+  );
+}
+
+/** Anchos de las 7 columnas: automáticos (los días vacíos se achican) o ajustados a mano. */
+function useAnchosSemana(lunes: string, vacios: boolean[]) {
+  const [manual, setManual] = useState<number[] | null>(() => leerAnchos(lunes));
+  const [semana, setSemana] = useState(lunes);
+  if (semana !== lunes) {
+    setSemana(lunes);
+    setManual(leerAnchos(lunes));
+  }
+  const columnas = useRef<(HTMLElement | null)[]>([]);
+  const base = useRef<number[]>([]);
+  const actual = useRef<number[] | null>(manual);
+  actual.current = manual;
+
+  const pesos = manual ?? pesosAutomaticos(vacios);
+  const estilo = (i: number): CSSProperties => ({
+    flex: `${pesos[i]} 1 0px`,
+    minWidth: manual ? MINIMO_MANUAL : vacios[i] ? "7rem" : "10rem",
+  });
+  const mover = (i: number) => (dx: number, inicio: boolean) => {
+    if (inicio || !base.current.length) base.current = columnas.current.map((c) => c?.getBoundingClientRect().width ?? MINIMO_MANUAL);
+    if (dx === 0) return;
+    const nuevos = moverBorde(base.current, i, dx);
+    actual.current = nuevos;
+    setManual(nuevos);
+  };
+  const soltar = () => {
+    base.current = [];
+    if (actual.current) guardarAnchos(lunes, actual.current);
+  };
+  const restablecer = () => {
+    actual.current = null;
+    base.current = [];
+    setManual(null);
+    guardarAnchos(lunes, null);
+  };
+  const refColumna = (i: number) => (el: HTMLElement | null) => {
+    columnas.current[i] = el;
+  };
+  return { estilo, mover, soltar, restablecer, refColumna };
 }
 
 export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
@@ -527,6 +651,14 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const verTareas = filtro !== "eventos";
   const mesCorto = format(elegido, "MMM", { locale: es }).replace(".", "");
   const mes = (mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1)) + (elegido.getFullYear() !== ahora.getFullYear() ? ` ${elegido.getFullYear()}` : "");
+
+  const tareasTodas = useTienda((s) => s.tareas);
+  const listasTodas = useTienda((s) => s.listas);
+  const vacios = dias.map((d) => {
+    const c = contenidoDelDia(tareasTodas, listasTodas, d, ahora);
+    return (!verEventos || c.eventos.length === 0) && (!verTareas || c.tareas.length === 0);
+  });
+  const anchos = useAnchosSemana(claveDia(dias[0]), vacios);
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
   const elegirDia = (d: Date) => setElegido(d);
@@ -599,11 +731,20 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       ) : (
         // En el computador: los 7 días uno al lado del otro, cada uno en su columna.
         <div className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-6 sm:px-6">
-          <div className="grid min-h-full grid-cols-[repeat(7,minmax(10rem,1fr))] gap-3">
+          <div className="flex min-h-full">
             {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
               return (
-                <ColumnaDia key={d.toISOString()} dia={d} esHoy={esHoy} ahora={ahora}>
+                <Fragment key={d.toISOString()}>
+                {i > 0 && (
+                  <BordeColumna
+                    etiqueta={`Ancho entre ${nombreCortoDia(dias[i - 1])} y ${nombreCortoDia(d)}`}
+                    alMover={anchos.mover(i - 1)}
+                    alSoltar={anchos.soltar}
+                    alRestablecer={anchos.restablecer}
+                  />
+                )}
+                <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} refColumna={anchos.refColumna(i)}>
                   <div className="mb-2 flex items-center gap-1 px-1">
                     <h2 className="flex min-w-0 flex-1 items-baseline gap-1.5">
                       <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
@@ -620,6 +761,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                   </div>
                   <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto />
                 </ColumnaDia>
+                </Fragment>
               );
             })}
           </div>

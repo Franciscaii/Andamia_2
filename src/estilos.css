@@ -41,6 +41,8 @@
   --prio-media: #c47a14;
   --prio-baja: #3a70b0;
   --prio-ninguna: #8d918d;
+  /* Casilla de una tarea completada: plomo, sea cual sea su importancia. */
+  --casilla-hecha: #9ca3af;
   /* Semana: dificultad e importancia (rojo, amarillo, azul) y eventos (morado). */
   --nivel-alta: #d0402b;
   --nivel-media: #d29b06;
@@ -76,6 +78,7 @@
   --prio-media: #e0a64f;
   --prio-baja: #7cabe2;
   --prio-ninguna: #7f8682;
+  --casilla-hecha: #6b7280;
   --nivel-alta: #ef7a66;
   --nivel-media: #f0c94a;
   --nivel-baja: #6fb0f0;
@@ -141,4 +144,10 @@ body {
     outline: 2px solid var(--acento);
     outline-offset: 1px;
   }
+}
+
+/* Widgets del escritorio (app de PC): la ventana es transparente y el color lo pone el marco del widget. */
+html.modo-widget,
+html.modo-widget body {
+  background: transparent;
 }

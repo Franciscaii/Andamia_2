@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as EventoTeclado, type PointerEvent as EventoPuntero } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -12,6 +12,7 @@ import { interpretarEntrada } from "../logica/entradaRapida";
 import { ordenEntre } from "../logica/vistas";
 import { CUADRANTES, prioridadDeCuadrante, repartirEnCuadrantes, type Cuadrante, type IdCuadrante } from "../logica/matriz";
 import { irA } from "../logica/ruta";
+import { acotar, guardarDivision, leerDivision, type DivisionMatriz } from "../logica/divisionMatriz";
 import { LISTA_BANDEJA, type Tarea } from "../modelos/tipos";
 
 const SECCION = { tipo: "matriz" } as const;
@@ -34,7 +35,7 @@ function TarjetaMatriz({ tarea, abierta, cuadrante }: { tarea: Tarea; abierta: b
   );
 }
 
-function ZonaCuadrante({ numero, cuadrante, tareas, tareaAbierta, listaId, etiqueta }: { numero: number; cuadrante: Cuadrante; tareas: Tarea[]; tareaAbierta: string | null; listaId: string | null; etiqueta: string | null }) {
+function ZonaCuadrante({ numero, cuadrante, tareas, tareaAbierta, listaId, etiqueta, clase = "" }: { clase?: string; numero: number; cuadrante: Cuadrante; tareas: Tarea[]; tareaAbierta: string | null; listaId: string | null; etiqueta: string | null }) {
   const crearTarea = useTienda((s) => s.crearTarea);
   const listas = useTienda((s) => s.listas);
   const { setNodeRef, isOver } = useDroppable({ id: cuadrante.id });
@@ -50,7 +51,7 @@ function ZonaCuadrante({ numero, cuadrante, tareas, tareaAbierta, listaId, etiqu
   };
 
   return (
-    <section ref={setNodeRef} aria-label={cuadrante.nombre} data-testid="cuadrante" className={`flex min-h-64 min-w-0 flex-col rounded-xl border bg-panel p-3 lg:min-h-0 ${isOver ? "border-acento bg-acento-suave" : "border-borde"}`}>
+    <section ref={setNodeRef} aria-label={cuadrante.nombre} data-testid="cuadrante" className={`flex min-h-64 min-w-0 flex-col rounded-xl border bg-panel p-3 lg:min-h-0 ${clase} ${isOver ? "border-acento bg-acento-suave" : "border-borde"}`}>
       <header className="mb-2 flex items-start gap-2">
         <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold" style={{ borderColor: COLOR_PRIORIDAD[cuadrante.prioridad], color: COLOR_PRIORIDAD[cuadrante.prioridad] }}>
           {numero}
@@ -83,6 +84,73 @@ function ZonaCuadrante({ numero, cuadrante, tareas, tareaAbierta, listaId, etiqu
   );
 }
 
+/** Lugar de cada cuadrante en la grilla del computador (columnas y filas 1 y 3; la 2 es el borde). */
+const LUGAR = ["lg:col-start-1 lg:row-start-1", "lg:col-start-3 lg:row-start-1", "lg:col-start-1 lg:row-start-3", "lg:col-start-3 lg:row-start-3"];
+
+/** Borde entre cuadrantes: se arrastra para cambiar el tamaño; doble clic vuelve a mitad y mitad. */
+function BordeMatriz({ eje, valor, alCambiar, alSoltar }: { eje: "columna" | "fila"; valor: number; alCambiar: (x: number) => void; alSoltar: () => void }) {
+  const tomado = useRef(false);
+  const vertical = eje === "columna";
+  const posicion = (e: EventoPuntero) => {
+    const grilla = (e.currentTarget as HTMLElement).parentElement!;
+    const r = grilla.getBoundingClientRect();
+    const st = getComputedStyle(grilla);
+    if (vertical) {
+      const ini = r.left + parseFloat(st.paddingLeft);
+      return (e.clientX - ini) / (r.width - parseFloat(st.paddingLeft) - parseFloat(st.paddingRight));
+    }
+    const ini = r.top + parseFloat(st.paddingTop);
+    return (e.clientY - ini) / (r.height - parseFloat(st.paddingTop) - parseFloat(st.paddingBottom));
+  };
+  const tecla = (e: EventoTeclado) => {
+    const menos = vertical ? "ArrowLeft" : "ArrowUp";
+    const mas = vertical ? "ArrowRight" : "ArrowDown";
+    if (e.key !== menos && e.key !== mas) return;
+    e.preventDefault();
+    alCambiar(acotar(valor + (e.key === mas ? 0.05 : -0.05)));
+    alSoltar();
+  };
+  return (
+    <div
+      role="separator"
+      aria-orientation={vertical ? "vertical" : "horizontal"}
+      aria-label={vertical ? "Ancho de las columnas" : "Alto de las filas"}
+      aria-valuenow={Math.round(valor * 100)}
+      aria-valuemin={20}
+      aria-valuemax={80}
+      title="Arrastra para cambiar el tamaño. Doble clic: mitad y mitad."
+      tabIndex={0}
+      data-testid={vertical ? "borde-columnas" : "borde-filas"}
+      className={`group hidden touch-none outline-none lg:flex ${vertical ? "col-start-2 row-span-3 row-start-1 cursor-col-resize justify-center" : "col-span-3 col-start-1 row-start-2 cursor-row-resize items-center"}`}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        tomado.current = true;
+      }}
+      onPointerMove={(e) => {
+        if (tomado.current) alCambiar(acotar(posicion(e)));
+      }}
+      onPointerUp={() => {
+        if (!tomado.current) return;
+        tomado.current = false;
+        alSoltar();
+      }}
+      onLostPointerCapture={() => {
+        if (!tomado.current) return;
+        tomado.current = false;
+        alSoltar();
+      }}
+      onDoubleClick={() => {
+        alCambiar(0.5);
+        alSoltar();
+      }}
+      onKeyDown={tecla}
+    >
+      <span className={`rounded-full bg-transparent transition-colors group-hover:bg-acento/60 group-focus-visible:bg-acento ${vertical ? "my-3 w-0.5" : "mx-3 h-0.5 w-full"}`} />
+    </div>
+  );
+}
+
 export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
@@ -92,6 +160,20 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
   const listaId: string | null = null;
   const [etiqueta, setEtiqueta] = useState<string | null>(null);
   const [activa, setActiva] = useState<Tarea | null>(null);
+  const [division, setDivision] = useState<DivisionMatriz>(leerDivision);
+  const actual = useRef(division);
+  actual.current = division;
+  const cambiar = (eje: keyof DivisionMatriz) => (x: number) => {
+    actual.current = { ...actual.current, [eje]: x };
+    setDivision(actual.current);
+  };
+  const soltar = () => guardarDivision(actual.current);
+  const tamanos = {
+    "--mc1": `${division.columna}fr`,
+    "--mc2": `${1 - division.columna}fr`,
+    "--mf1": `${division.fila}fr`,
+    "--mf2": `${1 - division.fila}fr`,
+  } as CSSProperties;
 
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const reparto = useMemo(() => repartirEnCuadrantes(tareas, listas, { listaId, etiqueta }), [tareas, listas, listaId, etiqueta]);
@@ -144,10 +226,15 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
           announcements: { onDragStart: () => "Tarea tomada.", onDragOver: () => "", onDragEnd: () => "Tarea soltada.", onDragCancel: () => "Movimiento cancelado." },
         }}
       >
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-5 pb-5 lg:grid-cols-2 lg:grid-rows-2">
+        <div
+          style={tamanos}
+          className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-5 pb-5 lg:grid-cols-[minmax(0,var(--mc1))_12px_minmax(0,var(--mc2))] lg:grid-rows-[minmax(0,var(--mf1))_12px_minmax(0,var(--mf2))] lg:gap-0"
+        >
           {CUADRANTES.map((c, i) => (
-            <ZonaCuadrante key={c.id} numero={i + 1} cuadrante={c} tareas={reparto[c.id]} tareaAbierta={tareaAbierta} listaId={listaId} etiqueta={etiqueta} />
+            <ZonaCuadrante key={c.id} clase={LUGAR[i]} numero={i + 1} cuadrante={c} tareas={reparto[c.id]} tareaAbierta={tareaAbierta} listaId={listaId} etiqueta={etiqueta} />
           ))}
+          <BordeMatriz eje="columna" valor={division.columna} alCambiar={cambiar("columna")} alSoltar={soltar} />
+          <BordeMatriz eje="fila" valor={division.fila} alCambiar={cambiar("fila")} alSoltar={soltar} />
         </div>
         <DragOverlay dropAnimation={null}>
           {activa && (

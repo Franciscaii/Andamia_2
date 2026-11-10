@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { estiloEvento } from "../componentes/CamposTarea";
 import { colisionPunteroOTeclado } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
-import { COLOR_NIVEL, COLOR_PRIORIDAD } from "../componentes/FilaTarea";
+import { COLOR_HECHA, COLOR_NIVEL, COLOR_PRIORIDAD } from "../componentes/FilaTarea";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes, diasDeSemana, entradasDelDia, entradasEnRango, venceEnDia, venceEnHora, type EntradaCalendario } from "../logica/calendario";
@@ -44,7 +44,7 @@ interface PropsChip {
 function contenidoChip(tarea: Tarea, fecha: Date | null, esOcurrencia: boolean) {
   return (
     <>
-      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: COLOR_PRIORIDAD[tarea.prioridad] }} />
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: tarea.estado === "completada" ? COLOR_HECHA : COLOR_PRIORIDAD[tarea.prioridad] }} />
       {fecha && !tarea.todoElDia && <span className="shrink-0 text-tenue">{format(fecha, "HH:mm")}</span>}
       <span className={`truncate ${tarea.estado === "completada" ? "line-through" : ""}`}>{tarea.titulo || "Sin título"}</span>
       {(tarea.repeticion || esOcurrencia) && <Repeat size={11} className="ml-auto hidden shrink-0 text-tenue sm:block" />}
@@ -59,7 +59,7 @@ function ChipMes({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: Pr
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: idArrastre ?? PREFIJO_TAREA + tarea.id, disabled: !movible });
   const hecha = tarea.estado === "completada";
   const evento = tarea.esEvento === true;
-  const color = COLOR_NIVEL[tarea.prioridad];
+  const color = hecha ? COLOR_HECHA : COLOR_NIVEL[tarea.prioridad];
   return (
     <div
       ref={setNodeRef}

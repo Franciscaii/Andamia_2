@@ -2,7 +2,7 @@
 // lo que una app web no puede hacer sola: bandeja, atajo global, modo mini
 // siempre visible, modo escritorio (tipo widget), widgets sueltos en el escritorio
 // (Semana, Calendario, Matriz, Estadística Tareas y Estadística Hábitos) y abrir al iniciar Windows.
-const { app, BrowserWindow, Tray, Menu, globalShortcut, shell, nativeImage, screen, session } = require("electron");
+const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, shell, nativeImage, screen, session } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 
@@ -206,7 +206,7 @@ function aplicarModo(modo, { guardar = true } = {}) {
 // Cada uno es una ventana chica sin bordes que abre Andamia con ?widget=<tipo>.
 // Quedan detrás de las demás ventanas, recuerdan dónde los dejaste y vuelven al iniciar.
 const WIDGETS = [
-  { id: "semana", nombre: "Semana", ancho: 380, alto: 560 },
+  { id: "semana", nombre: "Semana", ancho: 1040, alto: 620 },
   { id: "calendario", nombre: "Calendario", ancho: 520, alto: 520 },
   { id: "matriz", nombre: "Matriz", ancho: 560, alto: 560 },
   { id: "estadistica-tareas", nombre: "Estadística Tareas", ancho: 380, alto: 560 },
@@ -248,9 +248,14 @@ function abrirWidget(id, { guardar = true } = {}) {
   const r = rectanguloVisible(prefsWidgets()[id]?.rect) ?? rectanguloInicialWidget(w);
   const v = new BrowserWindow({
     ...r,
-    minWidth: 260,
-    minHeight: 220,
+    minWidth: MINIMO_WIDGET.ancho,
+    minHeight: MINIMO_WIDGET.alto,
     frame: false,
+    // Transparente para que el widget deje ver el escritorio (la transparencia la elige ella en el widget).
+    // Las ventanas transparentes no se pueden estirar desde el sistema: los bordes los dibuja la página.
+    transparent: true,
+    resizable: false,
+    hasShadow: false,
     show: false,
     skipTaskbar: true,
     minimizable: false,
@@ -258,8 +263,8 @@ function abrirWidget(id, { guardar = true } = {}) {
     fullscreenable: false,
     title: `Andamia · ${w.nombre}`,
     icon: path.join(RECURSOS, "icono.ico"),
-    backgroundColor: "#faf8f4",
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true },
+    backgroundColor: "#00000000",
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true, preload: path.join(__dirname, "precarga-widget.cjs") },
   });
   ventanasWidget.set(id, v);
   if (guardar) guardarPrefsWidget(id, { abierto: true });
@@ -310,6 +315,52 @@ function abrirWidget(id, { guardar = true } = {}) {
   void v.loadURL(`${URL_ANDAMIA}?widget=${id}`);
   actualizarMenuBandeja();
 }
+
+// ---------- Cambiar el tamaño de un widget desde sus bordes ----------
+const MINIMO_WIDGET = { ancho: 260, alto: 220 };
+const ajustes = new Map(); // webContents.id -> { ventana, borde, inicio, cursor, reloj }
+
+/** Nuevo rectángulo al mover el borde (n, s, e, o o una esquina) según cuánto se movió el mouse. */
+function rectanguloAjustado(inicio, borde, dx, dy) {
+  let { x, y, width, height } = inicio;
+  if (borde.includes("e")) width = Math.max(MINIMO_WIDGET.ancho, inicio.width + dx);
+  if (borde.includes("s")) height = Math.max(MINIMO_WIDGET.alto, inicio.height + dy);
+  if (borde.includes("o")) {
+    width = Math.max(MINIMO_WIDGET.ancho, inicio.width - dx);
+    x = inicio.x + inicio.width - width;
+  }
+  if (borde.includes("n")) {
+    height = Math.max(MINIMO_WIDGET.alto, inicio.height - dy);
+    y = inicio.y + inicio.height - height;
+  }
+  return { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height) };
+}
+
+function terminarAjuste(idContenido) {
+  const a = ajustes.get(idContenido);
+  if (!a) return;
+  clearInterval(a.reloj);
+  clearTimeout(a.limite);
+  ajustes.delete(idContenido);
+}
+
+ipcMain.on("widget-ajuste-inicio", (evento, borde) => {
+  const v = BrowserWindow.fromWebContents(evento.sender);
+  if (!v || ![...ventanasWidget.values()].includes(v) || !/^(n|s|e|o|no|ne|so|se)$/.test(borde)) return;
+  terminarAjuste(evento.sender.id);
+  const inicio = v.getBounds();
+  const cursor = screen.getCursorScreenPoint();
+  // Mientras se arrastra, se sigue al mouse unas 60 veces por segundo.
+  const reloj = setInterval(() => {
+    if (v.isDestroyed()) return terminarAjuste(evento.sender.id);
+    const p = screen.getCursorScreenPoint();
+    v.setBounds(rectanguloAjustado(inicio, borde, p.x - cursor.x, p.y - cursor.y));
+  }, 16);
+  // Por si nunca llega el aviso de que se soltó.
+  const limite = setTimeout(() => terminarAjuste(evento.sender.id), 60_000);
+  ajustes.set(evento.sender.id, { reloj, limite });
+});
+ipcMain.on("widget-ajuste-fin", (evento) => terminarAjuste(evento.sender.id));
 
 function cerrarWidget(id) {
   const v = ventanasWidget.get(id);

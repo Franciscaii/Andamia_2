@@ -459,6 +459,20 @@ function Instalacion() {
   return <p className="text-sm text-tenue">Si tu navegador lo permite, puedes instalarla desde su menú. En iPhone: Compartir → Añadir a pantalla de inicio. La instalación requiere la versión publicada de la app, no el modo de desarrollo.</p>;
 }
 
+/** Vista "Tema" del menú: elegir y personalizar el tema de la app. */
+export function VistaTema() {
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto max-w-2xl space-y-4 p-5">
+        <h1 className="text-xl font-semibold">Tema</h1>
+        <Seccion titulo="Elige un tema">
+          <Apariencia />
+        </Seccion>
+      </div>
+    </div>
+  );
+}
+
 export function VistaAjustes() {
   const configurada = useCuenta((s) => s.configurada);
   const usuario = useCuenta((s) => s.usuario);
@@ -466,9 +480,6 @@ export function VistaAjustes() {
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-2xl space-y-4 p-5">
         <h1 className="text-xl font-semibold">Cuenta y ajustes</h1>
-        <Seccion titulo="Apariencia">
-          <Apariencia />
-        </Seccion>
         <Seccion titulo="Cuenta">
           {!configurada ? (
             <p data-testid="sin-firebase" className="text-sm text-tenue">Las cuentas aún no están configuradas en esta instalación. Tus datos se guardan solo en este navegador. La guía está en docs/firebase-paso-a-paso.md.</p>
