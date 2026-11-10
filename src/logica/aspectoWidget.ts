@@ -11,7 +11,7 @@ export interface AspectoWidget {
 
 export const ASPECTO_INICIAL: AspectoWidget = { transparencia: 0, esquinas: 12 };
 export const MAX_TRANSPARENCIA = 90;
-export const MAX_ESQUINAS = 28;
+export const MAX_ESQUINAS = 48;
 
 const clave = (id: string) => `andamia-widget-aspecto-${id}`;
 const entre = (x: unknown, min: number, max: number, si: number) => (typeof x === "number" && Number.isFinite(x) ? Math.min(max, Math.max(min, Math.round(x))) : si);

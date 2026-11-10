@@ -163,37 +163,40 @@ export function MarcoWidget({
             opacity: o.fondo,
           }}
         />
-        {/* Franja fina y transparente para mover el widget: sin barra de color ni menú; los botones aparecen al pasar el mouse. */}
+        {/* Franja invisible arriba para mover el widget: no ocupa alto, así la Semana aprovecha todo el espacio. */}
         <div
-          className="group/barra relative flex h-6 shrink-0 items-center justify-end gap-1 px-2 [-webkit-app-region:drag]"
+          aria-hidden
+          className="absolute inset-x-0 top-0 z-30 h-3 [-webkit-app-region:drag]"
           data-testid="barra-widget"
           title={`Arrastra aquí para mover el widget ${nombre}`}
-        >
+        />
+        {/* Esquinita siempre visible: abre transparencia y esquinas. */}
+        <div className="group/esquina absolute top-1 right-1 z-40 flex items-center gap-1 [-webkit-app-region:no-drag]">
+          <button
+            type="button"
+            aria-label="Abrir en Andamia"
+            title="Abrir en Andamia"
+            className="rounded-full bg-[var(--panel-solido)] p-1 text-tenue opacity-0 shadow-sm transition-opacity group-hover/esquina:opacity-100 focus-visible:opacity-100 hover:text-texto"
+            onClick={abrir}
+          >
+            <ExternalLink size={12} />
+          </button>
           <button
             type="button"
             aria-label="Transparencia y esquinas"
             aria-expanded={ajustes}
             title="Transparencia y esquinas"
-            className={`rounded-md p-0.5 text-tenue opacity-0 transition-opacity group-hover/barra:opacity-100 focus-visible:opacity-100 hover:bg-suave [-webkit-app-region:no-drag] ${ajustes ? "opacity-100" : ""}`}
+            className={`rounded-full bg-[var(--panel-solido)] p-1 text-tenue shadow-sm transition-opacity hover:text-texto hover:opacity-100 ${ajustes ? "opacity-100" : "opacity-50"}`}
             onClick={() => setAjustes((x) => !x)}
           >
-            <SlidersHorizontal size={14} />
-          </button>
-          <button
-            type="button"
-            aria-label="Abrir en Andamia"
-            title="Abrir en Andamia"
-            className={`rounded-md p-0.5 text-tenue opacity-0 transition-opacity group-hover/barra:opacity-100 focus-visible:opacity-100 hover:bg-suave [-webkit-app-region:no-drag] ${ajustes ? "opacity-100" : ""}`}
-            onClick={abrir}
-          >
-            <ExternalLink size={14} />
+            <SlidersHorizontal size={12} />
           </button>
         </div>
         {ajustes && (
           <div
             role="group"
             aria-label="Aspecto del widget"
-            className="absolute top-7 right-2 z-40 w-60 space-y-3 rounded-lg border border-borde bg-[var(--panel-solido)] p-3 text-texto shadow-lg [-webkit-app-region:no-drag]"
+            className="absolute top-8 right-2 z-50 w-60 space-y-3 rounded-lg border border-borde bg-[var(--panel-solido)] p-3 text-texto shadow-lg [-webkit-app-region:no-drag]"
           >
             <Deslizador
               etiqueta="Transparencia"
