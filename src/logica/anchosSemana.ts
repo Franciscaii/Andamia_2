@@ -4,7 +4,7 @@
  * Manual: arrastrando el borde entre dos columnas; se recuerda por semana en este dispositivo.
  */
 export const PESO_VACIO = 0.35;
-export const MINIMO_MANUAL = 96;
+export const MINIMO_MANUAL = 64;
 const CLAVE = "andamia-semana-anchos";
 const SEMANAS_GUARDADAS = 12;
 

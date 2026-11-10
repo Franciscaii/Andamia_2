@@ -339,7 +339,7 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
 }
 
 /** El + de la semana: tarea, evento o hábito. */
-export function MenuNuevo({ alElegir, etiqueta = "Añadir", atajo = true, pequeno = false }: { alElegir: (tipo: TipoNuevo | "habito") => void; etiqueta?: string; atajo?: boolean; pequeno?: boolean }) {
+export function MenuNuevo({ alElegir, etiqueta = "Añadir", atajo = true, pequeno = false, abrirHacia = "izquierda" }: { alElegir: (tipo: TipoNuevo | "habito") => void; etiqueta?: string; atajo?: boolean; pequeno?: boolean; abrirHacia?: "izquierda" | "derecha" }) {
   const [abierto, setAbierto] = useState(false);
   const opciones: { tipo: TipoNuevo | "habito"; nombre: string; icono: ReactNode }[] = [
     { tipo: "tarea", nombre: "Tarea", icono: <CheckSquare size={16} /> },
@@ -363,7 +363,7 @@ export function MenuNuevo({ alElegir, etiqueta = "Añadir", atajo = true, pequen
       {abierto && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setAbierto(false)} />
-          <div role="menu" aria-label={etiqueta} className="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-borde bg-panel p-1 shadow-lg">
+          <div role="menu" aria-label={etiqueta} className={`absolute ${abrirHacia === "derecha" ? "left-0" : "right-0"} z-20 mt-1 w-40 rounded-lg border border-borde bg-panel p-1 shadow-lg`}>
             {opciones.map((o) => (
               <button
                 key={o.tipo}
@@ -514,7 +514,7 @@ function BotonDia({ dia, activo, ahora, alElegir }: { dia: Date; activo: boolean
 }
 
 /** Columna de un día en la vista de 7 días; también recibe tareas soltadas. */
-function ColumnaDia({ dia, esHoy, ahora, estilo, refColumna, children }: { dia: Date; esHoy: boolean; ahora: Date; estilo: CSSProperties; refColumna: (el: HTMLElement | null) => void; children: ReactNode }) {
+function ColumnaDia({ dia, esHoy, ahora, estilo, refColumna, angosta = false, children }: { dia: Date; esHoy: boolean; ahora: Date; estilo: CSSProperties; refColumna: (el: HTMLElement | null) => void; angosta?: boolean; children: ReactNode }) {
   const { setNodeRef, isOver } = useZonaDia(dia);
   return (
     <section
@@ -525,7 +525,8 @@ function ColumnaDia({ dia, esHoy, ahora, estilo, refColumna, children }: { dia: 
       style={estilo}
       aria-label={tituloDelDia(dia, ahora)}
       data-testid="dia-semana"
-      className={`min-w-0 rounded-xl p-2 ${isOver ? "ring-2 ring-acento" : ""} ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}
+      data-angosta={angosta ? "" : undefined}
+      className={`min-w-0 rounded-xl ${angosta ? "p-1.5" : "p-2"} ${isOver ? "ring-2 ring-acento" : ""} ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}
     >
       {children}
     </section>
@@ -578,8 +579,38 @@ function BordeColumna({ etiqueta, alMover, alSoltar, alRestablecer }: { etiqueta
   );
 }
 
-/** Ancho de un día sin tareas por hacer en la vista de 7 días: lo justo para leer su contenido. */
-const ANCHO_DIA_LIBRE = "8.5rem";
+/** Ancho de un día sin tareas por hacer en la vista de 7 días: una tira angosta con el día y un resumen. */
+const ANCHO_DIA_LIBRE = "4.75rem";
+
+/** Contenido de un día angosto: sus eventos (cortos) y, si tiene tareas, un "✓ hechas/total" que abre el día. */
+function ResumenDiaAngosto({ dia, ahora, verEventos, verTareas, tareaAbierta, alAbrir }: { dia: Date; ahora: Date; verEventos: boolean; verTareas: boolean; tareaAbierta: string | null; alAbrir: () => void }) {
+  const tareas = useTienda((s) => s.tareas);
+  const listas = useTienda((s) => s.listas);
+  const contenido = contenidoDelDia(tareas, listas, dia, ahora);
+  const { hechas, total } = contenido.progreso;
+  return (
+    <div data-testid="resumen-angosto" className="space-y-1.5">
+      {verEventos && contenido.eventos.length > 0 && (
+        <ul aria-label="Eventos" className="space-y-1">
+          {contenido.eventos.map((e) => (
+            <EventoArrastrable key={e.id} evento={e} abierta={e.id === tareaAbierta} dia={claveDia(dia)} />
+          ))}
+        </ul>
+      )}
+      {verTareas && total > 0 && (
+        <button
+          type="button"
+          onClick={alAbrir}
+          title={`${hechas} de ${total} tareas hechas. Toca para ver el día.`}
+          className="flex w-full items-center justify-center gap-1 rounded-lg bg-panel px-1 py-1.5 text-xs font-medium text-tenue tabular-nums hover:text-texto"
+        >
+          <Check size={13} strokeWidth={3} className="shrink-0 text-acento" />
+          {hechas}/{total}
+        </button>
+      )}
+    </div>
+  );
+}
 
 /** Anchos de las 7 columnas: automáticos (los días vacíos se achican) o ajustados a mano. */
 function useAnchosSemana(lunes: string, vacios: boolean[]) {
@@ -618,7 +649,8 @@ function useAnchosSemana(lunes: string, vacios: boolean[]) {
   const refColumna = (i: number) => (el: HTMLElement | null) => {
     columnas.current[i] = el;
   };
-  return { estilo, mover, soltar, restablecer, refColumna };
+  const angosta = (i: number) => !manual && vacios[i];
+  return { estilo, angosta, mover, soltar, restablecer, refColumna };
 }
 
 export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
@@ -687,7 +719,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               {(
                 [
                   { id: "dia", nombre: "Día" },
-                  { id: "semana", nombre: "7 días" },
+                  { id: "semana", nombre: "7 Días" },
                 ] as const
               ).map((o) => (
                 <button
@@ -738,6 +770,43 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
           <div className="flex min-h-full">
             {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
+              const angosta = anchos.angosta(i);
+              const etiquetaNuevo = `Añadir el ${format(d, "EEEE d", { locale: es })}`;
+              const atajo = dias.some((x) => isSameDay(x, ahora)) ? esHoy : i === 0;
+              if (angosta) {
+                return (
+                  <Fragment key={d.toISOString()}>
+                  {i > 0 && (
+                    <BordeColumna
+                      etiqueta={`Ancho entre ${nombreCortoDia(dias[i - 1])} y ${nombreCortoDia(d)}`}
+                      alMover={anchos.mover(i - 1)}
+                      alSoltar={anchos.soltar}
+                      alRestablecer={anchos.restablecer}
+                    />
+                  )}
+                  <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} refColumna={anchos.refColumna(i)} angosta>
+                    <div className="mb-2 flex flex-col items-center gap-1">
+                      <h2 className="flex flex-col items-center leading-tight">
+                        <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
+                        <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
+                      </h2>
+                      <MenuNuevo pequeno etiqueta={etiquetaNuevo} atajo={atajo} abrirHacia={i < 4 ? "derecha" : "izquierda"} alElegir={(tipo) => nuevoEn(tipo, d)} />
+                    </div>
+                    <ResumenDiaAngosto
+                      dia={d}
+                      ahora={ahora}
+                      verEventos={verEventos}
+                      verTareas={verTareas}
+                      tareaAbierta={tareaAbierta}
+                      alAbrir={() => {
+                        setElegido(d);
+                        setAlcance("dia");
+                      }}
+                    />
+                  </ColumnaDia>
+                  </Fragment>
+                );
+              }
               return (
                 <Fragment key={d.toISOString()}>
                 {i > 0 && (

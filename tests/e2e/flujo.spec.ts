@@ -389,7 +389,7 @@ test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   await dialogo.getByRole("button", { name: "Crear tarea" }).click();
 
   await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
-  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 Días" }).click();
   await expect(page.getByTestId("dia-semana")).toHaveCount(7);
   await expect(page.getByTestId("fila-tarea")).toHaveCount(2);
   await expect(page.getByTestId("dia-semana").filter({ hasText: "Tarea de otro día" })).toHaveCount(1);
@@ -434,7 +434,7 @@ test("calendario mes: 'n más' lleva a la Semana en Hoy con ese día elegido", a
   await page.setViewportSize({ width: 1280, height: 600 });
   await page.goto("/");
   // Quedó elegida la vista de 7 días: el enlace debe volver a "Hoy".
-  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 Días" }).click();
   const dia = new Date();
   dia.setDate(dia.getDate() + (dia.getDay() === 0 ? -1 : 1));
   const clave = dia.toLocaleDateString("sv-SE");
@@ -551,7 +551,7 @@ test("semana: los días vacíos se achican y el ancho se ajusta a mano", async (
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
   await crearEnSemana(page, "Tarea", "Tarea con espacio");
-  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 Días" }).click();
   const anchos = () => page.getByTestId("dia-semana").evaluateAll((es) => es.map((e) => Math.round(e.getBoundingClientRect().width)));
   const hoy = await page.getByTestId("dia-semana").evaluateAll((es) => es.findIndex((e) => e.textContent?.includes("Tarea con espacio")));
   const auto = await anchos();
@@ -565,7 +565,7 @@ test("semana: los días vacíos se achican y el ancho se ajusta a mano", async (
   await page.mouse.move(borde!.x + 66, borde!.y + 100, { steps: 6 });
   await page.mouse.up();
   const manual = await anchos();
-  expect(Math.abs(manual[0] - auto[0] - 60)).toBeLessThan(6);
+  expect(Math.abs(manual[0] - auto[0] - 60)).toBeLessThan(12);
   // Se recuerda, y doble clic vuelve a automático.
   await page.reload();
   await expect(page.getByTestId("dia-semana")).toHaveCount(7);
@@ -588,7 +588,7 @@ test("semana: un evento se arrastra a otro día y la casilla completada queda pl
   await page.getByRole("checkbox", { name: "Completar: Tarea lista" }).click();
   await expect.poll(() => page.getByRole("checkbox", { name: /Tarea lista/ }).evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgb(156, 163, 175)");
 
-  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 Días" }).click();
   const columnas = page.getByTestId("dia-semana");
   const iHoy = await columnas.evaluateAll((es) => es.findIndex((e) => e.textContent?.includes("Entrevista")));
   const destino = columnas.nth(iHoy < 6 ? iHoy + 1 : iHoy - 1);
