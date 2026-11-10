@@ -11,7 +11,7 @@ import { irA, type Seccion } from "../logica/ruta";
 import { nuevoId } from "../logica/texto";
 import { LISTA_BANDEJA, type Tarea } from "../modelos/tipos";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "./CamposTarea";
-import { COLOR_PRIORIDAD } from "./FilaTarea";
+import { COLOR_HECHA, COLOR_PRIORIDAD } from "./FilaTarea";
 import { claseBoton, claseCampo } from "./Modal";
 
 const UNIDADES: { valor: Frecuencia; nombre: string }[] = [
@@ -256,7 +256,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
           aria-label={hecha ? "Marcar como pendiente" : "Completar tarea"}
           disabled={enPapelera}
           onClick={() => void completarTarea(tarea.id, !hecha)}
-          style={{ borderColor: COLOR_PRIORIDAD[tarea.prioridad], background: hecha ? COLOR_PRIORIDAD[tarea.prioridad] : undefined }}
+          style={{ borderColor: hecha ? COLOR_HECHA : COLOR_PRIORIDAD[tarea.prioridad], background: hecha ? COLOR_HECHA : undefined }}
           className="flex h-5 w-5 items-center justify-center rounded-full border-2"
         >
           {hecha && <Check size={13} strokeWidth={3} className="text-panel" />}

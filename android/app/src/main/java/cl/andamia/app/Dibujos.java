@@ -150,10 +150,10 @@ final class Dibujos {
                     entrada.setColor(colorTexto);
                     escribir(lienzo, e.optString("titulo"), ix + 4 * d, ey + 8.5f * d, anchoTexto - 5 * d, entrada);
                 } else {
-                    borde.setColor(FabricaListaHoy.colorNivel(c, e.optInt("nivel")));
+                    boolean hecha = e.optBoolean("hecha");
+                    borde.setColor(hecha ? colorTenue : FabricaListaHoy.colorNivel(c, e.optInt("nivel")));
                     float lado = 7 * d;
                     lienzo.drawRect(ix + 0.5f * d, ey + 1.5f * d, ix + 0.5f * d + lado, ey + 1.5f * d + lado, borde);
-                    boolean hecha = e.optBoolean("hecha");
                     entrada.setStrikeThruText(hecha);
                     entrada.setColor(hecha ? colorTenue : colorTexto);
                     escribir(lienzo, e.optString("titulo"), ix + lado + 3 * d, ey + 8.5f * d, anchoTexto - lado - 3 * d, entrada);

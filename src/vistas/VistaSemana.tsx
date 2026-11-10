@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as EventoTeclado, type PointerEvent as EventoPuntero, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
-import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
@@ -8,7 +8,7 @@ import { es } from "date-fns/locale";
 import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, GripVertical, Plus } from "lucide-react";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { DialogoHabito } from "./VistaHabitos";
-import { COLOR_NIVEL } from "../componentes/FilaTarea";
+import { COLOR_HECHA, COLOR_NIVEL } from "../componentes/FilaTarea";
 import { colisionTareasEnZonas } from "../componentes/colision";
 import { venceEnDia } from "../logica/calendario";
 import { ordenEntre } from "../logica/vistas";
@@ -20,6 +20,7 @@ import { guardarAnchos, leerAnchos, moverBorde, MINIMO_MANUAL, pesosAutomaticos 
 import type { Prioridad, Subtarea, Tarea } from "../modelos/tipos";
 
 const SECCION: Seccion = { tipo: "vista", vista: "semana" };
+const PREFIJO_EVENTO = "evento:";
 
 const NOMBRE_NIVEL: Record<Prioridad, string> = { alta: "Alta", media: "Media", baja: "Baja", ninguna: "" };
 
@@ -34,14 +35,16 @@ function hora(t: Tarea): string {
   return fecha && !t.todoElDia ? format(fecha, "HH:mm") : "";
 }
 
-export function FilaEvento({ evento, abierta }: { evento: Tarea; abierta: boolean }) {
+export function FilaEvento({ evento, abierta, arrastre }: { evento: Tarea; abierta: boolean; arrastre?: { ref: (n: HTMLElement | null) => void; alPresionar?: (e: EventoPuntero) => void; arrastrando: boolean } }) {
   return (
-    <li>
+    <li ref={arrastre?.ref} className={arrastre?.arrastrando ? "opacity-30" : ""}>
       <button
         type="button"
         data-testid="fila-evento"
+        title={arrastre ? "Toca para abrir; arrastra para llevarlo a otro día" : undefined}
         onClick={() => irA(SECCION, evento.id)}
-        className={`flex w-full items-center gap-2 rounded-md border-l-4 px-3 py-1.5 text-left text-sm ${abierta ? "ring-2 ring-acento" : ""}`}
+        onPointerDown={arrastre?.alPresionar}
+        className={`flex w-full items-center gap-2 rounded-md border-l-4 px-3 py-1.5 text-left text-sm ${arrastre ? "cursor-grab touch-none" : ""} ${abierta ? "ring-2 ring-acento" : ""}`}
         style={estiloEvento(evento.colorEvento)}
       >
         <span className="min-w-0 flex-1 truncate font-medium">{evento.titulo || "Sin título"}</span>
@@ -49,6 +52,12 @@ export function FilaEvento({ evento, abierta }: { evento: Tarea; abierta: boolea
       </button>
     </li>
   );
+}
+
+/** Evento de la Semana que se arrastra entero a otro día; un toque sin mover lo abre. */
+function EventoArrastrable({ evento, abierta, dia }: { evento: Tarea; abierta: boolean; dia: string }) {
+  const { setNodeRef, listeners, isDragging } = useDraggable({ id: PREFIJO_EVENTO + evento.id, data: { dia, evento: true } });
+  return <FilaEvento evento={evento} abierta={abierta} arrastre={{ ref: setNodeRef, alPresionar: listeners?.onPointerDown as ((e: EventoPuntero) => void) | undefined, arrastrando: isDragging }} />;
 }
 
 interface Arrastre {
@@ -64,7 +73,7 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre, estrecha = false }: { 
   const hecha = tarea.estado === "completada";
   // Casilla: color de la importancia. Insignia de abajo: dificultad.
   const dificultad = dificultadDe(tarea);
-  const colorCasilla = COLOR_NIVEL[tarea.prioridad];
+  const colorCasilla = hecha ? COLOR_HECHA : COLOR_NIVEL[tarea.prioridad];
   const fecha = fechaDeTarea(tarea);
   const atrasada = !hecha && fecha !== null && fecha < hoy && !isSameDay(fecha, hoy);
   const etiqueta = tarea.etiquetas[0] ? etiquetas.find((e) => e.nombre === tarea.etiquetas[0]) : undefined;
@@ -179,6 +188,14 @@ function ArrastreSemana({ ahora, children }: { ahora: Date; children: ReactNode 
   const alSoltar = ({ active, over }: DragEndEvent) => {
     setActiva(null);
     if (!over || active.id === over.id) return;
+    if (active.data.current?.evento) {
+      // Un evento cambia de día y conserva su hora.
+      const evento = tareas.find((t) => PREFIJO_EVENTO + t.id === active.id);
+      const sobre = String(over.id);
+      const destino = esZonaDia(sobre) ? sobre.slice(ZONA_DIA.length) : (over.data.current?.dia as string | undefined);
+      if (evento && destino && destino !== active.data.current.dia) actualizarTarea(evento.id, venceEnDia(evento, parseISO(destino)));
+      return;
+    }
     const tarea = tareas.find((t) => t.id === active.id);
     const origen = active.data.current?.dia as string | undefined;
     if (!tarea || !origen) return;
@@ -202,7 +219,7 @@ function ArrastreSemana({ ahora, children }: { ahora: Date; children: ReactNode 
     <DndContext
       sensors={sensores}
       collisionDetection={colisionTareasEnZonas(esZonaDia)}
-      onDragStart={({ active }) => setActiva(tareas.find((t) => t.id === active.id) ?? null)}
+      onDragStart={({ active }) => setActiva(tareas.find((t) => t.id === active.id || PREFIJO_EVENTO + t.id === active.id) ?? null)}
       onDragEnd={alSoltar}
       onDragCancel={() => setActiva(null)}
       accessibility={{
@@ -212,11 +229,16 @@ function ArrastreSemana({ ahora, children }: { ahora: Date; children: ReactNode 
     >
       {children}
       <DragOverlay dropAnimation={null}>
-        {activa && (
-          <ul className="w-64 rounded-lg border border-acento bg-panel shadow-lg">
-            <FilaTareaSemana tarea={activa} abierta={false} hoy={ahora} estrecha />
-          </ul>
-        )}
+        {activa &&
+          (activa.esEvento ? (
+            <ul className="w-56 rounded-md bg-panel shadow-lg">
+              <FilaEvento evento={activa} abierta={false} />
+            </ul>
+          ) : (
+            <ul className="w-64 rounded-lg border border-acento bg-panel shadow-lg">
+              <FilaTareaSemana tarea={activa} abierta={false} hoy={ahora} estrecha />
+            </ul>
+          ))}
       </DragOverlay>
     </DndContext>
   );
@@ -407,7 +429,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compact
       {verEventos && contenido.eventos.length > 0 && (
         <ul aria-label="Eventos" className="mb-3 space-y-1">
           {contenido.eventos.map((e) => (
-            <FilaEvento key={e.id} evento={e} abierta={e.id === tareaAbierta} />
+            <EventoArrastrable key={e.id} evento={e} abierta={e.id === tareaAbierta} dia={claveDia(dia)} />
           ))}
         </ul>
       )}

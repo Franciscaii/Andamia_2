@@ -567,3 +567,29 @@ test("semana: los días vacíos se achican y el ancho se ajusta a mano", async (
   await page.getByTestId("borde-columna").first().dblclick();
   await expect.poll(anchos).toEqual(auto);
 });
+
+test("semana: un evento se arrastra a otro día y la casilla completada queda plomo", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Evento" }).click();
+  await page.getByRole("dialog").getByRole("textbox", { name: "Añadir evento" }).fill("Entrevista");
+  await page.getByRole("dialog").getByRole("button", { name: "Crear evento" }).click();
+  await crearEnSemana(page, "Tarea", "Tarea lista");
+  await page.getByRole("checkbox", { name: "Completar: Tarea lista" }).click();
+  await expect.poll(() => page.getByRole("checkbox", { name: /Tarea lista/ }).evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgb(156, 163, 175)");
+
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  const columnas = page.getByTestId("dia-semana");
+  const iHoy = await columnas.evaluateAll((es) => es.findIndex((e) => e.textContent?.includes("Entrevista")));
+  const destino = columnas.nth(iHoy < 6 ? iHoy + 1 : iHoy - 1);
+  await arrastrar(page, page.getByTestId("fila-evento"), destino);
+  await expect(destino.getByTestId("fila-evento")).toHaveText(/Entrevista/);
+  await expect(columnas.nth(iHoy).getByTestId("fila-evento")).toHaveCount(0);
+  // Un toque sin arrastrar lo sigue abriendo.
+  // (Justo después de soltar, dnd-kit se traga un clic: se reintenta como lo haría una persona.)
+  await expect(async () => {
+    await destino.getByTestId("fila-evento").click();
+    await expect(page.getByRole("complementary", { name: "Detalle de la tarea" })).toBeVisible({ timeout: 500 });
+  }).toPass();
+});

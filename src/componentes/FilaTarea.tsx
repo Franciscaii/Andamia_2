@@ -15,6 +15,9 @@ export const COLOR_PRIORIDAD: Record<Prioridad, string> = {
   ninguna: "var(--prio-ninguna)",
 };
 
+/** Casilla de una tarea completada: plomo para todas. */
+export const COLOR_HECHA = "var(--casilla-hecha)";
+
 /** Dificultad e importancia en la semana: rojo, amarillo y azul. */
 export const COLOR_NIVEL: Record<Prioridad, string> = {
   alta: "var(--nivel-alta)",
@@ -65,7 +68,7 @@ export function FilaTarea({ tarea, abierta, alAbrir, mostrarLista, consulta = ""
   const dias = diasHasta(tarea, new Date());
   const atrasada = !hecha && dias !== null && dias < 0;
   const nombreLista = tarea.listaId === LISTA_BANDEJA ? "Bandeja" : listas.find((l) => l.id === tarea.listaId)?.nombre;
-  const color = COLOR_PRIORIDAD[tarea.prioridad];
+  const color = hecha ? COLOR_HECHA : COLOR_PRIORIDAD[tarea.prioridad];
   const coincideNotas = consulta && resaltar(tarea.descripcion, consulta).some((p) => p.coincide);
 
   return (
