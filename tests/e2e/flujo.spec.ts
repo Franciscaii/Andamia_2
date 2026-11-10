@@ -657,3 +657,27 @@ test("widget Semana del escritorio: 7 días, transparencia y esquinas", async ({
   await page.reload();
   await expect(page.getByTestId("fondo-widget")).toHaveCSS("opacity", "0.4");
 });
+
+test("widget Semana: el contenido se achica para verse completo y no parpadea", async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto("/");
+  for (let i = 1; i <= 7; i++) await crearEnSemana(page, "Tarea", `Tarea larga número ${i} con un título que ocupa varias líneas en la columna`);
+  await page.getByRole("checkbox", { name: /Completar: Tarea larga número 1 / }).click();
+  // Widget chico: todo debe caber, hasta la última completada, sin barra de desplazamiento.
+  await page.setViewportSize({ width: 900, height: 380 });
+  await page.goto("/?widget=semana");
+  await expect(page.getByText("Tarea larga número 7", { exact: false })).toBeVisible();
+  const zona = page.locator("[data-widget-desplazable]");
+  await expect.poll(() => zona.evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(1);
+  const zoom = () => page.getByTestId("contenido-widget").evaluate((e) => (e as HTMLElement).style.zoom);
+  const z1 = await zoom();
+  expect(Number(z1)).toBeLessThan(0.86);
+  await page.screenshot({ path: "test-results/widget-cabe.png" });
+  // Estable: la escala no cambia sola con el tiempo.
+  await page.waitForTimeout(800);
+  expect(await zoom()).toBe(z1);
+  // Más alto: el contenido vuelve a crecer.
+  await page.setViewportSize({ width: 900, height: 800 });
+  await expect.poll(async () => Number(await zoom())).toBeGreaterThan(Number(z1));
+  await expect.poll(() => zona.evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(1);
+});

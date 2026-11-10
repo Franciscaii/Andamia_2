@@ -14,14 +14,12 @@ describe("escala del contenido de un widget", () => {
   });
 });
 
-describe("escala del widget Semana para que todo quepa", () => {
+describe("escala inicial del widget Semana (según el ancho)", () => {
   const base = { ancho: 1000 };
-  it("usa el ancho si el contenido cabe en el alto", () => {
-    expect(escalaQueCabe(base, 1000, 500, 800)).toBe(1);
-    expect(escalaQueCabe(base, 800, null, 300)).toBe(0.8);
-  });
-  it("se achica si el contenido no cabe, sin bajar del mínimo", () => {
-    expect(escalaQueCabe(base, 1000, 1000, 700)).toBe(0.7);
-    expect(escalaQueCabe(base, 1000, 5000, 300)).toBe(ESCALA_MINIMA);
+  it("sigue al ancho, entre el mínimo y el máximo", () => {
+    expect(escalaQueCabe(base, 1000)).toBe(1);
+    expect(escalaQueCabe(base, 800)).toBe(0.8);
+    expect(escalaQueCabe(base, 100)).toBe(ESCALA_MINIMA);
+    expect(escalaQueCabe(base, 5000)).toBe(ESCALA_MAXIMA);
   });
 });
