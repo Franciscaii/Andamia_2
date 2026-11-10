@@ -370,13 +370,6 @@ function cerrarWidget(id) {
   actualizarMenuBandeja();
 }
 
-/** Esconde la ventana principal y deja en el escritorio el widget Semana (sin bordes). */
-function modoEscritorio() {
-  if (modoActual() !== "normal") aplicarModo("normal");
-  ventana?.hide();
-  abrirWidget("semana");
-}
-
 function abrirWidgetsGuardados() {
   const prefs = prefsWidgets();
   for (const w of WIDGETS) if (prefs[w.id]?.abierto) abrirWidget(w.id, { guardar: false });
@@ -415,9 +408,13 @@ function actualizarMenuBandeja() {
         },
       },
       {
-        // El modo escritorio es el widget Semana: sin barra blanca ni menú, con bordes y transparencia ajustables.
+        // El modo escritorio es el widget Semana: sin barra de título ni menú.
         label: "Modo escritorio (widget Semana)",
-        click: modoEscritorio,
+        click: () => {
+          if (modoActual() !== "normal") aplicarModo("normal");
+          ventana?.hide();
+          abrirWidget("semana");
+        },
       },
       {
         label: "Modo mini (siempre encima)",
@@ -476,13 +473,16 @@ if (!app.requestSingleInstanceLock()) {
     // La página no necesita cámara, micrófono ni ubicación.
     session.defaultSession.setPermissionRequestHandler((_wc, permiso, responder) => responder(permiso === "clipboard-sanitized-write"));
 
-    // El antiguo modo escritorio (ventana con barra blanca y menú) pasa a ser el widget Semana.
-    const veniaDeEscritorio = leerPrefs().modo === "escritorio";
-    if (veniaDeEscritorio) guardarPrefs({ modo: "normal", mini: undefined });
-    crearVentana({ oculta: veniaDeEscritorio || process.argv.includes("--oculta") });
+    // Quien usaba el modo escritorio antiguo (ventana con barra de título) pasa al widget Semana.
+    let oculta = process.argv.includes("--oculta");
+    if (leerPrefs().modo === "escritorio") {
+      guardarPrefs({ modo: "normal" });
+      guardarPrefsWidget("semana", { abierto: true });
+      oculta = true;
+    }
+    crearVentana({ oculta });
     crearBandeja();
     abrirWidgetsGuardados();
-    if (veniaDeEscritorio) abrirWidget("semana");
     globalShortcut.register(ATAJO_NUEVA_TAREA, nuevaTarea);
   });
 

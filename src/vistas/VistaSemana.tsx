@@ -649,7 +649,7 @@ function useAnchosSemana(lunes: string, vacios: boolean[]) {
   const refColumna = (i: number) => (el: HTMLElement | null) => {
     columnas.current[i] = el;
   };
-  const angosta = (i: number) => !manual && vacios[i];
+  const angosta = (i: number) => vacios[i];
   return { estilo, angosta, mover, soltar, restablecer, refColumna };
 }
 
