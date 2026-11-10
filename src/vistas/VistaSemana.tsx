@@ -578,6 +578,9 @@ function BordeColumna({ etiqueta, alMover, alSoltar, alRestablecer }: { etiqueta
   );
 }
 
+/** Ancho de un día sin tareas por hacer en la vista de 7 días: lo justo para leer su contenido. */
+const ANCHO_DIA_LIBRE = "8.5rem";
+
 /** Anchos de las 7 columnas: automáticos (los días vacíos se achican) o ajustados a mano. */
 function useAnchosSemana(lunes: string, vacios: boolean[]) {
   const [manual, setManual] = useState<number[] | null>(() => leerAnchos(lunes));
@@ -592,10 +595,9 @@ function useAnchosSemana(lunes: string, vacios: boolean[]) {
   actual.current = manual;
 
   const pesos = manual ?? pesosAutomaticos(vacios);
-  const estilo = (i: number): CSSProperties => ({
-    flex: `${pesos[i]} 1 0px`,
-    minWidth: manual ? MINIMO_MANUAL : vacios[i] ? "7rem" : "10rem",
-  });
+  // Automático: los días sin tareas por hacer quedan con un ancho fijo mínimo y el resto se reparte.
+  const estilo = (i: number): CSSProperties =>
+    manual ? { flex: `${pesos[i]} 1 0px`, minWidth: MINIMO_MANUAL } : vacios[i] ? { flex: `0 0 ${ANCHO_DIA_LIBRE}` } : { flex: "1 1 0px", minWidth: "10rem" };
   const mover = (i: number) => (dx: number, inicio: boolean) => {
     if (inicio || !base.current.length) base.current = columnas.current.map((c) => c?.getBoundingClientRect().width ?? MINIMO_MANUAL);
     if (dx === 0) return;
@@ -654,9 +656,11 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
   const tareasTodas = useTienda((s) => s.tareas);
   const listasTodas = useTienda((s) => s.listas);
+  // Solo los días con tareas por hacer se llevan el ancho; los que no tienen nada o ya están
+  // completos quedan lo más angostos posible. Con el filtro "Eventos", cuentan los eventos.
   const vacios = dias.map((d) => {
     const c = contenidoDelDia(tareasTodas, listasTodas, d, ahora);
-    return (!verEventos || c.eventos.length === 0) && (!verTareas || c.tareas.length === 0);
+    return verTareas ? !c.tareas.some((t) => t.estado === "pendiente") : !verEventos || c.eventos.length === 0;
   });
   const anchos = useAnchosSemana(claveDia(dias[0]), vacios);
 
@@ -682,7 +686,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
             <div role="group" aria-label="Ver" className="ml-auto flex gap-0.5 rounded-md bg-suave p-0.5">
               {(
                 [
-                  { id: "dia", nombre: "Hoy" },
+                  { id: "dia", nombre: "Día" },
                   { id: "semana", nombre: "7 días" },
                 ] as const
               ).map((o) => (

@@ -410,7 +410,7 @@ test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   await expect(page.getByTestId("dia-semana")).toHaveCount(0);
   await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Hoy", exact: true }).click();
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
   await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
 });
 
@@ -449,7 +449,7 @@ test("calendario mes: 'n más' lleva a la Semana en Hoy con ese día elegido", a
   await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
   const celda = page.locator(`[data-zona="dia:${clave}"]`);
   await celda.getByRole("link", { name: /más$/ }).click();
-  await expect(page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Hoy", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: new RegExp(`^${dia.toLocaleDateString("es-CL", { weekday: "long" })}`), pressed: true })).toBeVisible();
   await expect(page.getByTestId("fila-tarea")).toHaveCount(8);
 });
@@ -572,6 +572,9 @@ test("semana: los días vacíos se achican y el ancho se ajusta a mano", async (
   await expect.poll(async () => Math.abs((await anchos())[0] - manual[0])).toBeLessThan(4);
   await page.getByTestId("borde-columna").first().dblclick();
   await expect.poll(anchos).toEqual(auto);
+  // Un día con todas sus tareas hechas queda tan angosto como uno sin nada.
+  await page.getByRole("checkbox", { name: "Completar: Tarea con espacio" }).click();
+  await expect.poll(async () => (await anchos())[hoy]).toBe(auto[vacio]);
 });
 
 test("semana: un evento se arrastra a otro día y la casilla completada queda plomo", async ({ page }) => {
