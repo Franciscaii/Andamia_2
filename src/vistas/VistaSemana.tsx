@@ -653,6 +653,41 @@ function useAnchosSemana(lunes: string, vacios: boolean[]) {
   return { estilo, angosta, mover, soltar, restablecer, refColumna };
 }
 
+/**
+ * Widget Semana del PC: la ventana toma el alto justo de su contenido, para que no quede espacio
+ * vacío abajo. Mide cabecera + contenido y se lo pide a la app de PC (escritorio/precarga-widget.cjs).
+ */
+function useAltoAjustadoWidget(cabecera: { current: HTMLElement | null }, contenido: { current: HTMLElement | null }, deps: unknown[]) {
+  useEffect(() => {
+    const puente = (window as unknown as { andamiaWidget?: { ajustarAlto?: (alto: number) => void } }).andamiaWidget;
+    if (!EN_WIDGET || !puente?.ajustarAlto) return;
+    let reloj = 0;
+    const medir = () => {
+      window.clearTimeout(reloj);
+      reloj = window.setTimeout(() => {
+        const c = cabecera.current;
+        const d = contenido.current;
+        const caja = d?.parentElement;
+        if (!c || !d || !caja || !caja.offsetHeight) return;
+        // Con el zoom del widget, el tamaño en pantalla es el tamaño CSS por el zoom.
+        const zoom = caja.getBoundingClientRect().height / caja.offsetHeight || 1;
+        const s = getComputedStyle(caja);
+        const natural = d.offsetHeight + parseFloat(s.paddingTop) + parseFloat(s.paddingBottom);
+        puente.ajustarAlto!(Math.ceil(c.getBoundingClientRect().height + natural * zoom) + 2);
+      }, 120);
+    };
+    medir();
+    const obs = new ResizeObserver(medir);
+    if (cabecera.current) obs.observe(cabecera.current);
+    if (contenido.current) obs.observe(contenido.current);
+    return () => {
+      obs.disconnect();
+      window.clearTimeout(reloj);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
 export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const ahora = new Date();
   const [elegido, setElegido] = useState(() => diaPedido ?? new Date());
@@ -698,10 +733,13 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
   const elegirDia = (d: Date) => setElegido(d);
+  const refCabecera = useRef<HTMLElement>(null);
+  const refContenido = useRef<HTMLDivElement>(null);
+  useAltoAjustadoWidget(refCabecera, refContenido, [alcance, filtro, elegido.toDateString(), tareasTodas]);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ArrastreSemana ahora={ahora}>
-      <header className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
+      <header ref={refCabecera} className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
         <div className="flex items-center gap-2">
           <div className="flex shrink-0 items-center">
             <button type="button" aria-label="Semana anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => moverSemana(-1)}>
@@ -761,13 +799,16 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       </header>
 
       {alcance === "dia" ? (
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
-          <ContenidoDia dia={elegido} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto={false} />
+        <div className={`min-h-0 flex-1 overflow-y-auto px-4 sm:px-6 ${EN_WIDGET ? "pb-3" : "pb-8"}`}>
+          <div ref={refContenido}>
+            <ContenidoDia dia={elegido} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto={false} />
+          </div>
         </div>
       ) : (
         // En el computador: los 7 días uno al lado del otro, cada uno en su columna.
         <div className={`min-h-0 flex-1 overflow-auto px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-3" : "pt-2 pb-6"}`}>
-          <div className="flex min-h-full">
+          {/* En el widget las columnas terminan donde termina el día más largo (sin espacio vacío abajo). */}
+          <div ref={refContenido} className={`flex ${EN_WIDGET ? "" : "min-h-full"}`}>
             {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
               const angosta = anchos.angosta(i);
