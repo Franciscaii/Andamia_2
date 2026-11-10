@@ -460,7 +460,14 @@ if (!app.requestSingleInstanceLock()) {
   app.setAppUserModelId("cl.andamia.escritorio");
   app.on("second-instance", mostrarVentana);
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    // Siempre la versión publicada más nueva: se borra la copia guardada de la página
+    // (service worker y su caché). Las tareas, la sesión y los ajustes no se tocan.
+    try {
+      await session.defaultSession.clearStorageData({ storages: ["serviceworkers", "cachestorage"] });
+    } catch {
+      // Si no se puede, la app abre igual.
+    }
     // La página no necesita cámara, micrófono ni ubicación.
     session.defaultSession.setPermissionRequestHandler((_wc, permiso, responder) => responder(permiso === "clipboard-sanitized-write"));
 

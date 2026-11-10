@@ -29,7 +29,9 @@ export function registrarPwa(): void {
   });
   // Solo en la versión final: en desarrollo una caché estorbaría los cambios.
   // En la app de Android los archivos ya vienen dentro de la app: no hace falta caché.
-  if (import.meta.env.PROD && "serviceWorker" in navigator && !esAppNativa()) {
+  // En la app de PC tampoco: siempre carga la web publicada, para que cada cambio se vea al abrirla.
+  const enAppDePC = typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
+  if (import.meta.env.PROD && "serviceWorker" in navigator && !esAppNativa() && !enAppDePC) {
     void navigator.serviceWorker.register("/sw.js").then(() => (recordatoriosActivos ? activarRevisionPeriodica() : false));
   }
 }
