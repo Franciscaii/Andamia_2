@@ -14,7 +14,7 @@ import { venceEnDia } from "../logica/calendario";
 import { ordenEntre } from "../logica/vistas";
 import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
-import { irA, type Seccion } from "../logica/ruta";
+import { hashDe, irA, type Seccion } from "../logica/ruta";
 import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
 import { guardarAnchos, leerAnchos, moverBorde, MINIMO_MANUAL, pesosAutomaticos } from "../logica/anchosSemana";
 import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
@@ -477,7 +477,30 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compact
 let diaPedido: Date | null = null;
 
 /** Abre la Semana en la vista "Hoy" con ese día elegido. */
+/** Día que pidió un widget del PC al abrir la Semana en la ventana principal (otra página, mismo almacenamiento). */
+const CLAVE_DIA_PEDIDO = "andamia-semana-dia-pedido";
+function tomarDiaPedido(): Date | null {
+  try {
+    const v = localStorage.getItem(CLAVE_DIA_PEDIDO);
+    localStorage.removeItem(CLAVE_DIA_PEDIDO);
+    return v ? parseISO(v) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function verDiaEnSemana(dia: Date) {
+  if (WIDGET_ACTUAL) {
+    // Desde un widget del PC: abre el día en la ventana principal de Andamia.
+    try {
+      localStorage.setItem(CLAVE_DIA_PEDIDO, claveDia(dia));
+      localStorage.setItem("andamia-semana-alcance", "dia");
+    } catch {
+      // Sin almacenamiento se abre la Semana igual.
+    }
+    window.location.href = `${window.location.origin}${window.location.pathname}?abrir${hashDe({ tipo: "vista", vista: "semana" })}`;
+    return;
+  }
   diaPedido = dia;
   try {
     localStorage.setItem(CLAVE_ALCANCE, "dia");
@@ -656,6 +679,7 @@ function useAnchosSemana(lunes: string, vacios: boolean[]) {
 
 export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const ahora = new Date();
+  if (!diaPedido && !EN_WIDGET) diaPedido = tomarDiaPedido();
   const [elegido, setElegido] = useState(() => diaPedido ?? new Date());
   const [filtro, setFiltro] = useState<FiltroSemana>("todos");
   const [alcanceGuardado, setAlcanceEstado] = useState<Alcance>(() => (diaPedido ? "dia" : leerAlcance()));
