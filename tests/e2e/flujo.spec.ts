@@ -458,7 +458,12 @@ test("temas de color y color de un evento", async ({ page }) => {
   await page.goto("/");
   // Por defecto, Clásico (azul): el menú es la "cabecera" de color.
   await expect(page.locator("html")).toHaveAttribute("data-tema", "clasico");
+  // El tema está en su propia entrada del menú, no en Cuenta y ajustes.
+  await page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Tema" }).click();
+  await expect(page).toHaveURL(/#\/tema$/);
   await page.goto("/#/ajustes");
+  await expect(page.getByRole("radiogroup", { name: "Tema de la app" })).toHaveCount(0);
+  await page.goto("/#/tema");
   await page.getByRole("radiogroup", { name: "Tema de la app" }).getByRole("radio", { name: "Lavanda" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-tema", "lavanda");
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#6d28d9");

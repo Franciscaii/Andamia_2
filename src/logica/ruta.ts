@@ -10,6 +10,7 @@ export type Seccion =
   | { tipo: "enfoque" }
   | { tipo: "habitos" }
   | { tipo: "ajustes" }
+  | { tipo: "tema" }
   | { tipo: "buscar" }
   | { tipo: "estadisticas"; de: "tareas" | "habitos" };
 
@@ -34,7 +35,7 @@ export function leerRuta(hash: string): Ruta {
   if (a === "listas" && b) return { seccion: { tipo: "lista", id: b }, tareaId };
   if (a === "etiquetas" && b) return { seccion: { tipo: "etiqueta", nombre: b }, tareaId };
   if (a === "calendario") return { seccion: { tipo: "calendario", modo: b === "semana" ? "semana" : "mes" }, tareaId };
-  if (a === "matriz" || a === "enfoque" || a === "habitos" || a === "ajustes") return { seccion: { tipo: a }, tareaId };
+  if (a === "matriz" || a === "enfoque" || a === "habitos" || a === "ajustes" || a === "tema") return { seccion: { tipo: a }, tareaId };
   if (a === "buscar") return { seccion: { tipo: "buscar" }, tareaId };
   if (a === "estadisticas") return { seccion: { tipo: "estadisticas", de: b === "habitos" ? "habitos" : "tareas" }, tareaId };
   return { seccion: INICIO, tareaId };
@@ -59,6 +60,7 @@ export function hashDe(seccion: Seccion, tareaId: string | null = null): string 
     case "enfoque":
     case "habitos":
     case "ajustes":
+    case "tema":
       base = `#/${seccion.tipo}`;
       break;
     case "buscar":
