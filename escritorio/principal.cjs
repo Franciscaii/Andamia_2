@@ -462,9 +462,11 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(async () => {
     // Siempre la versión publicada más nueva: se borra la copia guardada de la página
-    // (service worker y su caché). Las tareas, la sesión y los ajustes no se tocan.
+    // (service worker, su caché y la caché del navegador). Las tareas, la sesión y los ajustes no se tocan.
     try {
       await session.defaultSession.clearStorageData({ storages: ["serviceworkers", "cachestorage"] });
+      // También la caché normal del navegador: así un cambio publicado se ve apenas se abre la app.
+      await session.defaultSession.clearCache();
     } catch {
       // Si no se puede, la app abre igual.
     }
