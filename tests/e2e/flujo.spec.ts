@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
+/** Hoy en la zona horaria del navegador de las pruebas (America/Santiago), no la del servidor. */
+const hoyEnSantiago = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Santiago" });
+
 async function crearLista(page: Page, nombre: string) {
   await page.getByRole("button", { name: "Nueva lista" }).click();
   const dialogo = page.getByRole("dialog", { name: "Nueva lista" });
@@ -269,7 +272,7 @@ test("calendario mes: eventos y tareas con casilla en cada día, filtros y +", a
   await crearEnSemana(page, "Evento", "Doctor");
   await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
 
-  const hoy = page.locator(`[data-zona="dia:${new Date().toLocaleDateString("sv-SE")}"]`);
+  const hoy = page.locator(`[data-zona="dia:${hoyEnSantiago()}"]`);
   await expect(hoy).toContainText("Estudiar cálculo");
   await expect(hoy).toContainText("Doctor");
   // El evento va primero y no tiene casilla.
@@ -299,11 +302,11 @@ test("nueva tarea en ventana: fecha, importancia, dificultad, índole, notas y s
   await page.getByRole("menuitem", { name: "Tarea" }).click();
   const dialogo = page.getByRole("dialog", { name: "Nueva tarea" });
   await dialogo.getByRole("textbox", { name: "Añadir tarea" }).fill("Preparar informe");
-  await expect(dialogo.getByLabel("Fecha", { exact: true })).toHaveValue(new Date().toLocaleDateString("sv-SE"));
+  await expect(dialogo.getByLabel("Fecha", { exact: true })).toHaveValue(hoyEnSantiago());
   // Sin fecha no se puede crear.
   await dialogo.getByLabel("Fecha", { exact: true }).fill("");
   await expect(dialogo.getByRole("button", { name: "Crear tarea" })).toBeDisabled();
-  await dialogo.getByLabel("Fecha", { exact: true }).fill(new Date().toLocaleDateString("sv-SE"));
+  await dialogo.getByLabel("Fecha", { exact: true }).fill(hoyEnSantiago());
   await dialogo.getByRole("group", { name: "Importancia" }).getByRole("button", { name: "Media" }).click();
   await dialogo.getByRole("group", { name: "Dificultad" }).getByRole("button", { name: "Alta" }).click();
   await dialogo.getByRole("group", { name: "Índole" }).getByRole("button", { name: "Universidad" }).click();
@@ -482,4 +485,56 @@ test("temas de color y color de un evento", async ({ page }) => {
   await dialogo.getByRole("radiogroup", { name: "Color del evento" }).getByRole("radio", { name: "#e0245e" }).click();
   await dialogo.getByRole("button", { name: "Crear evento" }).click();
   await expect(page.getByTestId("fila-evento")).toHaveAttribute("style", /border-color: rgb\(224, 36, 94\)/);
+});
+
+async function arrastrar(page: Page, desde: import("@playwright/test").Locator, hasta: import("@playwright/test").Locator) {
+  await desde.hover();
+  const a = (await desde.boundingBox())!;
+  const b = (await hasta.boundingBox())!;
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2 + 10, a.y + a.height / 2 + 10, { steps: 5 });
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 15 });
+  await page.mouse.up();
+}
+
+test("semana: arrastrar una tarea a otro día", async ({ page }) => {
+  await page.goto("/");
+  await crearEnSemana(page, "Tarea", "Llevar a otro día");
+  const nombre = await page.getByTestId("boton-dia").and(page.locator('[aria-pressed="false"]')).first().getAttribute("aria-label");
+  const otro = page.getByRole("button", { name: nombre!, exact: true });
+  const hoy = page.getByTestId("boton-dia").and(page.locator('[aria-pressed="true"]'));
+  const nombreHoy = await hoy.getAttribute("aria-label");
+  await arrastrar(page, page.getByRole("button", { name: "Mover Llevar a otro día" }), otro);
+  await page.getByRole("button", { name: nombreHoy!, exact: true }).click();
+  await expect(page.getByText("Llevar a otro día")).toHaveCount(0);
+  await otro.click();
+  await expect(page.getByText("Llevar a otro día")).toBeVisible();
+});
+
+test("matriz: subir o bajar una tarea dentro del cuadrante", async ({ page }) => {
+  await page.goto("/#/matriz");
+  const cuadrante = page.getByTestId("cuadrante").nth(3);
+  const entradaCuadrante = cuadrante.getByRole("textbox");
+  for (const t of ["Uno", "Dos"]) {
+    await entradaCuadrante.fill(t);
+    await entradaCuadrante.press("Enter");
+    await expect(cuadrante.getByText(t, { exact: true })).toBeVisible();
+  }
+  const titulos = () => cuadrante.getByTestId("fila-tarea").allInnerTexts();
+  const antes = (await titulos()).map((x) => x.split("\n")[0]);
+  const [primera, segunda] = antes;
+  await arrastrar(page, cuadrante.getByRole("button", { name: `Mover ${segunda}` }), cuadrante.getByTestId("fila-tarea").first());
+  await expect.poll(async () => (await titulos()).map((x) => x.split("\n")[0])).toEqual([segunda, primera]);
+});
+
+test("widget del escritorio: vista sola, sin menú, con barra para moverlo", async ({ page }) => {
+  await page.setViewportSize({ width: 380, height: 560 });
+  await page.goto("/?widget=matriz");
+  await expect(page.getByTestId("barra-widget")).toContainText("Matriz");
+  await expect(page.getByRole("heading", { name: "Matriz de Eisenhower" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Navegación" })).toHaveCount(0);
+  await page.goto("/?widget=semana");
+  await expect(page.getByTestId("barra-widget")).toContainText("Semana");
+  await expect(page.getByTestId("boton-dia")).toHaveCount(7);
 });

@@ -4,6 +4,11 @@ name: App de Android
 
 on:
   workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Guardar el .apk en la rama apk-descargas (desmarcar para solo probar que compila)"
+        type: boolean
+        default: true
   push:
     branches: [apps-nativas]
 
@@ -74,7 +79,7 @@ jobs:
           retention-days: 30
 
       - name: Guardar el .apk en la rama apk-descargas
-        if: steps.llave.outputs.ok == 'true'
+        if: steps.llave.outputs.ok == 'true' && (github.event_name == 'push' || inputs.publicar)
         env:
           TOKEN: ${{ github.token }}
         run: |

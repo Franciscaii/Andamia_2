@@ -6,4 +6,14 @@
     <string name="custom_url_scheme">cl.andamia.app</string>
     <string name="widget_nombre">Andamia · Hoy</string>
     <string name="widget_descripcion">Tus tareas de hoy. Toca el círculo para marcarlas como hechas.</string>
+    <string name="widget_semana_nombre">Andamia · Semana</string>
+    <string name="widget_semana_descripcion">Los 7 días de esta semana con sus eventos y tareas.</string>
+    <string name="widget_matriz_nombre">Andamia · Matriz</string>
+    <string name="widget_matriz_descripcion">Tus tareas pendientes en los cuatro cuadrantes.</string>
+    <string name="widget_calendario_nombre">Andamia · Calendario</string>
+    <string name="widget_calendario_descripcion">El mes con tus eventos y tareas de cada día.</string>
+    <string name="widget_estadistica_tareas_nombre">Andamia · Estadística Tareas</string>
+    <string name="widget_estadistica_tareas_descripcion">Tareas completadas esta semana, por etiqueta.</string>
+    <string name="widget_estadistica_habitos_nombre">Andamia · Estadística Hábitos</string>
+    <string name="widget_estadistica_habitos_descripcion">Hábitos cumplidos esta semana.</string>
 </resources>

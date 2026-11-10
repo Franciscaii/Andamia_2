@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Calendario y estadísticas: la app los dibuja como imagen (ver Dibujos.java). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_fondo">
+
+    <ImageView
+        android:id="@+id/imagen_vista"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="Abrir en Andamia"
+        android:scaleType="fitXY" />
+</FrameLayout>

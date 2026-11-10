@@ -27,7 +27,7 @@ export function Modal({ titulo, alCerrar, children }: Props) {
 
 export const claseBoton = "rounded-md border border-borde px-3 py-1.5 text-sm hover:bg-suave";
 export const claseBotonPrincipal = "rounded-md bg-acento px-3 py-1.5 text-sm font-medium text-sobre-acento hover:opacity-90 disabled:opacity-50";
-export const claseCampo = "w-full rounded-md border border-borde bg-fondo px-2.5 py-1.5 text-sm outline-none focus:border-acento";
+export const claseCampo = "w-full rounded-md border border-borde bg-campo px-2.5 py-1.5 text-sm outline-none focus:border-acento";
 
 interface PropsConfirmar {
   titulo: string;

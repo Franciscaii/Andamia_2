@@ -18,7 +18,7 @@ public class AccionWidgetActivity extends Activity {
             String id = datos.getLastPathSegment();
             if (id != null) {
                 DatosWidget.marcarCompletada(this, id);
-                HoyWidget.redibujarTodos(this);
+                Widgets.redibujarTodo(this);
             }
         } else if (datos != null) {
             Intent abrir = new Intent(Intent.ACTION_VIEW, datos, this, MainActivity.class);

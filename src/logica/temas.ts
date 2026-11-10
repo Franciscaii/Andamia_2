@@ -137,6 +137,9 @@ export function variablesDe(t: Tema): Record<string, string> {
     "--fondo": t.fondo,
     "--fondo-capa": capaFondo(t),
     "--panel": conOpacidad(p, t.opacidadPaneles),
+    "--panel-solido": p,
+    // Los campos para escribir: casi del color de las tarjetas, siempre opacos.
+    "--campo": mezcla(t.texto, 4, p),
     "--lateral": conOpacidad(t.lateral, t.opacidadLateral),
     "--lat-base": t.lateral,
     "--lat-texto": t.lateralTexto,

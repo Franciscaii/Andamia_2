@@ -1,6 +1,7 @@
 // Andamia para Windows: abre la Andamia publicada en su propia ventana y agrega
 // lo que una app web no puede hacer sola: bandeja, atajo global, modo mini
-// siempre visible, modo escritorio (tipo widget) y abrir al iniciar Windows.
+// siempre visible, modo escritorio (tipo widget), widgets sueltos en el escritorio
+// (Semana, Calendario, Matriz, Estadística Tareas y Estadística Hábitos) y abrir al iniciar Windows.
 const { app, BrowserWindow, Tray, Menu, globalShortcut, shell, nativeImage, screen, session } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
@@ -201,6 +202,128 @@ function aplicarModo(modo, { guardar = true } = {}) {
   actualizarMenuBandeja();
 }
 
+// ---------- Widgets sueltos en el escritorio ----------
+// Cada uno es una ventana chica sin bordes que abre Andamia con ?widget=<tipo>.
+// Quedan detrás de las demás ventanas, recuerdan dónde los dejaste y vuelven al iniciar.
+const WIDGETS = [
+  { id: "semana", nombre: "Semana", ancho: 380, alto: 560 },
+  { id: "calendario", nombre: "Calendario", ancho: 520, alto: 520 },
+  { id: "matriz", nombre: "Matriz", ancho: 560, alto: 560 },
+  { id: "estadistica-tareas", nombre: "Estadística Tareas", ancho: 380, alto: 560 },
+  { id: "estadistica-habitos", nombre: "Estadística Hábitos", ancho: 380, alto: 560 },
+];
+const ventanasWidget = new Map();
+
+function prefsWidgets() {
+  return leerPrefs().widgets ?? {};
+}
+function guardarPrefsWidget(id, cambios) {
+  const todos = prefsWidgets();
+  guardarPrefs({ widgets: { ...todos, [id]: { ...todos[id], ...cambios } } });
+}
+
+/** Lugar inicial: en la esquina, uno al lado del otro. */
+function rectanguloInicialWidget(w) {
+  const { workArea: a } = screen.getPrimaryDisplay();
+  const antes = WIDGETS.slice(0, WIDGETS.indexOf(w) + 1).reduce((suma, x) => suma + x.ancho + 16, 0);
+  const x = Math.max(a.x, a.x + a.width - antes);
+  return { x, y: a.y + 16, width: w.ancho, height: Math.min(w.alto, a.height - 32) };
+}
+
+/** Abre la ventana principal en la vista que pidió un widget (botón "Abrir en Andamia"). */
+function abrirDesdeWidget(url) {
+  const hash = new URL(url).hash || "";
+  mostrarVentana();
+  if (ventana) void ventana.loadURL(URL_ANDAMIA + hash);
+}
+
+function abrirWidget(id, { guardar = true } = {}) {
+  const w = WIDGETS.find((x) => x.id === id);
+  if (!w) return;
+  const existente = ventanasWidget.get(id);
+  if (existente) {
+    existente.showInactive();
+    return;
+  }
+  const r = rectanguloVisible(prefsWidgets()[id]?.rect) ?? rectanguloInicialWidget(w);
+  const v = new BrowserWindow({
+    ...r,
+    minWidth: 260,
+    minHeight: 220,
+    frame: false,
+    show: false,
+    skipTaskbar: true,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    title: `Andamia · ${w.nombre}`,
+    icon: path.join(RECURSOS, "icono.ico"),
+    backgroundColor: "#faf8f4",
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: true },
+  });
+  ventanasWidget.set(id, v);
+  if (guardar) guardarPrefsWidget(id, { abierto: true });
+
+  v.once("ready-to-show", () => v.showInactive());
+  const recordar = () => {
+    if (!v.isDestroyed()) guardarPrefsWidget(id, { rect: v.getBounds() });
+  };
+  v.on("move", recordar);
+  v.on("resize", recordar);
+  // "Mostrar escritorio" (Windows + D) los esconde: vuelven solos.
+  v.on("minimize", () => setTimeout(() => !v.isDestroyed() && (v.restore(), v.showInactive()), 250));
+  v.on("close", (e) => {
+    // Al salir de la app quedan anotados como abiertos, para volver al iniciar.
+    if (saliendo) return;
+    e.preventDefault();
+    cerrarWidget(id);
+  });
+
+  v.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith("https://") || url.startsWith("mailto:")) void shell.openExternal(url);
+    return { action: "deny" };
+  });
+  v.webContents.on("will-navigate", (e, url) => {
+    if (url.startsWith(ORIGEN) && new URL(url).searchParams.has("abrir")) {
+      e.preventDefault();
+      abrirDesdeWidget(url);
+    } else if (!url.startsWith(ORIGEN)) {
+      e.preventDefault();
+      if (url.startsWith("https://")) void shell.openExternal(url);
+    }
+  });
+  v.webContents.on("did-fail-load", (_e, codigo, _desc, url, esPrincipal) => {
+    if (!esPrincipal || codigo === -3 || !url.startsWith(ORIGEN)) return;
+    void v.loadFile(path.join(RECURSOS, "sin-conexion.html"));
+  });
+  // Clic derecho fuera de los campos de texto: opciones del widget.
+  v.webContents.on("context-menu", (_e, info) => {
+    if (info.isEditable) return;
+    Menu.buildFromTemplate([
+      { label: "Abrir Andamia", click: mostrarVentana },
+      { label: "Recargar", click: () => v.loadURL(`${URL_ANDAMIA}?widget=${id}`) },
+      { type: "separator" },
+      { label: `Quitar el widget ${w.nombre}`, click: () => cerrarWidget(id) },
+    ]).popup({ window: v });
+  });
+
+  void v.loadURL(`${URL_ANDAMIA}?widget=${id}`);
+  actualizarMenuBandeja();
+}
+
+function cerrarWidget(id) {
+  const v = ventanasWidget.get(id);
+  ventanasWidget.delete(id);
+  guardarPrefsWidget(id, { abierto: false });
+  if (v && !v.isDestroyed()) v.destroy();
+  actualizarMenuBandeja();
+}
+
+function abrirWidgetsGuardados() {
+  const prefs = prefsWidgets();
+  for (const w of WIDGETS) if (prefs[w.id]?.abierto) abrirWidget(w.id, { guardar: false });
+}
+
 // ---------- Bandeja junto al reloj ----------
 function abreAlIniciar() {
   return app.getLoginItemSettings({ args: ["--oculta"] }).openAtLogin;
@@ -213,6 +336,16 @@ function actualizarMenuBandeja() {
     Menu.buildFromTemplate([
       { label: "Abrir Andamia", click: mostrarVentana },
       { label: "Nueva tarea", accelerator: ATAJO_NUEVA_TAREA, click: nuevaTarea },
+      { type: "separator" },
+      {
+        label: "Widgets en el escritorio",
+        submenu: WIDGETS.map((w) => ({
+          label: w.nombre,
+          type: "checkbox",
+          checked: ventanasWidget.has(w.id),
+          click: (item) => (item.checked ? abrirWidget(w.id) : cerrarWidget(w.id)),
+        })),
+      },
       { type: "separator" },
       {
         label: "Ventana normal",
@@ -282,6 +415,7 @@ if (!app.requestSingleInstanceLock()) {
 
     crearVentana({ oculta: process.argv.includes("--oculta") });
     crearBandeja();
+    abrirWidgetsGuardados();
     globalShortcut.register(ATAJO_NUEVA_TAREA, nuevaTarea);
   });
 

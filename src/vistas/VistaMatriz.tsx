@@ -1,20 +1,26 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Plus } from "lucide-react";
-import { colisionPunteroOTeclado } from "../componentes/colision";
+import { colisionTareasEnZonas } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
 import { COLOR_PRIORIDAD, FilaTarea } from "../componentes/FilaTarea";
 import { claseCampo } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
 import { interpretarEntrada } from "../logica/entradaRapida";
+import { ordenEntre } from "../logica/vistas";
 import { CUADRANTES, prioridadDeCuadrante, repartirEnCuadrantes, type Cuadrante, type IdCuadrante } from "../logica/matriz";
 import { irA } from "../logica/ruta";
 import { LISTA_BANDEJA, type Tarea } from "../modelos/tipos";
 
 const SECCION = { tipo: "matriz" } as const;
 
-function TarjetaMatriz({ tarea, abierta }: { tarea: Tarea; abierta: boolean }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: tarea.id });
+const esCuadrante = (id: string) => CUADRANTES.some((c) => c.id === id);
+const colision = colisionTareasEnZonas(esCuadrante);
+
+function TarjetaMatriz({ tarea, abierta, cuadrante }: { tarea: Tarea; abierta: boolean; cuadrante: IdCuadrante }) {
+  const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({ id: tarea.id, data: { cuadrante } });
   return (
     <FilaTarea
       tarea={tarea}
@@ -22,7 +28,7 @@ function TarjetaMatriz({ tarea, abierta }: { tarea: Tarea; abierta: boolean }) {
       alAbrir={() => irA(SECCION, tarea.id)}
       mostrarLista
       refFila={setNodeRef}
-      estilo={{ opacity: isDragging ? 0.35 : 1 }}
+      estilo={{ opacity: isDragging ? 0.35 : 1, transform: CSS.Translate.toString(transform), transition }}
       asaProps={{ ...attributes, ...listeners }}
     />
   );
@@ -58,11 +64,13 @@ function ZonaCuadrante({ numero, cuadrante, tareas, tareaAbierta, listaId, etiqu
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {tareas.length > 0 ? (
-          <ul>
-            {tareas.map((t) => (
-              <TarjetaMatriz key={t.id} tarea={t} abierta={t.id === tareaAbierta} />
-            ))}
-          </ul>
+          <SortableContext id={cuadrante.id} items={tareas.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <ul>
+              {tareas.map((t) => (
+                <TarjetaMatriz key={t.id} tarea={t} abierta={t.id === tareaAbierta} cuadrante={cuadrante.id} />
+              ))}
+            </ul>
+          </SortableContext>
         ) : (
           <p className="py-6 text-center text-xs text-tenue">Sin tareas</p>
         )}
@@ -80,19 +88,34 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
   const listas = useTienda((s) => s.listas);
   const etiquetas = useTienda((s) => s.etiquetas);
   const actualizarTarea = useTienda((s) => s.actualizarTarea);
+  const reordenar = useTienda((s) => s.reordenar);
   const listaId: string | null = null;
   const [etiqueta, setEtiqueta] = useState<string | null>(null);
   const [activa, setActiva] = useState<Tarea | null>(null);
 
-  const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
+  const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const reparto = useMemo(() => repartirEnCuadrantes(tareas, listas, { listaId, etiqueta }), [tareas, listas, listaId, etiqueta]);
 
+  // Soltar sobre otra tarea del mismo cuadrante la sube o la baja; en otro cuadrante, le cambia la importancia
+  // y la deja justo antes de la tarea sobre la que cayó.
   const alSoltar = ({ active, over }: DragEndEvent) => {
     setActiva(null);
-    if (!over) return;
-    const prioridad = prioridadDeCuadrante(over.id as IdCuadrante);
+    if (!over || active.id === over.id) return;
     const tarea = tareas.find((t) => t.id === active.id);
-    if (tarea && tarea.prioridad !== prioridad) actualizarTarea(tarea.id, { prioridad });
+    if (!tarea) return;
+    const sobreId = String(over.id);
+    const destino = (esCuadrante(sobreId) ? sobreId : over.data.current?.cuadrante) as IdCuadrante | undefined;
+    if (!destino) return;
+    const lista = reparto[destino];
+    if (lista.some((t) => t.id === tarea.id)) {
+      if (esCuadrante(sobreId)) return;
+      const ids = lista.map((t) => t.id);
+      void reordenar(arrayMove(ids, ids.indexOf(tarea.id), ids.indexOf(sobreId)), tarea.id);
+      return;
+    }
+    const indice = esCuadrante(sobreId) ? lista.length : lista.findIndex((t) => t.id === sobreId);
+    const orden = ordenEntre(indice > 0 ? lista[indice - 1].orden : null, indice < lista.length ? lista[indice].orden : null);
+    actualizarTarea(tarea.id, { prioridad: prioridadDeCuadrante(destino), ...(orden !== null ? { orden } : {}) });
   };
 
   return (
@@ -112,12 +135,12 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
       </header>
       <DndContext
         sensors={sensores}
-        collisionDetection={colisionPunteroOTeclado}
+        collisionDetection={colision}
         onDragStart={({ active }) => setActiva(tareas.find((t) => t.id === active.id) ?? null)}
         onDragEnd={alSoltar}
         onDragCancel={() => setActiva(null)}
         accessibility={{
-          screenReaderInstructions: { draggable: "Arrastra la tarea a otro cuadrante para cambiar su prioridad." },
+          screenReaderInstructions: { draggable: "Pulsa Espacio para tomar la tarea, usa las flechas para subirla, bajarla o llevarla a otro cuadrante y Espacio para soltarla. Esc cancela." },
           announcements: { onDragStart: () => "Tarea tomada.", onDragOver: () => "", onDragEnd: () => "Tarea soltada.", onDragCancel: () => "Movimiento cancelado." },
         }}
       >
