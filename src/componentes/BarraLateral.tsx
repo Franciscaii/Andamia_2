@@ -53,10 +53,8 @@ function Punto({ color }: { color: string | null }) {
 
 function Marca() {
   return (
-    <svg viewBox="0 0 32 32" className="h-6 w-6" aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="var(--acento)" />
-      <path d="M9 6v20M23 6v20M9 12h14M9 20h14M9 20l14-8" stroke="var(--sobre-acento)" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-    </svg>
+    // El mismo logo de la app (hexágono con check).
+    <img src="/iconos/icono-64.png" alt="" aria-hidden="true" className="h-7 w-7" />
   );
 }
 

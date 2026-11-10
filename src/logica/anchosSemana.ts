@@ -5,7 +5,8 @@
  */
 export const PESO_VACIO = 0.35;
 export const MINIMO_MANUAL = 64;
-const CLAVE = "andamia-semana-anchos";
+// v2: los anchos guardados antes de las columnas angostas ya no se usan.
+const CLAVE = "andamia-semana-anchos-v2";
 const SEMANAS_GUARDADAS = 12;
 
 /** Peso de cada columna en modo automático. */

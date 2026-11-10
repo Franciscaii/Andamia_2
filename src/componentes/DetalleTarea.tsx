@@ -257,7 +257,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
           disabled={enPapelera}
           onClick={() => void completarTarea(tarea.id, !hecha)}
           style={{ borderColor: hecha ? COLOR_HECHA : COLOR_PRIORIDAD[tarea.prioridad], background: hecha ? COLOR_HECHA : undefined }}
-          className="flex h-5 w-5 items-center justify-center rounded-full border-2"
+          className="flex h-5 w-5 items-center justify-center rounded border-2"
         >
           {hecha && <Check size={13} strokeWidth={3} className="text-panel" />}
         </button>
