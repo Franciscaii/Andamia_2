@@ -501,13 +501,15 @@ async function arrastrar(page: Page, desde: import("@playwright/test").Locator, 
 test("semana: arrastrar una tarea a otro día", async ({ page }) => {
   await page.goto("/");
   await crearEnSemana(page, "Tarea", "Llevar a otro día");
-  const nombre = await page.getByTestId("boton-dia").and(page.locator('[aria-pressed="false"]')).first().getAttribute("aria-label");
+  // Un día que aún no pasa (si fuera un día pasado, la tarea seguiría en hoy como atrasada); el domingo, el sábado.
+  const botones = page.getByTestId("boton-dia");
+  const iHoy = await botones.evaluateAll((es) => es.findIndex((e) => e.getAttribute("aria-pressed") === "true"));
+  const nombre = await botones.nth(iHoy < 6 ? iHoy + 1 : iHoy - 1).getAttribute("aria-label");
   const otro = page.getByRole("button", { name: nombre!, exact: true });
-  const hoy = page.getByTestId("boton-dia").and(page.locator('[aria-pressed="true"]'));
-  const nombreHoy = await hoy.getAttribute("aria-label");
+  const nombreHoy = await botones.nth(iHoy).getAttribute("aria-label");
   await arrastrar(page, page.getByRole("button", { name: "Mover Llevar a otro día" }), otro);
   await page.getByRole("button", { name: nombreHoy!, exact: true }).click();
-  await expect(page.getByText("Llevar a otro día")).toHaveCount(0);
+  if (iHoy < 6) await expect(page.getByText("Llevar a otro día")).toHaveCount(0);
   await otro.click();
   await expect(page.getByText("Llevar a otro día")).toBeVisible();
 });
@@ -537,4 +539,31 @@ test("widget del escritorio: vista sola, sin menú, con barra para moverlo", asy
   await page.goto("/?widget=semana");
   await expect(page.getByTestId("barra-widget")).toContainText("Semana");
   await expect(page.getByTestId("boton-dia")).toHaveCount(7);
+});
+
+test("semana: los días vacíos se achican y el ancho se ajusta a mano", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/");
+  await crearEnSemana(page, "Tarea", "Tarea con espacio");
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 días" }).click();
+  const anchos = () => page.getByTestId("dia-semana").evaluateAll((es) => es.map((e) => Math.round(e.getBoundingClientRect().width)));
+  const hoy = await page.getByTestId("dia-semana").evaluateAll((es) => es.findIndex((e) => e.textContent?.includes("Tarea con espacio")));
+  const auto = await anchos();
+  const vacio = hoy === 0 ? 1 : 0;
+  expect(auto[hoy]).toBeGreaterThan(auto[vacio] * 2);
+
+  // Arrastrar el borde derecho de la primera columna.
+  const borde = await page.getByTestId("borde-columna").first().boundingBox();
+  await page.mouse.move(borde!.x + 6, borde!.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(borde!.x + 66, borde!.y + 100, { steps: 6 });
+  await page.mouse.up();
+  const manual = await anchos();
+  expect(Math.abs(manual[0] - auto[0] - 60)).toBeLessThan(6);
+  // Se recuerda, y doble clic vuelve a automático.
+  await page.reload();
+  await expect(page.getByTestId("dia-semana")).toHaveCount(7);
+  await expect.poll(async () => Math.abs((await anchos())[0] - manual[0])).toBeLessThan(4);
+  await page.getByTestId("borde-columna").first().dblclick();
+  await expect.poll(anchos).toEqual(auto);
 });

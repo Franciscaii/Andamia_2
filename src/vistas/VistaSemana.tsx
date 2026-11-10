@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as EventoTeclado, type PointerEvent as EventoPuntero, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -16,6 +16,7 @@ import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
 import { irA, type Seccion } from "../logica/ruta";
 import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
+import { guardarAnchos, leerAnchos, moverBorde, MINIMO_MANUAL, pesosAutomaticos } from "../logica/anchosSemana";
 import type { Prioridad, Subtarea, Tarea } from "../modelos/tipos";
 
 const SECCION: Seccion = { tipo: "vista", vista: "semana" };
@@ -486,13 +487,109 @@ function BotonDia({ dia, activo, ahora, alElegir }: { dia: Date; activo: boolean
 }
 
 /** Columna de un día en la vista de 7 días; también recibe tareas soltadas. */
-function ColumnaDia({ dia, esHoy, ahora, children }: { dia: Date; esHoy: boolean; ahora: Date; children: ReactNode }) {
+function ColumnaDia({ dia, esHoy, ahora, estilo, refColumna, children }: { dia: Date; esHoy: boolean; ahora: Date; estilo: CSSProperties; refColumna: (el: HTMLElement | null) => void; children: ReactNode }) {
   const { setNodeRef, isOver } = useZonaDia(dia);
   return (
-    <section ref={setNodeRef} aria-label={tituloDelDia(dia, ahora)} data-testid="dia-semana" className={`min-w-0 rounded-xl p-2 ${isOver ? "ring-2 ring-acento" : ""} ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}>
+    <section
+      ref={(el) => {
+        setNodeRef(el);
+        refColumna(el);
+      }}
+      style={estilo}
+      aria-label={tituloDelDia(dia, ahora)}
+      data-testid="dia-semana"
+      className={`min-w-0 rounded-xl p-2 ${isOver ? "ring-2 ring-acento" : ""} ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}
+    >
       {children}
     </section>
   );
+}
+
+/** Borde entre dos columnas: se arrastra para cambiar el ancho; doble clic vuelve a automático. */
+function BordeColumna({ etiqueta, alMover, alSoltar, alRestablecer }: { etiqueta: string; alMover: (dx: number, inicio: boolean) => void; alSoltar: () => void; alRestablecer: () => void }) {
+  const inicio = useRef<number | null>(null);
+  const tecla = (e: EventoTeclado) => {
+    const paso = e.key === "ArrowLeft" ? -24 : e.key === "ArrowRight" ? 24 : 0;
+    if (!paso) return;
+    e.preventDefault();
+    alMover(paso, true);
+    alSoltar();
+  };
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={etiqueta}
+      title="Arrastra para cambiar el ancho. Doble clic: ancho automático."
+      tabIndex={0}
+      data-testid="borde-columna"
+      className="group flex w-3 shrink-0 cursor-col-resize touch-none justify-center outline-none"
+      onPointerDown={(e: EventoPuntero) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        inicio.current = e.clientX;
+        alMover(0, true);
+      }}
+      onPointerMove={(e: EventoPuntero) => {
+        if (inicio.current !== null) alMover(e.clientX - inicio.current, false);
+      }}
+      onPointerUp={() => {
+        if (inicio.current === null) return;
+        inicio.current = null;
+        alSoltar();
+      }}
+      onLostPointerCapture={() => {
+        if (inicio.current === null) return;
+        inicio.current = null;
+        alSoltar();
+      }}
+      onDoubleClick={alRestablecer}
+      onKeyDown={tecla}
+    >
+      <span className="my-2 w-0.5 rounded-full bg-transparent transition-colors group-hover:bg-acento/60 group-focus-visible:bg-acento" />
+    </div>
+  );
+}
+
+/** Anchos de las 7 columnas: automáticos (los días vacíos se achican) o ajustados a mano. */
+function useAnchosSemana(lunes: string, vacios: boolean[]) {
+  const [manual, setManual] = useState<number[] | null>(() => leerAnchos(lunes));
+  const [semana, setSemana] = useState(lunes);
+  if (semana !== lunes) {
+    setSemana(lunes);
+    setManual(leerAnchos(lunes));
+  }
+  const columnas = useRef<(HTMLElement | null)[]>([]);
+  const base = useRef<number[]>([]);
+  const actual = useRef<number[] | null>(manual);
+  actual.current = manual;
+
+  const pesos = manual ?? pesosAutomaticos(vacios);
+  const estilo = (i: number): CSSProperties => ({
+    flex: `${pesos[i]} 1 0px`,
+    minWidth: manual ? MINIMO_MANUAL : vacios[i] ? "7rem" : "10rem",
+  });
+  const mover = (i: number) => (dx: number, inicio: boolean) => {
+    if (inicio || !base.current.length) base.current = columnas.current.map((c) => c?.getBoundingClientRect().width ?? MINIMO_MANUAL);
+    if (dx === 0) return;
+    const nuevos = moverBorde(base.current, i, dx);
+    actual.current = nuevos;
+    setManual(nuevos);
+  };
+  const soltar = () => {
+    base.current = [];
+    if (actual.current) guardarAnchos(lunes, actual.current);
+  };
+  const restablecer = () => {
+    actual.current = null;
+    base.current = [];
+    setManual(null);
+    guardarAnchos(lunes, null);
+  };
+  const refColumna = (i: number) => (el: HTMLElement | null) => {
+    columnas.current[i] = el;
+  };
+  return { estilo, mover, soltar, restablecer, refColumna };
 }
 
 export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
@@ -527,6 +624,14 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const verTareas = filtro !== "eventos";
   const mesCorto = format(elegido, "MMM", { locale: es }).replace(".", "");
   const mes = (mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1)) + (elegido.getFullYear() !== ahora.getFullYear() ? ` ${elegido.getFullYear()}` : "");
+
+  const tareasTodas = useTienda((s) => s.tareas);
+  const listasTodas = useTienda((s) => s.listas);
+  const vacios = dias.map((d) => {
+    const c = contenidoDelDia(tareasTodas, listasTodas, d, ahora);
+    return (!verEventos || c.eventos.length === 0) && (!verTareas || c.tareas.length === 0);
+  });
+  const anchos = useAnchosSemana(claveDia(dias[0]), vacios);
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
   const elegirDia = (d: Date) => setElegido(d);
@@ -599,11 +704,20 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       ) : (
         // En el computador: los 7 días uno al lado del otro, cada uno en su columna.
         <div className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-6 sm:px-6">
-          <div className="grid min-h-full grid-cols-[repeat(7,minmax(10rem,1fr))] gap-3">
+          <div className="flex min-h-full">
             {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
               return (
-                <ColumnaDia key={d.toISOString()} dia={d} esHoy={esHoy} ahora={ahora}>
+                <Fragment key={d.toISOString()}>
+                {i > 0 && (
+                  <BordeColumna
+                    etiqueta={`Ancho entre ${nombreCortoDia(dias[i - 1])} y ${nombreCortoDia(d)}`}
+                    alMover={anchos.mover(i - 1)}
+                    alSoltar={anchos.soltar}
+                    alRestablecer={anchos.restablecer}
+                  />
+                )}
+                <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} refColumna={anchos.refColumna(i)}>
                   <div className="mb-2 flex items-center gap-1 px-1">
                     <h2 className="flex min-w-0 flex-1 items-baseline gap-1.5">
                       <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
@@ -620,6 +734,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                   </div>
                   <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto />
                 </ColumnaDia>
+                </Fragment>
               );
             })}
           </div>
