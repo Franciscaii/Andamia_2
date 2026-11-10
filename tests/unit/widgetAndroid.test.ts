@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { datosDelWidget } from "../../src/logica/widgetAndroid";
+import { datosDelWidget, datosDeWidgets } from "../../src/logica/widgetAndroid";
 import type { Lista, Tarea } from "../../src/modelos/tipos";
 
 const base: Tarea = {
@@ -41,5 +41,47 @@ describe("datosDelWidget", () => {
     expect(datos.eventos).toEqual([{ id: "e1", titulo: "Doctor", hora: "11:00", color: "" }]);
     expect(datos.tareas).toHaveLength(1);
     expect(datos.tareas[0]).toMatchObject({ dificultad: 2, etiqueta: "Universidad", colorEtiqueta: "#2f9e5b" });
+  });
+});
+
+describe("datos de los widgets Semana, Matriz, Calendario y estadísticas", () => {
+  const ahora = new Date(2026, 10, 11, 10, 0); // miércoles
+  const tareas = [
+    base,
+    { ...base, id: "e1", titulo: "Doctor", esEvento: true, vence: "2026-11-12", colorEvento: "#e0245e", orden: 2 },
+    { ...base, id: "t2", titulo: "Leer", prioridad: "media", vence: "2026-11-13", orden: 3 },
+    { ...base, id: "t3", titulo: "Lista", estado: "completada", completadaEn: new Date(2026, 10, 10, 9).toISOString(), etiquetas: ["universidad"], orden: 4 },
+  ] as Tarea[];
+  const datos = datosDeWidgets({ tareas, listas, etiquetas: [{ nombre: "universidad", nombreVisible: "Universidad", color: "#14c9a0" }] as never, habitos: [], registros: [] }, ahora);
+
+  it("la semana trae los 7 días como secciones, con hoy marcado", () => {
+    const secciones = datos.semana.filter((f) => f.tipo === "seccion");
+    expect(secciones).toHaveLength(7);
+    expect(secciones[2]).toMatchObject({ titulo: expect.stringContaining("Hoy"), hoy: true });
+    const jueves = datos.semana.findIndex((f) => f.tipo === "seccion" && String((f as { titulo: string }).titulo).startsWith("Jue"));
+    expect(datos.semana[jueves + 1]).toMatchObject({ tipo: "evento", titulo: "Doctor", color: "#e0245e" });
+  });
+
+  it("la matriz trae los 4 cuadrantes numerados y solo pendientes", () => {
+    const secciones = datos.matriz.filter((f) => f.tipo === "seccion");
+    expect(secciones.map((s) => String((s as { titulo: string }).titulo).slice(0, 1))).toEqual(["1", "2", "3", "4"]);
+    expect(datos.matriz.some((f) => (f as { id?: string }).id === "t3")).toBe(false);
+    expect(datos.matriz.some((f) => (f as { id?: string }).id === "e1")).toBe(false);
+  });
+
+  it("el mes empieza en lunes, marca hoy y lleva lo de cada día", () => {
+    expect(datos.mes.titulo).toBe("Noviembre 2026");
+    expect(datos.mes.celdas.length % 7).toBe(0);
+    const hoy = datos.mes.celdas.find((c) => c.hoy)!;
+    expect(hoy.dia).toBe(11);
+    const doce = datos.mes.celdas.find((c) => c.delMes && c.dia === 12)!;
+    expect(doce.entradas[0]).toMatchObject({ titulo: "Doctor", evento: true });
+  });
+
+  it("las estadísticas cuentan lo completado esta semana por etiqueta", () => {
+    expect(datos.estadisticas.tareas.total).toBe(1);
+    expect(datos.estadisticas.tareas.filas[0]).toMatchObject({ nombre: "Universidad", cantidad: 1, porcentaje: 100 });
+    expect(datos.estadisticas.tareas.serie).toHaveLength(7);
+    expect(datos.estadisticas.habitos.total).toBe(0);
   });
 });

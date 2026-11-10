@@ -29,7 +29,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     private static final int TIPO_TAREA = 2;
     private static final int TIPO_SECCION = 3;
 
-    private static final class Fila {
+    static final class Fila {
         int tipo;
         String id = "";
         String titulo = "";
@@ -140,21 +140,21 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     @Override public long getItemId(int posicion) { return posicion; }
     @Override public boolean hasStableIds() { return false; }
 
-    private int color(int recurso) {
+    static int color(Context contexto, int recurso) {
         return contexto.getResources().getColor(recurso, contexto.getTheme());
     }
 
     /** Rojo, amarillo o azul según el nivel (3 alta, 2 media, 1 baja). */
-    private int colorNivel(int nivel) {
+    static int colorNivel(Context contexto, int nivel) {
         switch (nivel) {
-            case 3: return color(R.color.widget_nivel_alta);
-            case 2: return color(R.color.widget_nivel_media);
-            case 1: return color(R.color.widget_nivel_baja);
-            default: return color(R.color.widget_texto_tenue);
+            case 3: return color(contexto, R.color.widget_nivel_alta);
+            case 2: return color(contexto, R.color.widget_nivel_media);
+            case 1: return color(contexto, R.color.widget_nivel_baja);
+            default: return color(contexto, R.color.widget_texto_tenue);
         }
     }
 
-    private static String nombreNivel(int nivel) {
+    static String nombreNivel(int nivel) {
         switch (nivel) {
             case 3: return "Alta";
             case 2: return "Media";
@@ -163,12 +163,12 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         }
     }
 
-    private RemoteViews filaEvento(Fila f) {
+    static RemoteViews filaEvento(Context contexto, Fila f) {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_evento);
         vista.setTextViewText(R.id.evento_titulo, f.titulo);
         vista.setTextViewText(R.id.evento_hora, f.detalle);
         vista.setViewVisibility(R.id.evento_hora, f.detalle.isEmpty() ? View.GONE : View.VISIBLE);
-        int colorEvento = color(R.color.widget_evento);
+        int colorEvento = color(contexto, R.color.widget_evento);
         try {
             if (!f.color.isEmpty()) colorEvento = Color.parseColor(f.color);
         } catch (IllegalArgumentException e) {
@@ -192,38 +192,38 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         return vista;
     }
 
-    private RemoteViews filaTarea(Fila f) {
+    static RemoteViews filaTarea(Context contexto, Fila f) {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_fila);
 
         if (f.hecha) {
             SpannableString tachado = new SpannableString(f.titulo);
             tachado.setSpan(new StrikethroughSpan(), 0, tachado.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             vista.setTextViewText(R.id.fila_titulo, tachado);
-            vista.setTextColor(R.id.fila_titulo, color(R.color.widget_texto_tenue));
+            vista.setTextColor(R.id.fila_titulo, color(contexto, R.color.widget_texto_tenue));
         } else {
             vista.setTextViewText(R.id.fila_titulo, f.titulo);
-            vista.setTextColor(R.id.fila_titulo, color(R.color.widget_texto));
+            vista.setTextColor(R.id.fila_titulo, color(contexto, R.color.widget_texto));
         }
 
         // Casilla: color de la importancia.
         vista.setTextViewText(R.id.fila_circulo, f.hecha ? "☑" : "☐");
-        vista.setTextColor(R.id.fila_circulo, colorNivel(f.prioridad));
+        vista.setTextColor(R.id.fila_circulo, colorNivel(contexto, f.prioridad));
 
         // Insignia bajo el título: dificultad.
         String dificultad = nombreNivel(f.dificultad);
         vista.setTextViewText(R.id.fila_importancia, dificultad);
-        vista.setTextColor(R.id.fila_importancia, colorNivel(f.dificultad));
+        vista.setTextColor(R.id.fila_importancia, colorNivel(contexto, f.dificultad));
         vista.setViewVisibility(R.id.fila_importancia, dificultad.isEmpty() ? View.GONE : View.VISIBLE);
 
         String detalle = f.atrasada ? (f.detalle.isEmpty() ? "Atrasada" : "Atrasada · " + f.detalle) : f.detalle;
         vista.setTextViewText(R.id.fila_detalle, detalle);
         vista.setViewVisibility(R.id.fila_detalle, detalle.isEmpty() ? View.GONE : View.VISIBLE);
-        vista.setTextColor(R.id.fila_detalle, color(f.atrasada ? R.color.widget_atrasada : R.color.widget_texto_tenue));
+        vista.setTextColor(R.id.fila_detalle, color(contexto, f.atrasada ? R.color.widget_atrasada : R.color.widget_texto_tenue));
 
         // Etiqueta del ámbito, con su color.
         vista.setTextViewText(R.id.fila_etiqueta, f.etiqueta);
         vista.setViewVisibility(R.id.fila_etiqueta, f.etiqueta.isEmpty() ? View.GONE : View.VISIBLE);
-        int colorEtiqueta = color(R.color.widget_texto_tenue);
+        int colorEtiqueta = color(contexto, R.color.widget_texto_tenue);
         try {
             if (!f.colorEtiqueta.isEmpty()) colorEtiqueta = Color.parseColor(f.colorEtiqueta);
         } catch (IllegalArgumentException e) {
@@ -248,10 +248,10 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         if (posicion >= filas.size()) return new RemoteViews(contexto.getPackageName(), R.layout.widget_fila);
         Fila f = filas.get(posicion);
         switch (f.tipo) {
-            case TIPO_EVENTO: return filaEvento(f);
+            case TIPO_EVENTO: return filaEvento(contexto, f);
             case TIPO_PROGRESO: return filaProgreso();
             case TIPO_SECCION: return new RemoteViews(contexto.getPackageName(), R.layout.widget_seccion);
-            default: return filaTarea(f);
+            default: return filaTarea(contexto, f);
         }
     }
 }

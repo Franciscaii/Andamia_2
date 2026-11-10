@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Título de la sección de tareas completadas. -->
+<!-- Título de una sección: "Completadas", un día de la semana o un cuadrante de la matriz. -->
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/seccion_titulo"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingStart="4dp"

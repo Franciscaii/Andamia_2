@@ -39,6 +39,72 @@
                 android:resource="@xml/widget_hoy_info" />
         </receiver>
 
+        <!-- Widgets Semana, Matriz, Calendario y estadísticas -->
+        <receiver
+            android:name=".WidgetSemana"
+            android:exported="true"
+            android:label="@string/widget_semana_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_semana_info" />
+        </receiver>
+
+        <receiver
+            android:name=".WidgetMatriz"
+            android:exported="true"
+            android:label="@string/widget_matriz_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_matriz_info" />
+        </receiver>
+
+        <receiver
+            android:name=".WidgetCalendario"
+            android:exported="true"
+            android:label="@string/widget_calendario_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_calendario_info" />
+        </receiver>
+
+        <receiver
+            android:name=".WidgetEstadisticaTareas"
+            android:exported="true"
+            android:label="@string/widget_estadistica_tareas_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_estadistica_tareas_info" />
+        </receiver>
+
+        <receiver
+            android:name=".WidgetEstadisticaHabitos"
+            android:exported="true"
+            android:label="@string/widget_estadistica_habitos_nombre">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_estadistica_habitos_info" />
+        </receiver>
+
+        <service
+            android:name=".ServicioFilas"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
         <service
             android:name=".ServicioListaHoy"
             android:exported="false"

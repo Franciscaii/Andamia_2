@@ -23,7 +23,7 @@ public class WidgetPlugin extends Plugin {
         }
         Context contexto = getContext();
         DatosWidget.guardarTareas(contexto, datos);
-        HoyWidget.redibujarTodos(contexto);
+        Widgets.redibujarTodo(contexto);
         call.resolve();
     }
 
