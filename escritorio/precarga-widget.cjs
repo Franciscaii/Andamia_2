@@ -5,4 +5,6 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("andamiaWidget", {
   empezarAjuste: (borde) => ipcRenderer.send("widget-ajuste-inicio", String(borde)),
   terminarAjuste: () => ipcRenderer.send("widget-ajuste-fin"),
+  // El widget pide el alto justo de su contenido (sin espacio vacío abajo).
+  ajustarAlto: (alto) => ipcRenderer.send("widget-alto", Number(alto)),
 });

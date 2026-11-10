@@ -362,6 +362,19 @@ ipcMain.on("widget-ajuste-inicio", (evento, borde) => {
 });
 ipcMain.on("widget-ajuste-fin", (evento) => terminarAjuste(evento.sender.id));
 
+// El widget pide el alto justo de su contenido; nunca más alto que la pantalla ni más bajo que el mínimo.
+ipcMain.on("widget-alto", (evento, alto) => {
+  const v = BrowserWindow.fromWebContents(evento.sender);
+  if (!v || v.isDestroyed() || ![...ventanasWidget.values()].includes(v) || ajustes.has(evento.sender.id)) return;
+  if (typeof alto !== "number" || !Number.isFinite(alto)) return;
+  const b = v.getBounds();
+  const area = screen.getDisplayMatching(b).workArea;
+  const maximo = Math.max(MINIMO_WIDGET.alto, area.y + area.height - b.y);
+  const nuevo = Math.round(Math.min(maximo, Math.max(MINIMO_WIDGET.alto, alto)));
+  if (Math.abs(nuevo - b.height) < 2) return;
+  v.setBounds({ ...b, height: nuevo });
+});
+
 function cerrarWidget(id) {
   const v = ventanasWidget.get(id);
   ventanasWidget.delete(id);
