@@ -16,6 +16,10 @@ import type { FiltroSemana } from "../logica/semana";
 import { DialogoHabito } from "./VistaHabitos";
 import { DialogoNuevo, FILTROS, MenuNuevo, verDiaEnSemana, type TipoNuevo } from "./VistaSemana";
 import type { Tarea } from "../modelos/tipos";
+import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
+
+/** En el widget Calendario del PC: el mes entero cabe en la ventana, sin barra para desplazar. */
+const EN_WIDGET = WIDGET_ACTUAL?.id === "calendario";
 
 const NOMBRES_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const HORAS = Array.from({ length: 24 }, (_, i) => i);
@@ -193,7 +197,8 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     if (!nodo) return;
     const medir = () => {
       const celda = nodo.firstElementChild as HTMLElement | null;
-      if (celda) setAltoCelda(celda.getBoundingClientRect().height);
+      // offsetHeight: en px de CSS, también dentro del widget (que usa zoom).
+      if (celda) setAltoCelda(celda.offsetHeight);
     };
     medir();
     const observador = new ResizeObserver(medir);
@@ -256,7 +261,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {modo === "mes" ? (
-        <header className="flex items-center gap-2 px-4 pt-4 pb-2 sm:px-5">
+        <header className={`flex items-center gap-2 px-4 sm:px-5 ${EN_WIDGET ? "pt-1 pb-1.5 pr-12 sm:pr-12" : "pt-4 pb-2"}`}>
           <div className="flex shrink-0 items-center">
             <button type="button" aria-label="Periodo anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
@@ -321,7 +326,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
           announcements: { onDragStart: () => "Tarea tomada.", onDragOver: () => "", onDragEnd: () => "Tarea soltada.", onDragCancel: () => "Movimiento cancelado." },
         }}
       >
-        <div className={`flex min-h-0 flex-1 gap-3 pb-5 ${modo === "mes" ? "px-4 sm:px-5" : "px-5"}`}>
+        <div className={`flex min-h-0 flex-1 gap-3 ${EN_WIDGET ? "pb-3" : "pb-5"} ${modo === "mes" ? "px-4 sm:px-5" : "px-5"}`}>
           {modo === "mes" ? (
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-borde bg-panel">
               <div className="grid grid-cols-7 border-b border-borde">
@@ -346,7 +351,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                       key={claveDia(dia)}
                       id={`dia:${claveDia(dia)}`}
                       etiqueta={format(dia, "d 'de' MMMM", { locale: es })}
-                      clase={`flex min-h-24 min-w-0 flex-col overflow-hidden px-0.5 pt-1 pb-1.5 ${ultimaFila ? "" : "border-b border-borde"}`}
+                      clase={`flex ${EN_WIDGET ? "min-h-0" : "min-h-24"} min-w-0 flex-col overflow-hidden px-0.5 pt-1 pb-1.5 ${ultimaFila ? "" : "border-b border-borde"}`}
                       alCrear={delMes ? () => crearEnDia(dia) : undefined}
                     >
                       {delMes && (

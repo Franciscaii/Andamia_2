@@ -681,3 +681,18 @@ test("widget Semana: el contenido se achica para verse completo y no parpadea", 
   await expect.poll(async () => Number(await zoom())).toBeGreaterThan(Number(z1));
   await expect.poll(() => zona.evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(1);
 });
+
+test("widget Calendario: el mes entero cabe sin barra y '+n más' abre el día en Andamia", async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 });
+  await page.goto("/");
+  for (const t of ["Primera del día", "Segunda del día", "Tercera del día", "Cuarta del día"]) await crearEnSemana(page, "Tarea", t);
+  await page.setViewportSize({ width: 520, height: 520 });
+  await page.goto("/?widget=calendario");
+  await expect(page.getByTestId("titulo-calendario")).toBeVisible();
+  const rejilla = page.locator(".auto-rows-fr");
+  await expect.poll(() => rejilla.evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(1);
+  const mas = page.getByRole("link", { name: /más$/ });
+  await expect(mas).toBeVisible();
+  await mas.click();
+  await expect(page).toHaveURL(/\?abrir#\/tareas\/semana/);
+});
