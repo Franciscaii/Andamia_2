@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Menu, PanelLeftOpen, X } from "lucide-react";
-import { BarraLateral } from "./componentes/BarraLateral";
+import { BarraLateral, Marca } from "./componentes/BarraLateral";
 import { DetalleTarea } from "./componentes/DetalleTarea";
 import { useTienda } from "./datos/tienda";
 import { irA, useRuta } from "./logica/ruta";
@@ -172,6 +172,7 @@ export default function App() {
           <button type="button" aria-label="Abrir menú" className="rounded-md p-1.5 hover:bg-suave" onClick={() => setLateralAbierta(true)}>
             <Menu size={20} />
           </button>
+          <Marca clase="h-6 w-6" />
           <span className="font-semibold">Andamia</span>
         </div>
         {error && (

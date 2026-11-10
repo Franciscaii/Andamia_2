@@ -51,13 +51,9 @@ function Punto({ color }: { color: string | null }) {
   return color ? <span className="block h-3 w-3 rounded-full" style={{ background: color }} /> : <ListTodo size={17} />;
 }
 
-function Marca() {
-  return (
-    <svg viewBox="0 0 32 32" className="h-6 w-6" aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="var(--acento)" />
-      <path d="M9 6v20M23 6v20M9 12h14M9 20h14M9 20l14-8" stroke="var(--sobre-acento)" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-    </svg>
-  );
+/** Logo de Andamia (hexágono con check), el mismo ícono de la app. */
+export function Marca({ clase = "h-7 w-7" }: { clase?: string }) {
+  return <img src={`${import.meta.env.BASE_URL}iconos/icono-64.png`} alt="" aria-hidden="true" className={`${clase} shrink-0`} />;
 }
 
 function FilaAjustes({ activa }: { activa: boolean }) {

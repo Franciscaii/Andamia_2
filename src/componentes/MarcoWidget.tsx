@@ -163,38 +163,37 @@ export function MarcoWidget({
             opacity: o.fondo,
           }}
         />
+        {/* Franja fina y transparente para mover el widget: sin barra de color ni menú; los botones aparecen al pasar el mouse. */}
         <div
-          className="barra-lateral relative flex shrink-0 items-center gap-2 px-3 py-1.5 [-webkit-app-region:drag]"
+          className="group/barra relative flex h-6 shrink-0 items-center justify-end gap-1 px-2 [-webkit-app-region:drag]"
           data-testid="barra-widget"
+          title={`Arrastra aquí para mover el widget ${nombre}`}
         >
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-            {nombre}
-          </span>
           <button
             type="button"
             aria-label="Transparencia y esquinas"
             aria-expanded={ajustes}
             title="Transparencia y esquinas"
-            className="rounded-md p-1 text-tenue hover:bg-suave [-webkit-app-region:no-drag]"
+            className={`rounded-md p-0.5 text-tenue opacity-0 transition-opacity group-hover/barra:opacity-100 focus-visible:opacity-100 hover:bg-suave [-webkit-app-region:no-drag] ${ajustes ? "opacity-100" : ""}`}
             onClick={() => setAjustes((x) => !x)}
           >
-            <SlidersHorizontal size={15} />
+            <SlidersHorizontal size={14} />
           </button>
           <button
             type="button"
             aria-label="Abrir en Andamia"
             title="Abrir en Andamia"
-            className="rounded-md p-1 text-tenue hover:bg-suave [-webkit-app-region:no-drag]"
+            className={`rounded-md p-0.5 text-tenue opacity-0 transition-opacity group-hover/barra:opacity-100 focus-visible:opacity-100 hover:bg-suave [-webkit-app-region:no-drag] ${ajustes ? "opacity-100" : ""}`}
             onClick={abrir}
           >
-            <ExternalLink size={15} />
+            <ExternalLink size={14} />
           </button>
         </div>
         {ajustes && (
           <div
             role="group"
             aria-label="Aspecto del widget"
-            className="absolute top-10 right-2 z-40 w-60 space-y-3 rounded-lg border border-borde bg-[var(--panel-solido)] p-3 text-texto shadow-lg [-webkit-app-region:no-drag]"
+            className="absolute top-7 right-2 z-40 w-60 space-y-3 rounded-lg border border-borde bg-[var(--panel-solido)] p-3 text-texto shadow-lg [-webkit-app-region:no-drag]"
           >
             <Deslizador
               etiqueta="Transparencia"
