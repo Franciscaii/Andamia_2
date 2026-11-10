@@ -593,3 +593,39 @@ test("semana: un evento se arrastra a otro día y la casilla completada queda pl
     await expect(page.getByRole("complementary", { name: "Detalle de la tarea" })).toBeVisible({ timeout: 500 });
   }).toPass();
 });
+
+test("matriz: ajustar el ancho de las columnas y el alto de las filas", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/#/matriz");
+  const tam = () => page.getByTestId("cuadrante").evaluateAll((es) => es.map((e) => [Math.round(e.getBoundingClientRect().width), Math.round(e.getBoundingClientRect().height)]));
+  await expect(page.getByTestId("cuadrante")).toHaveCount(4);
+  const inicio = await tam();
+  let b = (await page.getByTestId("borde-columnas").boundingBox())!;
+  await page.mouse.move(b.x + 6, b.y + 50);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 206, b.y + 50, { steps: 8 });
+  await page.mouse.up();
+  b = (await page.getByTestId("borde-filas").boundingBox())!;
+  await page.mouse.move(b.x + 50, b.y + 6);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 50, b.y + 106, { steps: 8 });
+  await page.mouse.up();
+  const movido = await tam();
+  expect(movido[0][0]).toBeGreaterThan(inicio[0][0] + 150);
+  expect(movido[1][0]).toBeLessThan(inicio[1][0] - 150);
+  expect(movido[0][1]).toBeGreaterThan(inicio[0][1] + 70);
+  expect(movido[2][1]).toBeLessThan(inicio[2][1] - 70);
+  await page.reload();
+  await expect.poll(tam).toEqual(movido);
+  await page.getByTestId("borde-columnas").dblclick();
+  await page.getByTestId("borde-filas").dblclick();
+  await expect.poll(tam).toEqual(inicio);
+});
+
+test("menú: el orden de las vistas", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Matriz" })).toBeVisible();
+  const nombres = await page.getByRole("navigation", { name: "Navegación" }).getByRole("link").allTextContents();
+  const vistas = ["Semana", "Calendario", "Estadística Tareas", "Hábitos", "Estadística Hábitos", "Matriz"];
+  expect(nombres.map((n) => n.replace(/\d+$/, "").trim()).filter((n) => vistas.includes(n))).toEqual(vistas);
+});
