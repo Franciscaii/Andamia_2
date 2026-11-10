@@ -15,18 +15,10 @@ export const WIDGETS: { id: TipoWidget; nombre: string; seccion: Seccion; ancho:
   { id: "estadistica-habitos", nombre: "Estadística Hábitos", seccion: { tipo: "estadisticas", de: "habitos" }, ancho: 380, alto: 560 },
 ];
 
-/** La Semana del widget avisa con este evento cuánto mide su contenido en pantalla (a la escala actual). */
-export const EVENTO_ALTO_WIDGET = "andamia-alto-widget";
-
-/**
- * Escala del widget Semana: la del ancho, pero más chica si hace falta para que todo el contenido
- * (que a escala 1 mide `altoNatural`) quepa en `altoTope`. Nunca menos que ESCALA_MINIMA.
- */
-export function escalaQueCabe(base: { ancho: number }, ancho: number, altoNatural: number | null, altoTope: number): number {
+/** Escala del widget Semana según el ancho (después se achica si hace falta para que quepa a lo alto). */
+export function escalaQueCabe(base: { ancho: number }, ancho: number): number {
   if (ancho <= 0) return 1;
-  let e = ancho / base.ancho;
-  if (altoNatural && altoNatural > 0 && altoTope > 0) e = Math.min(e, altoTope / altoNatural);
-  return Math.floor(Math.min(ESCALA_MAXIMA, Math.max(ESCALA_MINIMA, e)) * 100) / 100;
+  return Math.floor(Math.min(ESCALA_MAXIMA, Math.max(ESCALA_MINIMA, ancho / base.ancho)) * 100) / 100;
 }
 
 export const ESCALA_MINIMA = 0.45;

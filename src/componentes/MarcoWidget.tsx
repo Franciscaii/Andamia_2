@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ExternalLink, SlidersHorizontal } from "lucide-react";
 import { hashDe, useRuta } from "../logica/ruta";
-import { escalaQueCabe, escalaWidget, EVENTO_ALTO_WIDGET, WIDGETS } from "../logica/widgetEscritorio";
+import { ESCALA_MINIMA, escalaQueCabe, escalaWidget, WIDGETS } from "../logica/widgetEscritorio";
 import {
   guardarAspecto,
   leerAspecto,
@@ -20,28 +20,17 @@ interface PuenteWidget {
 const puente = (): PuenteWidget | undefined =>
   (window as unknown as { andamiaWidget?: PuenteWidget }).andamiaWidget;
 
-/** Alto máximo del widget elegido arrastrando su borde (se guarda en este computador). */
-const claveTope = (id: string) => `andamia-widget-tope-${id}`;
-function leerTope(id: string): number | null {
-  try {
-    const n = Number(localStorage.getItem(claveTope(id)));
-    return Number.isFinite(n) && n >= 120 ? n : null;
-  } catch {
-    return null;
-  }
-}
-function guardarTope(id: string, alto: number) {
-  try {
-    localStorage.setItem(claveTope(id), String(Math.round(alto)));
-  } catch {
-    // Sin almacenamiento: dura mientras el widget siga abierto.
-  }
-}
-/** Sin tope elegido: hasta el borde de abajo de la pantalla. */
-function altoDisponible(): number {
-  const s = window.screen as Screen & { availTop?: number };
-  const fondo = (s.availTop ?? 0) + s.availHeight;
-  return Math.max(220, fondo - Math.max(0, window.screenY));
+/**
+ * Cuánto cabe del contenido de la Semana en el widget: 1 si se ve completo; menos de 1 es la
+ * proporción a la que habría que achicarlo (mira la cabecera y la zona que se desplaza).
+ */
+function sobrante(caja: HTMLElement): number {
+  const zona = caja.querySelector<HTMLElement>("[data-widget-desplazable]");
+  if (!zona) return 1;
+  const cabecera = caja.querySelector<HTMLElement>("[data-widget-cabecera]")?.offsetHeight ?? 0;
+  const alto = (cabecera + zona.clientHeight) / (cabecera + zona.scrollHeight);
+  const ancho = zona.clientWidth / zona.scrollWidth;
+  return Math.min(1, alto || 1, ancho || 1);
 }
 
 const BORDES: { id: string; clase: string; cursor: string }[] = [
@@ -157,51 +146,64 @@ export function MarcoWidget({
   // El contenido se achica o agranda con la ventana, para ver todo (o casi todo) a cualquier tamaño.
   const marco = useRef<HTMLDivElement>(null);
   const [escala, setEscala] = useState(1);
-  const escalaActual = useRef(1);
-  escalaActual.current = escala;
-  const ajustaAlto = id === "semana";
-  // Semana: alto de su contenido a escala 1 (lo avisa la vista) y alto máximo que ella eligió arrastrando el borde.
-  const [altoNatural, setAltoNatural] = useState<number | null>(null);
-  const [tope, setTope] = useState<number | null>(() => leerTope(id));
-  useEffect(() => {
-    if (!ajustaAlto) return;
-    const alAvisar = (e: Event) => {
-      const enPantalla = (e as CustomEvent<number>).detail;
-      if (enPantalla > 0) setAltoNatural(enPantalla / (escalaActual.current || 1));
-    };
-    window.addEventListener(EVENTO_ALTO_WIDGET, alAvisar);
-    return () => window.removeEventListener(EVENTO_ALTO_WIDGET, alAvisar);
-  }, [ajustaAlto]);
+  const contenido = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const base = WIDGETS.find((w) => w.id === id);
     const el = marco.current;
-    if (!base || !el) return;
-    const medir = () => {
-      if (!ajustaAlto) {
-        setEscala(escalaWidget(base, el.clientWidth, el.clientHeight));
-        return;
+    const caja = contenido.current;
+    if (!base || !el || !caja) return;
+    if (id !== "semana") {
+      const medir = () => setEscala(escalaWidget(base, el.clientWidth, el.clientHeight));
+      medir();
+      const obs = new ResizeObserver(medir);
+      obs.observe(el);
+      return () => obs.disconnect();
+    }
+    // Semana: la ventana queda del tamaño que ella le dé, y el contenido se achica lo justo para que
+    // se vea completo (hasta la última tarea completada), sin barras de desplazamiento.
+    // Siempre parte de la escala del ancho y solo baja: así el resultado es estable y no parpadea.
+    let ultima = -1;
+    const ajustar = () => {
+      const cabe = (x: number) => {
+        caja.style.zoom = String(x);
+        return sobrante(caja) >= 0.995;
+      };
+      let e = escalaQueCabe(base, el.clientWidth);
+      let noCabe = 0;
+      for (let i = 0; i < 12 && e > ESCALA_MINIMA && !cabe(e); i++) {
+        noCabe = e;
+        const siguiente = Math.max(ESCALA_MINIMA, Math.floor(e * sobrante(caja) * 100) / 100);
+        e = siguiente < e ? siguiente : Math.round((e - 0.01) * 100) / 100;
       }
-      // Semana: la escala del ancho, achicada si hace falta para que todo quepa sin barra de desplazamiento.
-      // La ventana toma justo ese alto, sin pasar del tope (el que ella eligió o el borde de la pantalla).
-      const maximo = tope ?? altoDisponible();
-      const e = escalaQueCabe(base, el.clientWidth, altoNatural, maximo);
-      setEscala((antes) => (Math.abs(antes - e) >= 0.01 ? e : antes));
-      if (altoNatural) puente()?.ajustarAlto?.(Math.min(maximo, Math.ceil(altoNatural * e) + 2));
+      // Al achicar, las líneas largas se cortan menos: se busca la escala más grande que todavía cabe.
+      for (let i = 0; i < 6 && noCabe - e > 0.01; i++) {
+        const medio = Math.floor(((e + noCabe) / 2) * 100) / 100;
+        if (cabe(medio)) e = medio;
+        else noCabe = medio;
+      }
+      caja.style.zoom = String(e);
+      if (e !== ultima) {
+        ultima = e;
+        setEscala(e);
+      }
     };
-    medir();
-    const obs = new ResizeObserver(medir);
+    let cuadro = 0;
+    const pedir = () => {
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(ajustar);
+    };
+    ajustar();
+    const obs = new ResizeObserver(pedir);
     obs.observe(el);
-    return () => obs.disconnect();
-  }, [id, ajustaAlto, altoNatural, tope]);
-  // Al soltar el borde de arriba o de abajo, ese alto pasa a ser el tope del widget.
-  const alSoltarBorde = (borde: string) => {
-    if (!ajustaAlto || !/[ns]/.test(borde)) return;
-    window.setTimeout(() => {
-      const alto = window.innerHeight;
-      setTope(alto);
-      guardarTope(id, alto);
-    }, 50);
-  };
+    // Cambios en las tareas (agregar, completar, cambiar de día) también reajustan.
+    const mut = new MutationObserver(pedir);
+    mut.observe(caja, { childList: true, subtree: true, characterData: true });
+    return () => {
+      obs.disconnect();
+      mut.disconnect();
+      cancelAnimationFrame(cuadro);
+    };
+  }, [id]);
   const o = opacidades(aspecto);
   const estilo = {
     borderRadius: aspecto.esquinas,
@@ -283,11 +285,11 @@ export function MarcoWidget({
             </p>
           </div>
         )}
-        <div className="relative flex min-h-0 flex-1 flex-col" data-testid="contenido-widget" style={{ zoom: escala }}>
+        <div className="relative flex min-h-0 flex-1 flex-col" data-testid="contenido-widget" ref={contenido} style={{ zoom: escala }}>
           {children}
         </div>
       </div>
-      <BordesAjustables alSoltar={alSoltarBorde} />
+      <BordesAjustables />
     </div>
   );
 }
