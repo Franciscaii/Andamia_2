@@ -701,7 +701,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ArrastreSemana ahora={ahora}>
-      <header className="px-4 pt-4 pb-2 sm:px-6">
+      <header className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
         <div className="flex items-center gap-2">
           <div className="flex shrink-0 items-center">
             <button type="button" aria-label="Semana anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => moverSemana(-1)}>
@@ -766,7 +766,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
         </div>
       ) : (
         // En el computador: los 7 días uno al lado del otro, cada uno en su columna.
-        <div className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-6 sm:px-6">
+        <div className={`min-h-0 flex-1 overflow-auto px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-3" : "pt-2 pb-6"}`}>
           <div className="flex min-h-full">
             {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
