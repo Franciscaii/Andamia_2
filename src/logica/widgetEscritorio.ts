@@ -6,13 +6,24 @@ import type { Seccion } from "./ruta";
  */
 export type TipoWidget = "semana" | "calendario" | "matriz" | "estadistica-tareas" | "estadistica-habitos";
 
-export const WIDGETS: { id: TipoWidget; nombre: string; seccion: Seccion }[] = [
-  { id: "semana", nombre: "Semana", seccion: { tipo: "vista", vista: "semana" } },
-  { id: "calendario", nombre: "Calendario", seccion: { tipo: "calendario", modo: "mes" } },
-  { id: "matriz", nombre: "Matriz", seccion: { tipo: "matriz" } },
-  { id: "estadistica-tareas", nombre: "Estadística Tareas", seccion: { tipo: "estadisticas", de: "tareas" } },
-  { id: "estadistica-habitos", nombre: "Estadística Hábitos", seccion: { tipo: "estadisticas", de: "habitos" } },
+/** `ancho` y `alto`: tamaño en que el contenido se ve a escala normal; al achicar o agrandar el widget, el contenido se escala con él. */
+export const WIDGETS: { id: TipoWidget; nombre: string; seccion: Seccion; ancho: number; alto: number }[] = [
+  { id: "semana", nombre: "Semana", seccion: { tipo: "vista", vista: "semana" }, ancho: 1040, alto: 620 },
+  { id: "calendario", nombre: "Calendario", seccion: { tipo: "calendario", modo: "mes" }, ancho: 520, alto: 520 },
+  { id: "matriz", nombre: "Matriz", seccion: { tipo: "matriz" }, ancho: 560, alto: 560 },
+  { id: "estadistica-tareas", nombre: "Estadística Tareas", seccion: { tipo: "estadisticas", de: "tareas" }, ancho: 380, alto: 560 },
+  { id: "estadistica-habitos", nombre: "Estadística Hábitos", seccion: { tipo: "estadisticas", de: "habitos" }, ancho: 380, alto: 560 },
 ];
+
+export const ESCALA_MINIMA = 0.45;
+export const ESCALA_MAXIMA = 1.3;
+
+/** Cuánto escalar el contenido para que quepa en un widget de ese tamaño. */
+export function escalaWidget(base: { ancho: number; alto: number }, ancho: number, alto: number): number {
+  if (ancho <= 0 || alto <= 0) return 1;
+  const e = Math.min(ancho / base.ancho, alto / base.alto);
+  return Math.round(Math.min(ESCALA_MAXIMA, Math.max(ESCALA_MINIMA, e)) * 100) / 100;
+}
 
 export function widgetDeDireccion(busqueda: string): (typeof WIDGETS)[number] | null {
   const id = new URLSearchParams(busqueda).get("widget");

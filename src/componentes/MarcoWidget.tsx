@@ -1,6 +1,7 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ExternalLink, SlidersHorizontal } from "lucide-react";
 import { hashDe, useRuta } from "../logica/ruta";
+import { escalaWidget, WIDGETS } from "../logica/widgetEscritorio";
 import {
   guardarAspecto,
   leerAspecto,
@@ -124,6 +125,19 @@ export function MarcoWidget({
       window.location.pathname
     }?abrir${hashDe(ruta.seccion, ruta.tareaId)}`;
   };
+  // El contenido se achica o agranda con la ventana, para ver todo (o casi todo) a cualquier tamaño.
+  const marco = useRef<HTMLDivElement>(null);
+  const [escala, setEscala] = useState(1);
+  useEffect(() => {
+    const base = WIDGETS.find((w) => w.id === id);
+    const el = marco.current;
+    if (!base || !el) return;
+    const medir = () => setEscala(escalaWidget(base, el.clientWidth, el.clientHeight));
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [id]);
   const o = opacidades(aspecto);
   const estilo = {
     borderRadius: aspecto.esquinas,
@@ -133,7 +147,7 @@ export function MarcoWidget({
   } as CSSProperties;
 
   return (
-    <div className="relative h-full">
+    <div ref={marco} className="relative h-full">
       <div
         className="relative flex h-full flex-col overflow-hidden"
         style={estilo}
@@ -203,7 +217,9 @@ export function MarcoWidget({
             </p>
           </div>
         )}
-        <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>
+        <div className="relative flex min-h-0 flex-1 flex-col" data-testid="contenido-widget" style={{ zoom: escala }}>
+          {children}
+        </div>
       </div>
       <BordesAjustables />
     </div>
