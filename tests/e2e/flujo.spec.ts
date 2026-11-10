@@ -527,3 +527,14 @@ test("matriz: subir o bajar una tarea dentro del cuadrante", async ({ page }) =>
   await arrastrar(page, cuadrante.getByRole("button", { name: `Mover ${segunda}` }), cuadrante.getByTestId("fila-tarea").first());
   await expect.poll(async () => (await titulos()).map((x) => x.split("\n")[0])).toEqual([segunda, primera]);
 });
+
+test("widget del escritorio: vista sola, sin menú, con barra para moverlo", async ({ page }) => {
+  await page.setViewportSize({ width: 380, height: 560 });
+  await page.goto("/?widget=matriz");
+  await expect(page.getByTestId("barra-widget")).toContainText("Matriz");
+  await expect(page.getByRole("heading", { name: "Matriz de Eisenhower" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Navegación" })).toHaveCount(0);
+  await page.goto("/?widget=semana");
+  await expect(page.getByTestId("barra-widget")).toContainText("Semana");
+  await expect(page.getByTestId("boton-dia")).toHaveCount(7);
+});

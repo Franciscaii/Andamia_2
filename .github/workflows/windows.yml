@@ -1,0 +1,48 @@
+# Crea el instalador de Andamia para Windows (.exe), gratis, en los servidores de GitHub.
+# Se ejecuta a mano desde la pestaña Actions ("Run workflow") o al subir cambios de la app de PC a apps-nativas.
+# El instalador queda en la sección "Releases" del repositorio, en "Andamia para Windows".
+name: App de Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [apps-nativas]
+    paths: ["escritorio/**", ".github/workflows/windows.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: escritorio
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Crear el instalador
+        run: npx electron-builder --win nsis --x64 --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Andamia-Instalador
+          path: escritorio/instaladores/*.exe
+          retention-days: 30
+
+      - name: Publicar en Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          exe=$(ls instaladores/*.exe | head -n 1)
+          gh release view escritorio >/dev/null 2>&1 || gh release create escritorio --title "Andamia para Windows" --notes "Instalador de la app de PC. Se actualiza solo con cada cambio." --latest=false
+          gh release upload escritorio "$exe" --clobber

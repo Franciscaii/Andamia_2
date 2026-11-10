@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Menu, PanelLeftOpen, X } from "lucide-react";
+import { ExternalLink, Menu, PanelLeftOpen, X } from "lucide-react";
 import { BarraLateral } from "./componentes/BarraLateral";
 import { DetalleTarea } from "./componentes/DetalleTarea";
 import { useTienda } from "./datos/tienda";
-import { irA, useRuta } from "./logica/ruta";
+import { hashDe, irA, useRuta } from "./logica/ruta";
+import { WIDGET_ACTUAL } from "./logica/widgetEscritorio";
 import { PanelAvisos } from "./componentes/Avisos";
 import { DialogoMigracion } from "./componentes/DialogoMigracion";
 import { iniciarCuenta, useCuenta } from "./datos/cuenta";
@@ -24,6 +25,53 @@ function MotorEnfoque() {
   // Espera a que los datos carguen para no perder la sesión al registrarla.
   useMotorEnfoque();
   return null;
+}
+
+/**
+ * Barra de un widget del escritorio: se arrastra para moverlo (en la app de PC) y
+ * su botón abre esa vista en la ventana grande de Andamia.
+ */
+function BarraWidget({ nombre }: { nombre: string }) {
+  const ruta = useRuta();
+  const abrir = () => {
+    // La app de PC intercepta "?abrir" y muestra la ventana principal; en el navegador abre Andamia completa.
+    window.location.href = `${window.location.origin}${window.location.pathname}?abrir${hashDe(ruta.seccion, ruta.tareaId)}`;
+  };
+  return (
+    <div className="barra-lateral flex shrink-0 items-center gap-2 px-3 py-1.5 [-webkit-app-region:drag]" data-testid="barra-widget">
+      <span className="min-w-0 flex-1 truncate text-sm font-semibold">{nombre}</span>
+      <button type="button" aria-label="Abrir en Andamia" title="Abrir en Andamia" className="rounded-md p-1 text-tenue hover:bg-suave [-webkit-app-region:no-drag]" onClick={abrir}>
+        <ExternalLink size={15} />
+      </button>
+    </div>
+  );
+}
+
+/** La vista de la sección actual. */
+function Vista({ ruta }: { ruta: ReturnType<typeof useRuta> }) {
+  return (
+    <>
+      {ruta.seccion.tipo === "buscar" ? (
+        <VistaBusqueda />
+      ) : ruta.seccion.tipo === "calendario" ? (
+        <VistaCalendario modo={ruta.seccion.modo} tareaAbierta={ruta.tareaId} />
+      ) : ruta.seccion.tipo === "matriz" ? (
+        <VistaMatriz tareaAbierta={ruta.tareaId} />
+      ) : ruta.seccion.tipo === "enfoque" ? (
+        <VistaEnfoque />
+      ) : ruta.seccion.tipo === "habitos" ? (
+        <VistaHabitos />
+      ) : ruta.seccion.tipo === "estadisticas" ? (
+        <VistaEstadisticas key={ruta.seccion.de} tipo={ruta.seccion.de} />
+      ) : ruta.seccion.tipo === "ajustes" ? (
+        <VistaAjustes />
+      ) : ruta.seccion.tipo === "vista" && ruta.seccion.vista === "semana" ? (
+        <VistaSemana tareaAbierta={ruta.tareaId} />
+      ) : (
+        <VistaTareas seccion={ruta.seccion} tareaAbierta={ruta.tareaId} />
+      )}
+    </>
+  );
 }
 
 function esCampoDeTexto(el: EventTarget | null): boolean {
@@ -111,6 +159,18 @@ export default function App() {
     return <div className="flex h-full items-center justify-center text-tenue">Cargando…</div>;
   }
 
+  if (WIDGET_ACTUAL) {
+    return (
+      <div className="flex h-full flex-col overflow-hidden" data-widget={WIDGET_ACTUAL.id}>
+        <BarraWidget nombre={WIDGET_ACTUAL.nombre} />
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <Vista ruta={ruta} />
+        </main>
+        {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full overflow-hidden">
       {lateralAbierta && <div className="fixed inset-0 z-20 bg-black/40 lg:hidden" onClick={() => setLateralAbierta(false)} />}
@@ -140,25 +200,7 @@ export default function App() {
             </button>
           </div>
         )}
-        {ruta.seccion.tipo === "buscar" ? (
-          <VistaBusqueda />
-        ) : ruta.seccion.tipo === "calendario" ? (
-          <VistaCalendario modo={ruta.seccion.modo} tareaAbierta={ruta.tareaId} />
-        ) : ruta.seccion.tipo === "matriz" ? (
-          <VistaMatriz tareaAbierta={ruta.tareaId} />
-        ) : ruta.seccion.tipo === "enfoque" ? (
-          <VistaEnfoque />
-        ) : ruta.seccion.tipo === "habitos" ? (
-          <VistaHabitos />
-        ) : ruta.seccion.tipo === "estadisticas" ? (
-          <VistaEstadisticas key={ruta.seccion.de} tipo={ruta.seccion.de} />
-        ) : ruta.seccion.tipo === "ajustes" ? (
-          <VistaAjustes />
-        ) : ruta.seccion.tipo === "vista" && ruta.seccion.vista === "semana" ? (
-          <VistaSemana tareaAbierta={ruta.tareaId} />
-        ) : (
-          <VistaTareas seccion={ruta.seccion} tareaAbierta={ruta.tareaId} />
-        )}
+        <Vista ruta={ruta} />
       </main>
 
       {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}
