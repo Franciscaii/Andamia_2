@@ -21,6 +21,11 @@ public class HoyWidget extends AppWidgetProvider {
         for (int id : ids) dibujar(contexto, gestor, id);
     }
 
+    @Override
+    public void onAppWidgetOptionsChanged(Context contexto, AppWidgetManager gestor, int id, android.os.Bundle opciones) {
+        dibujar(contexto, gestor, id);
+    }
+
     static void redibujarTodos(Context contexto) {
         AppWidgetManager gestor = AppWidgetManager.getInstance(contexto);
         int[] ids = gestor.getAppWidgetIds(new ComponentName(contexto, HoyWidget.class));
@@ -70,6 +75,8 @@ public class HoyWidget extends AppWidgetProvider {
         vista.setOnClickPendingIntent(R.id.widget_titulo, abrirApp(contexto, "andamia://hoy", 1));
         vista.setOnClickPendingIntent(R.id.widget_vacio, abrirApp(contexto, "andamia://hoy", 1));
         vista.setOnClickPendingIntent(R.id.widget_nueva, abrirApp(contexto, "andamia://nueva", 2));
+        TemaWidget.cabecera(contexto, vista, R.id.widget_titulo, R.id.widget_nueva, R.id.widget_vacio);
+        TemaWidget.fondo(contexto, gestor, idWidget, vista);
         gestor.updateAppWidget(idWidget, vista);
     }
 }

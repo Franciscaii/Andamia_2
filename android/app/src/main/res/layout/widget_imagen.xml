@@ -2,8 +2,16 @@
 <!-- Calendario y estadísticas: la app los dibuja como imagen (ver Dibujos.java). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/widget_fondo">
+    android:layout_height="match_parent">
+
+    <!-- Fondo con el color del tema, la transparencia y las esquinas elegidas (lo dibuja TemaWidget). -->
+    <ImageView
+        android:id="@+id/fondo_widget"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_fondo" />
 
     <ImageView
         android:id="@+id/imagen_vista"

@@ -5,6 +5,7 @@ import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
 import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
 import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
+import { esAppNativa } from "../logica/plataforma";
 import { puenteEscritorio } from "../logica/puenteEscritorio";
 import type { Carpeta, Etiqueta, Lista } from "../modelos/tipos";
 import { BotonAvisos } from "./Avisos";
@@ -231,8 +232,8 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
 
         <div className="mt-4">
           <Fila href={hashDe({ tipo: "tema" })} activa={seccion.tipo === "tema"} icono={<Palette size={17} />} nombre="Tema" />
-          {/* Solo en la app de PC: poner widgets en el escritorio sin ir al ícono junto al reloj. */}
-          {puenteEscritorio() && <Fila href={hashDe({ tipo: "widgets" })} activa={seccion.tipo === "widgets"} icono={<LayoutDashboard size={17} />} nombre="Widgets" />}
+          {/* En la app de PC (escritorio de Windows) y en la del celular (pantalla de inicio). */}
+          {(puenteEscritorio() || esAppNativa()) && <Fila href={hashDe({ tipo: "widgets" })} activa={seccion.tipo === "widgets"} icono={<LayoutDashboard size={17} />} nombre="Widgets" />}
         </div>
 
         {titulo(

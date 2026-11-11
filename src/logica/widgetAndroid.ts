@@ -6,7 +6,8 @@ import { useTienda } from "../datos/tienda";
 import type { Etiqueta, Habito, Lista, Prioridad, RegistroHabito, Tarea } from "../modelos/tipos";
 import { gruposDeEtiquetas, gruposDeHabitos, hechosDeHabitos, hechosDeTareas, resumir, tituloPeriodo, type Resumen } from "./estadisticas";
 import { CUADRANTES, repartirEnCuadrantes } from "./matriz";
-import { leerEleccion, temaEfectivo } from "./temas";
+import { leerEleccion, temaEfectivo, textoSobre, type Tema } from "./temas";
+import { leerAspecto, type AspectoWidget } from "./aspectoWidget";
 import { diasHasta, fechaDeTarea } from "./fechas";
 import { irA } from "./ruta";
 import { contenidoDelDia, diasDeSemana, dificultadDe, nombreCortoDia, tituloDelDia } from "./semana";
@@ -15,6 +16,8 @@ import { contenidoDelDia, diasDeSemana, dificultadDe, nombreCortoDia, tituloDelD
 interface PluginWidget {
   actualizar(opciones: { datos: string }): Promise<void>;
   pendientes(): Promise<{ ids: string[] }>;
+  puedeAnclar(): Promise<{ puede: boolean }>;
+  anclar(opciones: { tipo: string }): Promise<{ pedido: boolean }>;
 }
 
 const widget = registerPlugin<PluginWidget>("AndamiaWidget");
@@ -143,17 +146,49 @@ export function estadisticasDelWidget(e: Estado, ahora: Date) {
   };
 }
 
+/** Clave del aspecto (transparencia y esquinas) de los widgets del celular. */
+export const ASPECTO_ANDROID = "android";
+
+/** Mezcla dos colores #rrggbb: pct% del primero y el resto del segundo (como color-mix en la app). */
+export function mezclarHex(a: string, pct: number, b: string): string {
+  const rgb = (h: string) => {
+    let x = h.replace("#", "");
+    if (x.length === 3) x = x.replace(/./g, (c) => c + c);
+    const n = parseInt(x.slice(0, 6), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const [x, y] = [rgb(a), rgb(b)];
+  return `#${x.map((v, i) => Math.round((v * pct + y[i] * (100 - pct)) / 100).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Colores del tema de la app para los widgets: fondo, textos, gris suave y acento. */
+export function temaParaWidget(t: Tema) {
+  return {
+    fondo: t.panel,
+    texto: t.texto,
+    tenue: mezclarHex(t.texto, 62, t.panel),
+    suave: mezclarHex(t.texto, 8, t.panel),
+    acento: t.acento,
+    sobreAcento: textoSobre(t.acento),
+  };
+}
+
 /** Todo lo que leen los widgets de Android. */
-export function datosDeWidgets(e: Estado, ahora: Date = new Date()) {
+export function datosDeWidgets(e: Estado, ahora: Date = new Date(), aspecto: AspectoWidget = leerAspecto(ASPECTO_ANDROID)) {
   let acento = "";
+  let tema: ReturnType<typeof temaParaWidget> | null = null;
   try {
-    acento = temaEfectivo(leerEleccion()).acento;
+    const t = temaEfectivo(leerEleccion());
+    acento = t.acento;
+    tema = temaParaWidget(t);
   } catch {
-    // Sin tema guardado: el widget usa su azul.
+    // Sin tema guardado: el widget usa sus colores de siempre.
   }
   return {
     ...datosDelWidget(e.tareas, e.listas, ahora, e.etiquetas),
     acento,
+    tema,
+    aspecto,
     semanaDias: diasDeSemanaWidget(e, ahora),
     matriz: filasDeMatriz(e, ahora),
     mes: mesDelWidget(e, ahora),
@@ -178,6 +213,30 @@ function enviarAlWidget(): void {
 function programarEnvio(): void {
   if (temporizador) clearTimeout(temporizador);
   temporizador = setTimeout(enviarAlWidget, 400);
+}
+
+/** Se cambió la transparencia o las esquinas: los widgets se redibujan ya. */
+export function avisarCambioAspecto(): void {
+  ultimoEnviado = "";
+  programarEnvio();
+}
+
+/** ¿Se pueden poner widgets en la pantalla de inicio desde la app? */
+export async function puedeAnclarWidget(): Promise<boolean> {
+  try {
+    return (await widget.puedeAnclar()).puede;
+  } catch {
+    return false;
+  }
+}
+
+/** Pide al celular poner ese widget en la pantalla de inicio. */
+export async function anclarWidget(tipo: string): Promise<boolean> {
+  try {
+    return (await widget.anclar({ tipo })).pedido;
+  } catch {
+    return false;
+  }
 }
 
 /** Completa en Andamia las tareas que se marcaron como hechas desde el widget. */

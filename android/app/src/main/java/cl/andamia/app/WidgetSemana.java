@@ -6,8 +6,6 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
@@ -54,6 +52,11 @@ public class WidgetSemana extends AppWidgetProvider {
             return;
         }
         super.onReceive(contexto, intent);
+    }
+
+    @Override
+    public void onAppWidgetOptionsChanged(Context contexto, AppWidgetManager gestor, int id, android.os.Bundle opciones) {
+        dibujar(contexto, gestor, id);
     }
 
     static void redibujarTodos(Context contexto) {
@@ -137,13 +140,9 @@ public class WidgetSemana extends AppWidgetProvider {
                 boolean esElegido = i == elegida;
                 boolean esHoy = hoy.equals(fecha);
                 vista.setInt(DIAS[i], "setBackgroundResource", esElegido ? R.drawable.widget_dia_elegido : R.drawable.widget_dia);
-                if (esElegido && Build.VERSION.SDK_INT >= 31) {
-                    // El día elegido toma el color del tema de la app.
-                    vista.setColorStateList(DIAS[i], "setBackgroundTintList", ColorStateList.valueOf(acento));
-                } else if (Build.VERSION.SDK_INT >= 31) {
-                    vista.setColorStateList(DIAS[i], "setBackgroundTintList", null);
-                }
-                vista.setTextColor(DIAS[i], esElegido ? Color.WHITE
+                // El día elegido toma el acento del tema; los demás, el gris suave del tema.
+                TemaWidget.tenirFondo(vista, DIAS[i], esElegido ? acento : FabricaListaHoy.color(contexto, R.color.widget_evento_suave));
+                vista.setTextColor(DIAS[i], esElegido ? FabricaListaHoy.color(contexto, R.color.widget_boton_texto)
                         : esHoy ? acento
                         : FabricaListaHoy.color(contexto, R.color.widget_texto));
                 vista.setOnClickPendingIntent(DIAS[i], elegir(contexto, idWidget, fecha, i));
@@ -176,6 +175,8 @@ public class WidgetSemana extends AppWidgetProvider {
         vista.setOnClickPendingIntent(R.id.semana_titulo, Widgets.abrirApp(contexto, direccion, 21));
         vista.setOnClickPendingIntent(R.id.semana_vacio, Widgets.abrirApp(contexto, direccion, 21));
         vista.setOnClickPendingIntent(R.id.semana_nueva, Widgets.abrirApp(contexto, "andamia://nueva", 2));
+        TemaWidget.cabecera(contexto, vista, R.id.semana_titulo, R.id.semana_nueva, R.id.semana_vacio);
+        TemaWidget.fondo(contexto, gestor, idWidget, vista);
         gestor.updateAppWidget(idWidget, vista);
     }
 }

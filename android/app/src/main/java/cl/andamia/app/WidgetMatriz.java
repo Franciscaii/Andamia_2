@@ -10,4 +10,9 @@ public class WidgetMatriz extends AppWidgetProvider {
     public void onUpdate(Context contexto, AppWidgetManager gestor, int[] ids) {
         for (int id : ids) Widgets.dibujarLista(contexto, gestor, id, "matriz");
     }
+
+    @Override
+    public void onAppWidgetOptionsChanged(Context contexto, AppWidgetManager gestor, int id, android.os.Bundle opciones) {
+        Widgets.dibujarLista(contexto, gestor, id, "matriz");
+    }
 }
