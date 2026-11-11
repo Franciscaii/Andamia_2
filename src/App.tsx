@@ -13,6 +13,7 @@ import { iniciarCuenta, useCuenta } from "./datos/cuenta";
 const MARCA_ETIQUETAS = "andamia-etiquetas-iniciales";
 import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes, VistaTema } from "./vistas/VistaAjustes";
+import { VistaWidgets } from "./vistas/VistaWidgets";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
 import { VistaCalendario } from "./vistas/VistaCalendario";
 import { VistaEnfoque } from "./vistas/VistaEnfoque";
@@ -48,6 +49,8 @@ function Vista({ ruta }: { ruta: ReturnType<typeof useRuta> }) {
         <VistaAjustes />
       ) : ruta.seccion.tipo === "tema" ? (
         <VistaTema />
+      ) : ruta.seccion.tipo === "widgets" ? (
+        <VistaWidgets />
       ) : ruta.seccion.tipo === "vista" && ruta.seccion.vista === "semana" ? (
         <VistaSemana tareaAbierta={ruta.tareaId} />
       ) : (

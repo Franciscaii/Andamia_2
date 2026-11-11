@@ -14,6 +14,10 @@ import { CUADRANTES, prioridadDeCuadrante, repartirEnCuadrantes, type Cuadrante,
 import { irA } from "../logica/ruta";
 import { acotar, guardarDivision, leerDivision, type DivisionMatriz } from "../logica/divisionMatriz";
 import { LISTA_BANDEJA, type Tarea } from "../modelos/tipos";
+import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
+
+/** Widget Matriz del PC: siempre los 4 cuadrantes a la vista (2×2), cada uno con su propio desplazamiento. */
+const EN_WIDGET = WIDGET_ACTUAL?.id === "matriz";
 
 const SECCION = { tipo: "matriz" } as const;
 
@@ -51,7 +55,7 @@ function ZonaCuadrante({ numero, cuadrante, tareas, tareaAbierta, listaId, etiqu
   };
 
   return (
-    <section ref={setNodeRef} aria-label={cuadrante.nombre} data-testid="cuadrante" className={`flex min-h-64 min-w-0 flex-col rounded-xl border bg-panel p-3 lg:min-h-0 ${clase} ${isOver ? "border-acento bg-acento-suave" : "border-borde"}`}>
+    <section ref={setNodeRef} aria-label={cuadrante.nombre} data-testid="cuadrante" className={`flex min-w-0 flex-col rounded-xl border bg-panel ${EN_WIDGET ? "min-h-0 p-2" : "min-h-64 p-3 lg:min-h-0"} ${clase} ${isOver ? "border-acento bg-acento-suave" : "border-borde"}`}>
       <header className="mb-2 flex items-start gap-2">
         <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold" style={{ borderColor: COLOR_PRIORIDAD[cuadrante.prioridad], color: COLOR_PRIORIDAD[cuadrante.prioridad] }}>
           {numero}
@@ -85,7 +89,9 @@ function ZonaCuadrante({ numero, cuadrante, tareas, tareaAbierta, listaId, etiqu
 }
 
 /** Lugar de cada cuadrante en la grilla del computador (columnas y filas 1 y 3; la 2 es el borde). */
-const LUGAR = ["lg:col-start-1 lg:row-start-1", "lg:col-start-3 lg:row-start-1", "lg:col-start-1 lg:row-start-3", "lg:col-start-3 lg:row-start-3"];
+const LUGAR = EN_WIDGET
+  ? ["col-start-1 row-start-1", "col-start-3 row-start-1", "col-start-1 row-start-3", "col-start-3 row-start-3"]
+  : ["lg:col-start-1 lg:row-start-1", "lg:col-start-3 lg:row-start-1", "lg:col-start-1 lg:row-start-3", "lg:col-start-3 lg:row-start-3"];
 
 /** Borde entre cuadrantes: se arrastra para cambiar el tamaño; doble clic vuelve a mitad y mitad. */
 function BordeMatriz({ eje, valor, alCambiar, alSoltar }: { eje: "columna" | "fila"; valor: number; alCambiar: (x: number) => void; alSoltar: () => void }) {
@@ -121,7 +127,7 @@ function BordeMatriz({ eje, valor, alCambiar, alSoltar }: { eje: "columna" | "fi
       title="Arrastra para cambiar el tamaño. Doble clic: mitad y mitad."
       tabIndex={0}
       data-testid={vertical ? "borde-columnas" : "borde-filas"}
-      className={`group hidden touch-none outline-none lg:flex ${vertical ? "col-start-2 row-span-3 row-start-1 cursor-col-resize justify-center" : "col-span-3 col-start-1 row-start-2 cursor-row-resize items-center"}`}
+      className={`group touch-none outline-none ${EN_WIDGET ? "flex" : "hidden lg:flex"} ${vertical ? "col-start-2 row-span-3 row-start-1 cursor-col-resize justify-center" : "col-span-3 col-start-1 row-start-2 cursor-row-resize items-center"}`}
       onPointerDown={(e) => {
         e.preventDefault();
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -202,9 +208,10 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex flex-wrap items-center gap-2 px-5 pt-5 pb-3">
-        <h1 className="text-xl font-semibold">Matriz de Eisenhower</h1>
-        <div className="flex flex-wrap gap-2 sm:ml-auto">
+      {/* En el widget: compacto y con la esquina derecha libre para el botón del widget. */}
+      <header className={EN_WIDGET ? "flex items-center gap-2 pt-1 pr-12 pb-1.5 pl-3" : "flex flex-wrap items-center gap-2 px-5 pt-5 pb-3"}>
+        <h1 className={EN_WIDGET ? "truncate text-base font-semibold" : "text-xl font-semibold"}>Matriz de Eisenhower</h1>
+        <div className={EN_WIDGET ? "ml-auto flex shrink-0" : "flex flex-wrap gap-2 sm:ml-auto"}>
           <select aria-label="Filtrar por etiqueta" className={`${claseCampo} !w-auto`} value={etiqueta ?? ""} onChange={(e) => setEtiqueta(e.target.value || null)}>
             <option value="">Todas las etiquetas</option>
             {etiquetas.map((e) => (
@@ -228,7 +235,11 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
       >
         <div
           style={tamanos}
-          className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-5 pb-5 lg:grid-cols-[minmax(0,var(--mc1))_12px_minmax(0,var(--mc2))] lg:grid-rows-[minmax(0,var(--mf1))_12px_minmax(0,var(--mf2))] lg:gap-0"
+          className={
+            EN_WIDGET
+              ? "grid min-h-0 flex-1 grid-cols-[minmax(0,var(--mc1))_8px_minmax(0,var(--mc2))] grid-rows-[minmax(0,var(--mf1))_8px_minmax(0,var(--mf2))] overflow-hidden px-2 pb-2"
+              : "grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-5 pb-5 lg:grid-cols-[minmax(0,var(--mc1))_12px_minmax(0,var(--mc2))] lg:grid-rows-[minmax(0,var(--mf1))_12px_minmax(0,var(--mf2))] lg:gap-0"
+          }
         >
           {CUADRANTES.map((c, i) => (
             <ZonaCuadrante key={c.id} clase={LUGAR[i]} numero={i + 1} cuadrante={c} tareas={reparto[c.id]} tareaAbierta={tareaAbierta} listaId={listaId} etiqueta={etiqueta} />
