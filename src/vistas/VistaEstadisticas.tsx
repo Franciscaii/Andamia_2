@@ -36,57 +36,45 @@ function trazoArco(cx: number, cy: number, r: number, desde: number, hasta: numb
 }
 
 /**
- * Anillos concéntricos: uno por grupo, del más grande (afuera) al más chico (adentro).
- * Cada anillo se llena según su porcentaje del total, con puntas redondas y un leve degradado.
+ * Un solo anillo grueso: cada grupo ocupa su parte, con los colores pegados (sin bordes blancos entre tramos).
  */
 function Circular({ filas, total, elegido, alElegir, unidad }: { filas: FilaResumen[]; total: number; elegido: string | null; alElegir: (c: string) => void; unidad: string }) {
   const tam = 240;
   const c = tam / 2;
+  const grosor = 22;
+  const r = c - grosor / 2 - 4;
   const fila = filas.find((f) => f.clave === elegido);
-  const orden = [...filas].sort((a, b) => b.cantidad - a.cantidad);
-  const radioExterno = 110;
-  const radioInterno = 52;
-  // Grosor y separación se reparten el espacio entre el anillo de afuera y el hueco del centro.
-  const espacio = (radioExterno - radioInterno) / Math.max(orden.length, 1);
-  const grosor = Math.max(3, Math.min(14, espacio * 0.72));
+  let angulo = 0;
   return (
     <figure data-testid="grafico-circular" className="flex justify-center">
       <svg viewBox={`0 0 ${tam} ${tam}`} className="h-56 w-56" shapeRendering="geometricPrecision" role="img" aria-label={`Reparto por grupo: ${filas.map((f) => `${f.nombre} ${f.porcentaje}%`).join(", ")}`}>
-        <defs>
-          {orden.map((f) => (
-            <linearGradient key={f.clave} id={`anillo-${f.clave}`} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor={f.color} stopOpacity={0.7} />
-              <stop offset="100%" stopColor={f.color} />
-            </linearGradient>
-          ))}
-        </defs>
-        {orden.map((f, i) => {
-          const r = radioExterno - grosor / 2 - i * espacio;
-          const hasta = Math.max(2, (f.cantidad / total) * 360);
-          const o = opacidad(f.clave, elegido);
+        <circle cx={c} cy={c} r={r} fill="none" stroke="var(--suave)" strokeWidth={grosor} />
+        {filas.map((f) => {
+          const desde = angulo;
+          angulo += (f.cantidad / total) * 360;
+          // Se alarga un pelo hacia atrás para que no quede una rendija entre colores.
+          const inicio = desde === 0 ? 0 : desde - 0.4;
           return (
-            <g key={f.clave} className="cursor-pointer" onClick={() => alElegir(f.clave)}>
-              <circle cx={c} cy={c} r={r} fill="none" stroke="var(--suave)" strokeWidth={grosor} />
-              <path
-                data-clave={f.clave}
-                d={trazoArco(c, c, r, 0, hasta)}
-                fill="none"
-                stroke={`url(#anillo-${f.clave})`}
-                strokeWidth={grosor}
-                strokeLinecap="round"
-                opacity={o}
-                className="transition-opacity"
-              >
-                <title>{`${f.nombre}: ${f.cantidad} (${f.porcentaje}%)`}</title>
-              </path>
-            </g>
+            <path
+              key={f.clave}
+              data-clave={f.clave}
+              d={trazoArco(c, c, r, inicio, angulo)}
+              fill="none"
+              stroke={f.color}
+              strokeWidth={grosor}
+              opacity={opacidad(f.clave, elegido)}
+              className="cursor-pointer transition-opacity"
+              onClick={() => alElegir(f.clave)}
+            >
+              <title>{`${f.nombre}: ${f.cantidad} (${f.porcentaje}%)`}</title>
+            </path>
           );
         })}
-        <text x={c} y={c + 2} textAnchor="middle" className="fill-texto text-[26px] font-semibold tabular-nums">
+        <text x={c} y={c + 2} textAnchor="middle" className="fill-texto text-[28px] font-semibold tabular-nums">
           {fila ? `${fila.porcentaje}%` : total}
         </text>
-        <text x={c} y={c + 20} textAnchor="middle" className="fill-tenue text-[11px]">
-          {fila ? (fila.nombre.length > 14 ? `${fila.nombre.slice(0, 13)}…` : fila.nombre) : unidad}
+        <text x={c} y={c + 22} textAnchor="middle" className="fill-tenue text-[12px]">
+          {fila ? (fila.nombre.length > 16 ? `${fila.nombre.slice(0, 15)}…` : fila.nombre) : unidad}
         </text>
       </svg>
     </figure>
