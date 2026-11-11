@@ -77,17 +77,33 @@ function Circular({ filas, total, elegido, alElegir, unidad }: { filas: FilaResu
   );
 }
 
-// ---------- Barras apiladas en el tiempo ----------
+// ---------- Curvas suaves en el tiempo ----------
 
-/** Rectángulo con las dos esquinas de arriba redondeadas (las de abajo quedan rectas, apoyadas en la base). */
-function barraRedondeada(x: number, y: number, ancho: number, alto: number, radio: number): string {
-  const r = Math.min(radio, ancho / 2, alto);
-  return `M${x},${y + alto} V${y + r} Q${x},${y} ${x + r},${y} H${x + ancho - r} Q${x + ancho},${y} ${x + ancho},${y + r} V${y + alto} Z`;
+/**
+ * Trazo suave tipo onda (B-spline): redondea las cimas y nunca baja de cero ni sube más que los datos,
+ * así el gráfico no tiene puntas.
+ */
+function curvaSuave(puntos: [number, number][]): string {
+  const n = puntos.length;
+  if (n === 0) return "";
+  if (n < 3) return puntos.map(([px, py], i) => `${i ? "L" : "M"}${px},${py}`).join(" ");
+  let [x0, y0] = puntos[0];
+  let [x1, y1] = puntos[0];
+  const tramo = (x: number, y: number) => ` C${(2 * x0 + x1) / 3},${(2 * y0 + y1) / 3} ${(x0 + 2 * x1) / 3},${(y0 + 2 * y1) / 3} ${(x0 + 4 * x1 + x) / 6},${(y0 + 4 * y1 + y) / 6}`;
+  let d = `M${x1},${y1}`;
+  for (let i = 1; i < n; i++) {
+    const [x, y] = puntos[i];
+    if (i === 2) d += ` L${(5 * x0 + x1) / 6},${(5 * y0 + y1) / 6}`;
+    if (i >= 2) d += tramo(x, y);
+    [x0, y0, x1, y1] = [x1, y1, x, y];
+  }
+  d += tramo(x1, y1) + ` L${x1},${y1}`;
+  return d;
 }
 
 function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: string | null; alElegir: (c: string) => void }) {
   const [hover, setHover] = useState<number | null>(null);
-  // El lienzo mide lo mismo que su recuadro: así las letras y las barras no se agrandan en pantallas anchas.
+  // El lienzo mide lo mismo que su recuadro: así las letras no se agrandan en pantallas anchas.
   const caja = useRef<HTMLElement>(null);
   const [ancho, setAncho] = useState(360);
   useEffect(() => {
@@ -99,21 +115,24 @@ function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: stri
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
-  const alto = 200;
-  const margen = { izq: 26, der: 6, arr: 10, aba: 22 };
+  const alto = 220;
+  const margen = { izq: 26, der: 10, arr: 14, aba: 24 };
   const { serie, filas } = resumen;
   const n = serie.length;
+  const maximo = Math.max(1, ...serie.flatMap((t) => filas.map((f) => t.valores[f.clave] ?? 0)));
+  const anchoUtil = ancho - margen.izq - margen.der;
+  const x = (i: number) => (n === 1 ? margen.izq + anchoUtil / 2 : margen.izq + (i * anchoUtil) / (n - 1));
+  const base = alto - margen.aba;
+  const y = (v: number) => base - (v / maximo) * (base - margen.arr);
   const totales = serie.map((t) => filas.reduce((s, f) => s + (t.valores[f.clave] ?? 0), 0));
-  const maximo = Math.max(1, ...totales);
-  const paso = (ancho - margen.izq - margen.der) / n;
-  const anchoBarra = Math.max(4, Math.min(36, paso * 0.56));
-  const xCentro = (i: number) => margen.izq + paso * (i + 0.5);
-  const y = (v: number) => alto - margen.aba - (v / maximo) * (alto - margen.arr - margen.aba);
 
   const cadaCuanto = Math.ceil(n / 7);
   const pasoY = maximo <= 4 ? 1 : Math.ceil(maximo / 4);
   const marcasY: number[] = [];
   for (let v = 0; v <= maximo; v += pasoY) marcasY.push(v);
+
+  // Las curvas más grandes van atrás para que las chicas se sigan viendo; la elegida va al frente.
+  const capas = [...filas].sort((a, b) => (a.clave === elegido ? 1 : b.clave === elegido ? -1 : b.cantidad - a.cantidad));
 
   return (
     <figure ref={caja} data-testid="grafico-areas" className="relative">
@@ -121,53 +140,53 @@ function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: stri
         viewBox={`0 0 ${ancho} ${alto}`}
         className="h-auto w-full"
         role="img"
-        aria-label="Completadas a lo largo del período, apiladas por grupo"
+        aria-label="Completadas a lo largo del período, por grupo"
         onMouseLeave={() => setHover(null)}
         onMouseMove={(e) => {
-          const caja = e.currentTarget.getBoundingClientRect();
-          const px = ((e.clientX - caja.left) / caja.width) * ancho;
-          const i = Math.floor((px - margen.izq) / paso);
+          const r = e.currentTarget.getBoundingClientRect();
+          const px = ((e.clientX - r.left) / r.width) * ancho;
+          const i = n === 1 ? 0 : Math.round(((px - margen.izq) / anchoUtil) * (n - 1));
           setHover(Math.min(n - 1, Math.max(0, i)));
         }}
       >
+        <defs>
+          {filas.map((f) => (
+            <linearGradient key={f.clave} id={`degradado-${f.clave}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={f.color} stopOpacity={0.75} />
+              <stop offset="100%" stopColor={f.color} stopOpacity={0.08} />
+            </linearGradient>
+          ))}
+        </defs>
+        {/* Guías verticales finas, una por fecha marcada. */}
+        {serie.map((_, i) => (i % cadaCuanto === 0 || i === n - 1 ? <line key={`v${i}`} x1={x(i)} x2={x(i)} y1={margen.arr} y2={base} stroke="var(--borde)" strokeWidth={1} strokeOpacity={0.6} /> : null))}
+        <line x1={margen.izq} x2={ancho - margen.der} y1={base} y2={base} stroke="var(--borde)" strokeWidth={1} />
         {marcasY.map((v) => (
-          <g key={v}>
-            <line x1={margen.izq} x2={ancho - margen.der} y1={y(v)} y2={y(v)} stroke="var(--borde)" strokeWidth={1} strokeDasharray={v === 0 ? undefined : "2 4"} />
-            <text x={margen.izq - 6} y={y(v) + 3.5} textAnchor="end" className="fill-tenue text-[11px] tabular-nums">
-              {v}
-            </text>
-          </g>
+          <text key={v} x={margen.izq - 8} y={y(v) + 3.5} textAnchor="end" className="fill-tenue text-[11px] tabular-nums">
+            {v}
+          </text>
         ))}
-        {hover !== null && <rect x={xCentro(hover) - paso / 2 + 1} y={margen.arr - 4} width={paso - 2} height={alto - margen.arr - margen.aba + 4} rx={6} fill="var(--suave)" pointerEvents="none" />}
-        {serie.map((t, i) => {
-          // Cada columna apila los grupos en el orden de la lista; solo el tramo de arriba lleva esquinas redondas.
-          let acumulado = 0;
-          const tramos = filas.filter((f) => (t.valores[f.clave] ?? 0) > 0);
-          return tramos.map((f, k) => {
-            const v = t.valores[f.clave] ?? 0;
-            const y0 = y(acumulado);
-            acumulado += v;
-            const y1 = y(acumulado);
-            const x = xCentro(i) - anchoBarra / 2;
-            // 2 px de separación entre tramos, del color del fondo.
-            const altoTramo = Math.max(1, y0 - y1 - (k > 0 ? 2 : 0));
-            const d = k === tramos.length - 1 ? barraRedondeada(x, y1, anchoBarra, altoTramo, 4) : `M${x},${y1} h${anchoBarra} v${altoTramo} h${-anchoBarra} Z`;
-            return (
-              <path
-                key={`${i}-${f.clave}`}
-                data-clave={f.clave}
-                d={d}
-                fill={f.color}
-                fillOpacity={0.9 * opacidad(f.clave, elegido)}
-                className="cursor-pointer transition-[fill-opacity]"
-                onClick={() => alElegir(f.clave)}
-              />
-            );
-          });
+        {capas.map((f) => {
+          const puntos = serie.map((t, i) => [x(i), y(t.valores[f.clave] ?? 0)] as [number, number]);
+          const linea = n === 1 ? `M${x(0) - 12},${puntos[0][1]} H${x(0) + 12}` : curvaSuave(puntos);
+          const xIni = n === 1 ? x(0) - 12 : x(0);
+          const xFin = n === 1 ? x(0) + 12 : x(n - 1);
+          const area = `${linea} L${xFin},${base} L${xIni},${base} Z`;
+          const o = opacidad(f.clave, elegido);
+          return (
+            <g key={f.clave} className="cursor-pointer" onClick={() => alElegir(f.clave)}>
+              <path data-clave={f.clave} d={area} fill={`url(#degradado-${f.clave})`} fillOpacity={0.9 * o} className="transition-[fill-opacity]" />
+              <path d={linea} fill="none" stroke={f.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" strokeOpacity={o} />
+            </g>
+          );
         })}
+        {hover !== null && (
+          <g pointerEvents="none">
+            <line x1={x(hover)} x2={x(hover)} y1={margen.arr - 4} y2={base} stroke="var(--tenue)" strokeWidth={1} strokeDasharray="3 3" />
+          </g>
+        )}
         {serie.map((t, i) =>
           i % cadaCuanto === 0 || i === n - 1 ? (
-            <text key={i} x={xCentro(i)} y={alto - 6} textAnchor="middle" className="fill-tenue text-[11px]">
+            <text key={i} x={x(i)} y={alto - 6} textAnchor={n > 1 && i === 0 ? "start" : n > 1 && i === n - 1 ? "end" : "middle"} className="fill-tenue text-[11px]">
               {t.etiqueta}
             </text>
           ) : null,
@@ -177,7 +196,7 @@ function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: stri
         <div
           role="tooltip"
           className="pointer-events-none absolute top-1 z-10 min-w-[8rem] rounded-lg border border-borde bg-panel px-2.5 py-1.5 text-xs shadow-md"
-          style={{ left: `${(xCentro(hover) / ancho) * 100}%`, transform: xCentro(hover) > ancho / 2 ? "translateX(calc(-100% - 12px))" : "translateX(12px)" }}
+          style={{ left: `${(x(hover) / ancho) * 100}%`, transform: x(hover) > ancho / 2 ? "translateX(calc(-100% - 12px))" : "translateX(12px)" }}
         >
           <p className="mb-0.5 font-semibold">{serie[hover].etiqueta}</p>
           {filas
