@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useId, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTienda } from "../datos/tienda";
 import {
@@ -77,17 +77,27 @@ function Circular({ filas, total, elegido, alElegir, unidad }: { filas: FilaResu
   );
 }
 
-// ---------- Barras apiladas en el tiempo ----------
+// ---------- Ondas en el tiempo ----------
 
-/** Rectángulo con las dos esquinas de arriba redondeadas (las de abajo quedan rectas, apoyadas en la base). */
-function barraRedondeada(x: number, y: number, ancho: number, alto: number, radio: number): string {
-  const r = Math.min(radio, ancho / 2, alto);
-  return `M${x},${y + alto} V${y + r} Q${x},${y} ${x + r},${y} H${x + ancho - r} Q${x + ancho},${y} ${x + ancho},${y + r} V${y + alto} Z`;
+/**
+ * Curva suave tipo "onda": cada tramo es una Bézier con tangentes horizontales en los puntos.
+ * Queda redondeada (sin picos) y nunca se pasa de los valores, así no baja de cero.
+ */
+function onda(puntos: { x: number; y: number }[]): string {
+  if (!puntos.length) return "";
+  let d = `M${puntos[0].x},${puntos[0].y}`;
+  for (let i = 1; i < puntos.length; i++) {
+    const a = puntos[i - 1];
+    const b = puntos[i];
+    const h = (b.x - a.x) / 2;
+    d += ` C${a.x + h},${a.y} ${b.x - h},${b.y} ${b.x},${b.y}`;
+  }
+  return d;
 }
 
 function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: string | null; alElegir: (c: string) => void }) {
   const [hover, setHover] = useState<number | null>(null);
-  // El lienzo mide lo mismo que su recuadro: así las letras y las barras no se agrandan en pantallas anchas.
+  // El lienzo mide lo mismo que su recuadro: así las letras no se agrandan ni las ondas se estiran.
   const caja = useRef<HTMLElement>(null);
   const [ancho, setAncho] = useState(360);
   useEffect(() => {
@@ -99,18 +109,26 @@ function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: stri
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
-  const alto = 200;
-  const margen = { izq: 26, der: 6, arr: 10, aba: 22 };
+  const idBase = useId().replace(/:/g, "");
+  const alto = 230;
+  const margen = { izq: 26, der: 10, arr: 14, aba: 24 };
   const { serie, filas } = resumen;
   const n = serie.length;
+  // Cada grupo es su propia onda desde la base (no apiladas): se dibujan primero las más grandes.
+  const maximo = Math.max(1, ...serie.flatMap((t) => filas.map((f) => t.valores[f.clave] ?? 0)));
+  const x = (i: number) => margen.izq + (n === 1 ? (ancho - margen.izq - margen.der) / 2 : (i / (n - 1)) * (ancho - margen.izq - margen.der));
+  const base = alto - margen.aba;
+  const y = (v: number) => base - (v / maximo) * (alto - margen.arr - margen.aba);
+  const ondas = [...filas]
+    .sort((a, b) => b.cantidad - a.cantidad)
+    .map((f) => {
+      const puntos = serie.map((t, i) => ({ x: x(i), y: y(t.valores[f.clave] ?? 0) }));
+      const linea = onda(puntos);
+      return { fila: f, linea, area: `${linea} L${puntos[puntos.length - 1].x},${base} L${puntos[0].x},${base} Z` };
+    });
   const totales = serie.map((t) => filas.reduce((s, f) => s + (t.valores[f.clave] ?? 0), 0));
-  const maximo = Math.max(1, ...totales);
-  const paso = (ancho - margen.izq - margen.der) / n;
-  const anchoBarra = Math.max(4, Math.min(36, paso * 0.56));
-  const xCentro = (i: number) => margen.izq + paso * (i + 0.5);
-  const y = (v: number) => alto - margen.aba - (v / maximo) * (alto - margen.arr - margen.aba);
 
-  const cadaCuanto = Math.ceil(n / 7);
+  const cadaCuanto = Math.ceil(n / 8);
   const pasoY = maximo <= 4 ? 1 : Math.ceil(maximo / 4);
   const marcasY: number[] = [];
   for (let v = 0; v <= maximo; v += pasoY) marcasY.push(v);
@@ -121,53 +139,71 @@ function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: stri
         viewBox={`0 0 ${ancho} ${alto}`}
         className="h-auto w-full"
         role="img"
-        aria-label="Completadas a lo largo del período, apiladas por grupo"
+        aria-label="Completadas a lo largo del período, por grupo"
         onMouseLeave={() => setHover(null)}
         onMouseMove={(e) => {
-          const caja = e.currentTarget.getBoundingClientRect();
-          const px = ((e.clientX - caja.left) / caja.width) * ancho;
-          const i = Math.floor((px - margen.izq) / paso);
+          const r = e.currentTarget.getBoundingClientRect();
+          const px = ((e.clientX - r.left) / r.width) * ancho;
+          const i = n === 1 ? 0 : Math.round(((px - margen.izq) / (ancho - margen.izq - margen.der)) * (n - 1));
           setHover(Math.min(n - 1, Math.max(0, i)));
         }}
       >
+        <defs>
+          {ondas.map(({ fila }, i) => (
+            <linearGradient key={fila.clave} id={`${idBase}-o${i}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={fila.color} stopOpacity={0.75} />
+              <stop offset="100%" stopColor={fila.color} stopOpacity={0.08} />
+            </linearGradient>
+          ))}
+        </defs>
+        {/* Guías: horizontales punteadas con su valor y verticales finas en cada tramo. */}
         {marcasY.map((v) => (
           <g key={v}>
             <line x1={margen.izq} x2={ancho - margen.der} y1={y(v)} y2={y(v)} stroke="var(--borde)" strokeWidth={1} strokeDasharray={v === 0 ? undefined : "2 4"} />
-            <text x={margen.izq - 6} y={y(v) + 3.5} textAnchor="end" className="fill-tenue text-[11px] tabular-nums">
+            <text x={margen.izq - 7} y={y(v) + 3.5} textAnchor="end" className="fill-tenue text-[11px] tabular-nums">
               {v}
             </text>
           </g>
         ))}
-        {hover !== null && <rect x={xCentro(hover) - paso / 2 + 1} y={margen.arr - 4} width={paso - 2} height={alto - margen.arr - margen.aba + 4} rx={6} fill="var(--suave)" pointerEvents="none" />}
-        {serie.map((t, i) => {
-          // Cada columna apila los grupos en el orden de la lista; solo el tramo de arriba lleva esquinas redondas.
-          let acumulado = 0;
-          const tramos = filas.filter((f) => (t.valores[f.clave] ?? 0) > 0);
-          return tramos.map((f, k) => {
-            const v = t.valores[f.clave] ?? 0;
-            const y0 = y(acumulado);
-            acumulado += v;
-            const y1 = y(acumulado);
-            const x = xCentro(i) - anchoBarra / 2;
-            // 2 px de separación entre tramos, del color del fondo.
-            const altoTramo = Math.max(1, y0 - y1 - (k > 0 ? 2 : 0));
-            const d = k === tramos.length - 1 ? barraRedondeada(x, y1, anchoBarra, altoTramo, 4) : `M${x},${y1} h${anchoBarra} v${altoTramo} h${-anchoBarra} Z`;
-            return (
-              <path
-                key={`${i}-${f.clave}`}
-                data-clave={f.clave}
-                d={d}
-                fill={f.color}
-                fillOpacity={0.9 * opacidad(f.clave, elegido)}
-                className="cursor-pointer transition-[fill-opacity]"
-                onClick={() => alElegir(f.clave)}
-              />
-            );
-          });
-        })}
+        {serie.map((_, i) =>
+          i % cadaCuanto === 0 || i === n - 1 ? <line key={`v${i}`} x1={x(i)} x2={x(i)} y1={margen.arr} y2={base} stroke="var(--borde)" strokeWidth={1} opacity={0.55} /> : null,
+        )}
+        {ondas.map(({ fila, area }, i) => (
+          <path
+            key={fila.clave}
+            data-clave={fila.clave}
+            d={area}
+            fill={`url(#${idBase}-o${i})`}
+            fillOpacity={0.85 * opacidad(fila.clave, elegido)}
+            className="cursor-pointer transition-[fill-opacity] duration-300"
+            onClick={() => alElegir(fila.clave)}
+          />
+        ))}
+        {ondas.map(({ fila, linea }) => (
+          <path
+            key={`l-${fila.clave}`}
+            d={linea}
+            fill="none"
+            stroke={fila.color}
+            strokeWidth={2}
+            strokeLinecap="round"
+            opacity={opacidad(fila.clave, elegido)}
+            pointerEvents="none"
+            className="transition-opacity duration-300"
+          />
+        ))}
+        {hover !== null && (
+          <g pointerEvents="none">
+            <line x1={x(hover)} x2={x(hover)} y1={margen.arr} y2={base} stroke="var(--tenue)" strokeWidth={1} strokeDasharray="3 3" />
+            {ondas.map(({ fila }) => {
+              const v = serie[hover].valores[fila.clave] ?? 0;
+              return v > 0 ? <circle key={fila.clave} cx={x(hover)} cy={y(v)} r={4} fill="var(--panel)" stroke={fila.color} strokeWidth={2} opacity={opacidad(fila.clave, elegido)} /> : null;
+            })}
+          </g>
+        )}
         {serie.map((t, i) =>
           i % cadaCuanto === 0 || i === n - 1 ? (
-            <text key={i} x={xCentro(i)} y={alto - 6} textAnchor="middle" className="fill-tenue text-[11px]">
+            <text key={i} x={x(i)} y={alto - 6} textAnchor={i === 0 && n > 1 ? "start" : i === n - 1 && n > 1 ? "end" : "middle"} className="fill-tenue text-[11px]">
               {t.etiqueta}
             </text>
           ) : null,
@@ -177,7 +213,7 @@ function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: stri
         <div
           role="tooltip"
           className="pointer-events-none absolute top-1 z-10 min-w-[8rem] rounded-lg border border-borde bg-panel px-2.5 py-1.5 text-xs shadow-md"
-          style={{ left: `${(xCentro(hover) / ancho) * 100}%`, transform: xCentro(hover) > ancho / 2 ? "translateX(calc(-100% - 12px))" : "translateX(12px)" }}
+          style={{ left: `${(x(hover) / ancho) * 100}%`, transform: x(hover) > ancho / 2 ? "translateX(calc(-100% - 12px))" : "translateX(12px)" }}
         >
           <p className="mb-0.5 font-semibold">{serie[hover].etiqueta}</p>
           {filas
@@ -195,7 +231,6 @@ function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: stri
     </figure>
   );
 }
-
 // ---------- Vista ----------
 
 export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
