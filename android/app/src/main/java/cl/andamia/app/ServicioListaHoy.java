@@ -10,9 +10,7 @@ public class ServicioListaHoy extends RemoteViewsService {
 
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
-        int idSemana = intent.getBooleanExtra(EXTRA_SEMANA, false)
-                ? intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-                : AppWidgetManager.INVALID_APPWIDGET_ID;
-        return new FabricaListaHoy(getApplicationContext(), idSemana);
+        int idWidget = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
+        return new FabricaListaHoy(getApplicationContext(), idWidget, intent.getBooleanExtra(EXTRA_SEMANA, false));
     }
 }

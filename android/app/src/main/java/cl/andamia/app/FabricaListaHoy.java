@@ -29,6 +29,10 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     private static final int TIPO_PROGRESO = 1;
     private static final int TIPO_TAREA = 2;
     private static final int TIPO_SECCION = 3;
+    private static final int TIPO_ESPACIO = 4;
+
+    /** Lugar de una fila dentro de su tarjeta (solo en el widget Semana). */
+    private static final int SIN_TARJETA = 0, ARRIBA = 1, MEDIO = 2, ABAJO = 3, SOLA = 4;
 
     static final class Fila {
         int tipo;
@@ -42,23 +46,29 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         String etiqueta = "";
         String colorEtiqueta = "";
         String color = "";
+        /** Tarjeta a la que pertenece (0 = ninguna) y su lugar en ella. */
+        int grupo;
+        int tarjeta;
     }
 
     private final Context contexto;
-    /** Widget "Semana" al que pertenece esta lista, o INVALID_APPWIDGET_ID para el widget "Hoy". */
-    private final int idSemana;
+    private final int idWidget;
+    /** Lista del widget "Semana" (día elegido, filtros y tarjetas) en vez del widget "Hoy". */
+    private final boolean semana;
     private final List<Fila> filas = new ArrayList<>();
     private int hechas;
     private int total;
     private String fechaDia = "";
     private boolean diaEsHoy = true;
 
-    FabricaListaHoy(Context contexto, int idSemana) {
+    FabricaListaHoy(Context contexto, int idWidget, boolean semana) {
         this.contexto = contexto;
-        this.idSemana = idSemana;
+        this.idWidget = idWidget;
+        this.semana = semana;
     }
 
     private void cargar() {
+        TemaWidget.usar(contexto, idWidget);
         filas.clear();
         hechas = 0;
         total = 0;
@@ -69,9 +79,12 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             JSONObject datos = new JSONObject(json);
             String hoy = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
             boolean deOtroDia = !hoy.equals(datos.optString("fecha"));
-            if (idSemana != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            String filtro = semana ? DatosWidget.filtro(contexto, idWidget) : "todos";
+            boolean conEventos = !"tareas".equals(filtro);
+            boolean conTareas = !"eventos".equals(filtro);
+            if (semana) {
                 // Widget "Semana": solo el día elegido, con sus propios eventos y tareas.
-                datos = WidgetSemana.dia(contexto, idSemana, datos);
+                datos = WidgetSemana.dia(contexto, idWidget, datos);
                 if (datos == null) return;
                 deOtroDia = false;
             }
@@ -80,7 +93,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
 
             JSONArray eventos = datos.optJSONArray("eventos");
             // Los eventos de otro día ya pasaron.
-            if (eventos != null && !deOtroDia) {
+            if (eventos != null && !deOtroDia && conEventos) {
                 for (int i = 0; i < eventos.length(); i++) {
                     JSONObject e = eventos.getJSONObject(i);
                     Fila f = new Fila();
@@ -94,7 +107,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             }
 
             List<Fila> deTareas = new ArrayList<>();
-            JSONArray tareas = datos.optJSONArray("tareas");
+            JSONArray tareas = conTareas ? datos.optJSONArray("tareas") : null;
             if (tareas != null) {
                 for (int i = 0; i < tareas.length(); i++) {
                     JSONObject t = tareas.getJSONObject(i);
@@ -120,24 +133,35 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                 }
             }
 
+            boolean hayEventos = !filas.isEmpty();
             if (total > 0) {
+                // En la Semana: un espacio después de los eventos y la tarjeta "Tareas hoy".
+                if (semana && hayEventos) agregarEspacio();
                 Fila progreso = new Fila();
                 progreso.tipo = TIPO_PROGRESO;
+                progreso.grupo = 1;
                 filas.add(progreso);
             }
-            // Pendientes primero; las completadas abajo, bajo "Completada".
+            // Pendientes primero; las completadas abajo, bajo "Completadas" (en la Semana, en su propia tarjeta).
             boolean conSeccion = false;
-            for (Fila f : deTareas) if (!f.hecha) filas.add(f);
+            for (Fila f : deTareas) if (!f.hecha) {
+                f.grupo = 1;
+                filas.add(f);
+            }
             for (Fila f : deTareas) {
                 if (!f.hecha) continue;
                 if (!conSeccion) {
+                    if (semana) agregarEspacio();
                     Fila seccion = new Fila();
                     seccion.tipo = TIPO_SECCION;
+                    seccion.grupo = 2;
                     filas.add(seccion);
                     conSeccion = true;
                 }
+                f.grupo = 2;
                 filas.add(f);
             }
+            if (semana) ubicarEnTarjetas();
         } catch (Exception e) {
             filas.clear();
             hechas = 0;
@@ -145,12 +169,40 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         }
     }
 
+    private void agregarEspacio() {
+        Fila espacio = new Fila();
+        espacio.tipo = TIPO_ESPACIO;
+        filas.add(espacio);
+    }
+
+    /** Marca cada fila como primera, del medio, última o única de su tarjeta. */
+    private void ubicarEnTarjetas() {
+        for (int i = 0; i < filas.size(); i++) {
+            Fila f = filas.get(i);
+            if (f.grupo == 0) continue;
+            boolean primera = i == 0 || filas.get(i - 1).grupo != f.grupo;
+            boolean ultima = i == filas.size() - 1 || filas.get(i + 1).grupo != f.grupo;
+            f.tarjeta = primera && ultima ? SOLA : primera ? ARRIBA : ultima ? ABAJO : MEDIO;
+        }
+    }
+
+    /** Pone el fondo de tarjeta que le toca a la fila, con el color suave del tema. */
+    private void enTarjeta(RemoteViews vista, int raiz, Fila f) {
+        if (f.tarjeta == SIN_TARJETA) return;
+        int fondo = f.tarjeta == ARRIBA ? R.drawable.widget_tarjeta_arriba
+                : f.tarjeta == ABAJO ? R.drawable.widget_tarjeta_abajo
+                : f.tarjeta == SOLA ? R.drawable.widget_tarjeta_sola
+                : R.drawable.widget_tarjeta_medio;
+        vista.setInt(raiz, "setBackgroundResource", fondo);
+        TemaWidget.tenirFondo(vista, raiz, color(contexto, R.color.widget_evento_suave));
+    }
+
     @Override public void onCreate() { cargar(); }
     @Override public void onDataSetChanged() { cargar(); }
     @Override public void onDestroy() { filas.clear(); }
     @Override public int getCount() { return filas.size(); }
     @Override public RemoteViews getLoadingView() { return null; }
-    @Override public int getViewTypeCount() { return 4; }
+    @Override public int getViewTypeCount() { return 5; }
     @Override public long getItemId(int posicion) { return posicion; }
     @Override public boolean hasStableIds() { return false; }
 
@@ -208,7 +260,6 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setTextColor(R.id.progreso_titulo, color(contexto, R.color.widget_texto));
         vista.setTextColor(R.id.progreso_texto, color(contexto, R.color.widget_texto_tenue));
         vista.setTextViewText(R.id.progreso_texto, hechas + "/" + total + " (" + porcentaje + "%)");
-        boolean semana = idSemana != AppWidgetManager.INVALID_APPWIDGET_ID;
         vista.setTextViewText(R.id.progreso_titulo, !semana || diaEsHoy ? "Tareas hoy" : "Tareas del día");
         Intent abrir = new Intent();
         abrir.setData(Uri.parse(semana && !fechaDia.isEmpty() ? "andamia://dia/" + fechaDia : "andamia://hoy"));
@@ -271,17 +322,28 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
 
     @Override
     public RemoteViews getViewAt(int posicion) {
+        TemaWidget.usar(contexto, idWidget);
         if (posicion >= filas.size()) return new RemoteViews(contexto.getPackageName(), R.layout.widget_fila);
         Fila f = filas.get(posicion);
         switch (f.tipo) {
             case TIPO_EVENTO: return filaEvento(contexto, f);
-            case TIPO_PROGRESO: return filaProgreso();
+            case TIPO_ESPACIO: return new RemoteViews(contexto.getPackageName(), R.layout.widget_espacio);
+            case TIPO_PROGRESO: {
+                RemoteViews vista = filaProgreso();
+                enTarjeta(vista, R.id.progreso_fila, f);
+                return vista;
+            }
             case TIPO_SECCION: {
                 RemoteViews seccion = new RemoteViews(contexto.getPackageName(), R.layout.widget_seccion);
-                seccion.setTextColor(R.id.seccion_titulo, color(contexto, R.color.widget_texto_tenue));
+                seccion.setTextColor(R.id.seccion_titulo, color(contexto, semana ? R.color.widget_texto : R.color.widget_texto_tenue));
+                enTarjeta(seccion, R.id.seccion_titulo, f);
                 return seccion;
             }
-            default: return filaTarea(contexto, f);
+            default: {
+                RemoteViews vista = filaTarea(contexto, f);
+                enTarjeta(vista, R.id.fila_raiz, f);
+                return vista;
+            }
         }
     }
 }

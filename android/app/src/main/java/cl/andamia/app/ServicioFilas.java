@@ -9,6 +9,7 @@ public class ServicioFilas extends RemoteViewsService {
 
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
-        return new FabricaFilas(getApplicationContext(), intent.getStringExtra(EXTRA_CLAVE));
+        return new FabricaFilas(getApplicationContext(), intent.getStringExtra(EXTRA_CLAVE),
+                intent.getIntExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_ID, android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID));
     }
 }

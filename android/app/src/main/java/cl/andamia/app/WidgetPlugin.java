@@ -31,7 +31,6 @@ public class WidgetPlugin extends Plugin {
             org.json.JSONObject todo = new org.json.JSONObject(datos);
             org.json.JSONObject tema = new org.json.JSONObject();
             tema.put("tema", todo.optJSONObject("tema"));
-            tema.put("aspecto", todo.optJSONObject("aspecto"));
             DatosWidget.guardarTema(contexto, tema.toString());
         } catch (Exception e) {
             // Sin tema: los widgets usan sus colores de siempre.
@@ -50,21 +49,58 @@ public class WidgetPlugin extends Plugin {
         call.resolve(respuesta);
     }
 
+    private static final String[] TIPOS = { "semana", "hoy", "calendario", "matriz", "estadistica-tareas", "estadistica-habitos" };
+    private static final Class<?>[] CLASES = {
+        WidgetSemana.class, HoyWidget.class, WidgetCalendario.class, WidgetMatriz.class,
+        WidgetEstadisticaTareas.class, WidgetEstadisticaHabitos.class,
+    };
+
+    /** Los widgets puestos en la pantalla de inicio, con su tipo y su configuración. */
+    @PluginMethod
+    public void listar(PluginCall call) {
+        Context contexto = getContext();
+        AppWidgetManager gestor = AppWidgetManager.getInstance(contexto);
+        JSArray lista = new JSArray();
+        for (int i = 0; i < TIPOS.length; i++) {
+            for (int id : gestor.getAppWidgetIds(new ComponentName(contexto, CLASES[i]))) {
+                JSObject w = new JSObject();
+                w.put("id", id);
+                w.put("tipo", TIPOS[i]);
+                String config = DatosWidget.leerConfig(contexto, id);
+                w.put("config", config == null ? "" : config);
+                lista.put(w);
+            }
+        }
+        JSObject respuesta = new JSObject();
+        respuesta.put("widgets", lista);
+        call.resolve(respuesta);
+    }
+
+    /** Guarda el tema, la transparencia y las esquinas de un widget, y lo redibuja. */
+    @PluginMethod
+    public void configurar(PluginCall call) {
+        Integer id = call.getInt("id");
+        String config = call.getString("config");
+        if (id == null || config == null) {
+            call.reject("Faltan el widget o su configuración");
+            return;
+        }
+        Context contexto = getContext();
+        DatosWidget.guardarConfig(contexto, id, config);
+        TemaWidget.olvidar();
+        Widgets.redibujarTodo(contexto);
+        call.resolve();
+    }
+
     /** Pide al celular poner un widget en la pantalla de inicio (el celular muestra su propio aviso). */
     @PluginMethod
     public void anclar(PluginCall call) {
         String tipo = call.getString("tipo", "");
-        Class<?> clase;
-        switch (tipo) {
-            case "hoy": clase = HoyWidget.class; break;
-            case "semana": clase = WidgetSemana.class; break;
-            case "matriz": clase = WidgetMatriz.class; break;
-            case "calendario": clase = WidgetCalendario.class; break;
-            case "estadistica-tareas": clase = WidgetEstadisticaTareas.class; break;
-            case "estadistica-habitos": clase = WidgetEstadisticaHabitos.class; break;
-            default:
-                call.reject("Widget desconocido: " + tipo);
-                return;
+        Class<?> clase = null;
+        for (int i = 0; i < TIPOS.length; i++) if (TIPOS[i].equals(tipo)) clase = CLASES[i];
+        if (clase == null) {
+            call.reject("Widget desconocido: " + tipo);
+            return;
         }
         JSObject respuesta = new JSObject();
         boolean pedido = false;

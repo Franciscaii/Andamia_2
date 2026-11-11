@@ -30,12 +30,16 @@ class FabricaFilas implements RemoteViewsService.RemoteViewsFactory {
     private final List<Object> filas = new ArrayList<>();
     private int acento;
 
-    FabricaFilas(Context contexto, String clave) {
+    private final int idWidget;
+
+    FabricaFilas(Context contexto, String clave, int idWidget) {
         this.contexto = contexto;
-        this.clave = clave == null ? "semana" : clave;
+        this.clave = clave == null ? "matriz" : clave;
+        this.idWidget = idWidget;
     }
 
     private void cargar() {
+        TemaWidget.usar(contexto, idWidget);
         filas.clear();
         acento = FabricaListaHoy.color(contexto, R.color.widget_acento);
         String json = DatosWidget.leerTareas(contexto);
@@ -43,8 +47,6 @@ class FabricaFilas implements RemoteViewsService.RemoteViewsFactory {
         Set<String> marcadas = DatosWidget.leerCompletadas(contexto);
         try {
             JSONObject datos = new JSONObject(json);
-            String colorAcento = datos.optString("acento");
-            if (!colorAcento.isEmpty()) acento = Color.parseColor(colorAcento);
             JSONArray lista = datos.optJSONArray(clave);
             if (lista == null) return;
             for (int i = 0; i < lista.length(); i++) {
@@ -103,6 +105,7 @@ class FabricaFilas implements RemoteViewsService.RemoteViewsFactory {
 
     @Override
     public RemoteViews getViewAt(int posicion) {
+        TemaWidget.usar(contexto, idWidget);
         if (posicion >= filas.size()) return new RemoteViews(contexto.getPackageName(), R.layout.widget_seccion);
         Object fila = filas.get(posicion);
         if (fila instanceof Seccion) return seccion((Seccion) fila);

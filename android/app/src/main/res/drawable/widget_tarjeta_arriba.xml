@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Primera fila de una tarjeta (Tareas hoy, Completadas). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:topLeftRadius="14dp" android:topRightRadius="14dp" android:bottomLeftRadius="0dp" android:bottomRightRadius="0dp" />
+    <solid android:color="@color/widget_evento_suave" />
+    <padding android:left="10dp" android:top="8dp" android:right="10dp" android:bottom="0dp" />
+</shape>

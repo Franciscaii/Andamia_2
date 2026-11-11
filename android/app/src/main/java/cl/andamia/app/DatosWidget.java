@@ -33,6 +33,24 @@ final class DatosWidget {
         return prefs(c).getString(CLAVE_TAREAS, null);
     }
 
+    /** Tema, transparencia y esquinas propios de un widget (JSON que arma la app). */
+    static void guardarConfig(Context c, int idWidget, String json) {
+        prefs(c).edit().putString("config_" + idWidget, json).apply();
+    }
+
+    static String leerConfig(Context c, int idWidget) {
+        return prefs(c).getString("config_" + idWidget, null);
+    }
+
+    /** Filtro del widget Semana: "tareas", "eventos" o "todos". */
+    static void elegirFiltro(Context c, int idWidget, String filtro) {
+        prefs(c).edit().putString("filtro_" + idWidget, filtro).apply();
+    }
+
+    static String filtro(Context c, int idWidget) {
+        return prefs(c).getString("filtro_" + idWidget, "todos");
+    }
+
     /** Día (AAAA-MM-DD) que se eligió en un widget Semana. */
     static void elegirDia(Context c, int idWidget, String fecha) {
         prefs(c).edit().putString("dia_" + idWidget, fecha).apply();

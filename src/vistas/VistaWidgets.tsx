@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarCheck, CalendarDays, CalendarRange, ChartArea, ChartPie, Grid2x2, Monitor, type LucideIcon } from "lucide-react";
 import { puenteEscritorio, useWidgetsAbiertos } from "../logica/puenteEscritorio";
 import { WIDGETS, type TipoWidget } from "../logica/widgetEscritorio";
 import { esAppNativa } from "../logica/plataforma";
-import { guardarAspecto, leerAspecto, MAX_TRANSPARENCIA, type AspectoWidget } from "../logica/aspectoWidget";
-import { anclarWidget, ASPECTO_ANDROID, avisarCambioAspecto, puedeAnclarWidget } from "../logica/widgetAndroid";
+import { MAX_TRANSPARENCIA } from "../logica/aspectoWidget";
+import { presetDe, TEMAS } from "../logica/temas";
+import { anclarWidget, configurarWidget, puedeAnclarWidget, temaParaWidget, widgetsPuestos, type ConfigWidget, type WidgetPuesto } from "../logica/widgetAndroid";
 
 const DETALLE: Record<TipoWidget, { icono: LucideIcon; texto: string }> = {
   semana: { icono: CalendarRange, texto: "Los 7 días con sus eventos y tareas." },
@@ -42,55 +43,110 @@ function Deslizador({ etiqueta, valor, max, unidad, alCambiar }: { etiqueta: str
   );
 }
 
-/** Apartado "Widgets" en el celular: ponerlos en la pantalla de inicio y elegir su transparencia y esquinas. */
+/** Un widget puesto en la pantalla de inicio, con su propio tema, transparencia y esquinas. */
+function AjustesDeWidget({ puesto, nombre }: { puesto: WidgetPuesto; nombre: string }) {
+  const [config, setConfig] = useState<ConfigWidget>(puesto.config);
+  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cambiar = (c: ConfigWidget) => {
+    setConfig(c);
+    // Se guarda al soltar el deslizador (un poco después del último cambio).
+    if (temporizador.current) clearTimeout(temporizador.current);
+    temporizador.current = setTimeout(() => void configurarWidget(puesto.id, c), 250);
+  };
+  const t = temaParaWidget(presetDe(config.temaId));
+  const opacidad = 1 - config.transparencia / 100;
+  return (
+    <li data-testid="widget-puesto" className="rounded-2xl border border-borde bg-panel p-4 shadow-sm">
+      <p className="text-sm font-semibold">{nombre}</p>
+      <div className="mt-3 rounded-xl bg-gradient-to-br from-slate-500 to-slate-800 p-4">
+        <div
+          data-testid="vista-previa-widget"
+          className="mx-auto max-w-56 px-4 py-3 shadow-lg"
+          style={{ borderRadius: config.esquinas, background: `color-mix(in srgb, ${t.fondo} ${Math.round(opacidad * 100)}%, transparent)`, color: t.texto }}
+        >
+          <p className="text-sm font-semibold">Tareas hoy</p>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: t.suave }}>
+            <div className="h-full w-1/3 rounded-full" style={{ background: t.acento }} />
+          </div>
+          <p className="mt-2 text-xs" style={{ color: t.tenue }}>
+            Así se verá este widget.
+          </p>
+        </div>
+      </div>
+      <p className="mt-4 text-sm">Tema</p>
+      <div role="radiogroup" aria-label={`Tema de ${nombre}`} className="mt-2 flex flex-wrap gap-2">
+        {TEMAS.map((tema) => (
+          <button
+            key={tema.id}
+            type="button"
+            role="radio"
+            aria-checked={config.temaId === tema.id}
+            onClick={() => cambiar({ ...config, temaId: tema.id })}
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${config.temaId === tema.id ? "border-acento bg-acento-suave font-medium" : "border-borde"}`}
+          >
+            <span className="h-3.5 w-3.5 rounded-full border border-black/10" style={{ background: `linear-gradient(135deg, ${tema.panel} 50%, ${tema.acento} 50%)` }} />
+            {tema.nombre}
+          </button>
+        ))}
+      </div>
+      <div className="mt-4 space-y-4">
+        <Deslizador etiqueta="Transparencia" valor={config.transparencia} max={MAX_TRANSPARENCIA} unidad="%" alCambiar={(v) => cambiar({ ...config, transparencia: v })} />
+        <Deslizador etiqueta="Esquinas" valor={config.esquinas} max={MAX_ESQUINAS_ANDROID} unidad="" alCambiar={(v) => cambiar({ ...config, esquinas: v })} />
+      </div>
+    </li>
+  );
+}
+
+/** Apartado "Widgets" en el celular: ponerlos en la pantalla de inicio y ajustar cada uno. */
 function WidgetsCelular() {
   const [puede, setPuede] = useState(true);
   const [aviso, setAviso] = useState("");
-  const [aspecto, setAspecto] = useState<AspectoWidget>(() => leerAspecto(ASPECTO_ANDROID));
+  const [puestos, setPuestos] = useState<WidgetPuesto[] | null>(null);
+  const recargar = useCallback(() => void widgetsPuestos().then(setPuestos), []);
   useEffect(() => {
     void puedeAnclarWidget().then(setPuede);
-  }, []);
-  const cambiar = (a: AspectoWidget) => {
-    setAspecto(a);
-    guardarAspecto(ASPECTO_ANDROID, a);
-    avisarCambioAspecto();
-  };
+    recargar();
+    // Al volver de la pantalla de inicio (después de poner un widget), se ve en la lista.
+    const alVolver = () => document.visibilityState === "visible" && recargar();
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", recargar);
+    return () => {
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", recargar);
+    };
+  }, [recargar]);
   const anclar = async (tipo: string, nombre: string) => {
     const pedido = await anclarWidget(tipo);
     setAviso(pedido ? `Confirma en el aviso del celular para poner "${nombre}" en la pantalla de inicio.` : "Este celular no deja ponerlo desde aquí: mantén presionada la pantalla de inicio → Widgets → Andamia.");
+    if (pedido) for (const ms of [2000, 5000, 10000]) setTimeout(recargar, ms);
   };
-  const opacidad = 1 - aspecto.transparencia / 100;
+  const nombreDe = (tipo: string) => WIDGETS_ANDROID.find((w) => w.tipo === tipo)?.nombre ?? tipo;
+  const numerados = (puestos ?? []).map((p, i, todos) => {
+    const iguales = todos.filter((o) => o.tipo === p.tipo);
+    return { p, nombre: iguales.length > 1 ? `${nombreDe(p.tipo)} ${iguales.indexOf(p) + 1}` : nombreDe(p.tipo), i };
+  });
   return (
     <>
-      <p className="mt-1 text-sm text-tenue">Ponlos en la pantalla de inicio. Usan los colores del tema que elijas en la app.</p>
+      <p className="mt-1 text-sm text-tenue">Ponlos en la pantalla de inicio. Cada widget tiene su propio tema, transparencia y esquinas.</p>
 
-      <section className="mt-5 rounded-2xl border border-borde bg-panel p-4 shadow-sm" aria-label="Apariencia de los widgets">
-        <h2 className="text-sm font-semibold">Apariencia</h2>
-        <div className="mt-3 rounded-xl bg-gradient-to-br from-slate-500 to-slate-800 p-5">
-          <div
-            data-testid="vista-previa-widget"
-            className="mx-auto max-w-56 border border-white/10 px-4 py-3 shadow-lg"
-            style={{ borderRadius: aspecto.esquinas, background: `color-mix(in srgb, var(--panel-solido) ${Math.round(opacidad * 100)}%, transparent)` }}
-          >
-            <p className="text-sm font-semibold">Hoy</p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-suave">
-              <div className="h-full w-1/3 rounded-full bg-acento" />
-            </div>
-            <p className="mt-2 text-xs text-tenue">Así se verán tus widgets.</p>
-          </div>
-        </div>
-        <div className="mt-4 space-y-4">
-          <Deslizador etiqueta="Transparencia" valor={aspecto.transparencia} max={MAX_TRANSPARENCIA} unidad="%" alCambiar={(v) => cambiar({ ...aspecto, transparencia: v })} />
-          <Deslizador etiqueta="Esquinas" valor={aspecto.esquinas} max={MAX_ESQUINAS_ANDROID} unidad="" alCambiar={(v) => cambiar({ ...aspecto, esquinas: v })} />
-        </div>
-      </section>
+      <h2 className="mt-6 text-sm font-semibold">Tus widgets</h2>
+      {puestos !== null && puestos.length === 0 ? (
+        <p className="mt-2 rounded-xl border border-dashed border-borde p-4 text-sm text-tenue">Todavía no tienes widgets en la pantalla de inicio. Añade uno de la lista de abajo.</p>
+      ) : (
+        <ul className="mt-2 space-y-3" aria-label="Widgets en la pantalla de inicio">
+          {numerados.map(({ p, nombre }) => (
+            <AjustesDeWidget key={p.id} puesto={p} nombre={nombre} />
+          ))}
+        </ul>
+      )}
 
+      <h2 className="mt-6 text-sm font-semibold">Añadir a la pantalla de inicio</h2>
       {aviso && (
-        <p role="status" className="mt-4 rounded-lg bg-acento-suave px-3 py-2 text-sm">
+        <p role="status" className="mt-2 rounded-lg bg-acento-suave px-3 py-2 text-sm">
           {aviso}
         </p>
       )}
-      <ul className="mt-4 grid gap-3" aria-label="Widgets de la pantalla de inicio">
+      <ul className="mt-2 grid gap-3" aria-label="Widgets disponibles">
         {WIDGETS_ANDROID.map((w) => (
           <li key={w.tipo} data-testid="widget-celular" className="flex items-center gap-3 rounded-xl border border-borde bg-panel p-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-acento">
