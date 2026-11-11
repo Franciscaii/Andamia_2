@@ -11,7 +11,7 @@
     android:orientation="horizontal"
     android:paddingEnd="10dp">
 
-    <View
+    <FrameLayout
         android:id="@+id/evento_color"
         android:layout_width="4dp"
         android:layout_height="match_parent"
