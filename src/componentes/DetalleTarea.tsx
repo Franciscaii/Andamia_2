@@ -226,7 +226,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
   const restaurarTarea = useTienda((s) => s.restaurarTarea);
 
   const cerrar = () => irA(seccion);
-  const clasePanel = "fixed inset-0 z-40 flex flex-col bg-panel md:static md:z-auto md:w-96 md:shrink-0 md:border-l md:border-borde";
+  const clasePanel = "fixed inset-0 z-40 flex flex-col bg-panel max-md:bg-[var(--panel-solido)] md:static md:z-auto md:w-96 md:shrink-0 md:border-l md:border-borde";
 
   if (!tarea) {
     return (
