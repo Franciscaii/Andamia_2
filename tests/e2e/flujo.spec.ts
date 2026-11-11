@@ -696,3 +696,46 @@ test("widget Calendario: el mes entero cabe sin barra y '+n más' abre el día e
   await mas.click();
   await expect(page).toHaveURL(/\?abrir#\/tareas\/semana/);
 });
+
+test("widget Matriz del escritorio: los 4 cuadrantes a la vista, sin desplazar el widget", async ({ page }) => {
+  for (const [ancho, alto] of [[380, 420], [560, 560]] as const) {
+    await page.setViewportSize({ width: ancho, height: alto });
+    await page.goto("/?widget=matriz");
+    const cuadrantes = page.getByTestId("cuadrante");
+    await expect(cuadrantes).toHaveCount(4);
+    for (let i = 0; i < 4; i++) await expect(cuadrantes.nth(i)).toBeInViewport({ ratio: 1 });
+    // 2×2: los dos de arriba en la misma fila y los dos de la izquierda en la misma columna.
+    const cajas = await cuadrantes.evaluateAll((es) => es.map((e) => e.getBoundingClientRect()).map((r) => ({ x: Math.round(r.x), y: Math.round(r.y) })));
+    expect(cajas[0].y).toBe(cajas[1].y);
+    expect(cajas[0].x).toBe(cajas[2].x);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true);
+  }
+});
+
+test("menú Widgets (app de PC): añadir y quitar widgets del escritorio", async ({ page }) => {
+  // Sin la app de PC, el apartado no aparece.
+  await page.goto("/");
+  await expect(page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Widgets" })).toHaveCount(0);
+
+  // Puente falso de la app de PC.
+  await page.addInitScript(() => {
+    const abiertos = new Set<string>(["semana"]);
+    const oyentes: ((ids: string[]) => void)[] = [];
+    const avisar = () => oyentes.forEach((f) => f([...abiertos]));
+    (window as unknown as { andamiaEscritorio: unknown }).andamiaEscritorio = {
+      widgetsAbiertos: async () => [...abiertos],
+      abrirWidget: (id: string) => (abiertos.add(id), avisar()),
+      cerrarWidget: (id: string) => (abiertos.delete(id), avisar()),
+      alCambiarWidgets: (f: (ids: string[]) => void) => (oyentes.push(f), () => undefined),
+    };
+  });
+  await page.goto("/");
+  await page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Widgets" }).click();
+  await expect(page).toHaveURL(/#\/widgets$/);
+  await expect(page.getByTestId("widget-disponible")).toHaveCount(5);
+  await expect(page.getByRole("button", { name: "Quitar del escritorio: Semana" })).toBeVisible();
+  await page.getByRole("button", { name: "Añadir al escritorio: Calendario" }).click();
+  await expect(page.getByRole("button", { name: "Quitar del escritorio: Calendario" })).toBeVisible();
+  await page.getByRole("button", { name: "Quitar del escritorio: Semana" }).click();
+  await expect(page.getByRole("button", { name: "Añadir al escritorio: Semana" })).toBeVisible();
+});

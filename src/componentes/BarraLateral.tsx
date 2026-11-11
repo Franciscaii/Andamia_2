@@ -1,10 +1,11 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Moon, Palette, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
+import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, LayoutDashboard, Layers, ListTodo, Moon, Palette, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
 import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
 import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
 import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
+import { puenteEscritorio } from "../logica/puenteEscritorio";
 import type { Carpeta, Etiqueta, Lista } from "../modelos/tipos";
 import { BotonAvisos } from "./Avisos";
 import { DialogoCarpeta, DialogoEtiqueta, DialogoLista } from "./Dialogos";
@@ -229,6 +230,8 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
 
         <div className="mt-4">
           <Fila href={hashDe({ tipo: "tema" })} activa={seccion.tipo === "tema"} icono={<Palette size={17} />} nombre="Tema" />
+          {/* Solo en la app de PC: poner widgets en el escritorio sin ir al ícono junto al reloj. */}
+          {puenteEscritorio() && <Fila href={hashDe({ tipo: "widgets" })} activa={seccion.tipo === "widgets"} icono={<LayoutDashboard size={17} />} nombre="Widgets" />}
         </div>
 
         {titulo(

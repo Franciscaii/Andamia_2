@@ -72,6 +72,8 @@ function crearVentana({ oculta }) {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: true,
+      // Solo para el apartado "Widgets" del menú: ver, poner y quitar widgets del escritorio.
+      preload: path.join(__dirname, "precarga-principal.cjs"),
     },
   });
   ventana.setMenuBarVisibility(false);
@@ -393,7 +395,23 @@ function abreAlIniciar() {
   return app.getLoginItemSettings({ args: ["--oculta"] }).openAtLogin;
 }
 
+// ---------- Apartado "Widgets" de la ventana principal ----------
+const idsWidgetsAbiertos = () => [...ventanasWidget.keys()];
+const desdeVentanaPrincipal = (evento) => ventana && !ventana.isDestroyed() && evento.sender === ventana.webContents;
+ipcMain.handle("widgets-abiertos", (evento) => (desdeVentanaPrincipal(evento) ? idsWidgetsAbiertos() : []));
+ipcMain.on("widget-abrir", (evento, id) => {
+  if (desdeVentanaPrincipal(evento) && WIDGETS.some((w) => w.id === id)) abrirWidget(id);
+});
+ipcMain.on("widget-cerrar", (evento, id) => {
+  if (desdeVentanaPrincipal(evento) && WIDGETS.some((w) => w.id === id)) cerrarWidget(id);
+});
+/** Avisa a la ventana principal qué widgets están puestos (para el botón Añadir / Quitar). */
+function avisarWidgets() {
+  if (ventana && !ventana.isDestroyed()) ventana.webContents.send("widgets-cambiaron", idsWidgetsAbiertos());
+}
+
 function actualizarMenuBandeja() {
+  avisarWidgets();
   if (!bandeja) return;
   const modo = modoActual();
   bandeja.setContextMenu(
