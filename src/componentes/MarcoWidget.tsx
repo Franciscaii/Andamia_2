@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ExternalLink, SlidersHorizontal } from "lucide-react";
+import { ExternalLink, GripHorizontal, SlidersHorizontal } from "lucide-react";
 import { hashDe, useRuta } from "../logica/ruta";
 import { ESCALA_MINIMA, escalaQueCabe, escalaWidget, WIDGETS } from "../logica/widgetEscritorio";
 import {
@@ -232,10 +232,19 @@ export function MarcoWidget({
         {/* Franja invisible arriba para mover el widget: no ocupa alto, así la Semana aprovecha todo el espacio. */}
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 z-30 h-3 [-webkit-app-region:drag]"
+          className="absolute inset-x-0 top-0 z-30 h-2.5 [-webkit-app-region:drag]"
           data-testid="barra-widget"
           title={`Arrastra aquí para mover el widget ${nombre}`}
         />
+        {/* Agarradera visible arriba al centro: de aquí se toma el widget para moverlo. */}
+        <div
+          aria-hidden
+          data-testid="agarradera-widget"
+          title={`Arrastra para mover el widget ${nombre}`}
+          className="absolute top-0 left-1/2 z-40 flex h-4 w-20 -translate-x-1/2 cursor-grab items-center justify-center rounded-b-lg bg-[var(--panel-solido)] text-tenue opacity-50 shadow-sm transition-opacity hover:opacity-100 [-webkit-app-region:drag]"
+        >
+          <GripHorizontal size={14} />
+        </div>
         {/* Esquinita siempre visible: abre transparencia y esquinas. */}
         <div className="group/esquina absolute top-1 right-1 z-40 flex items-center gap-1 [-webkit-app-region:no-drag]">
           <button

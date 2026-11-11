@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { useTienda } from "../datos/tienda";
 import {
   gruposDeEtiquetas,
@@ -18,6 +20,8 @@ import {
 export type TipoEstadistica = "tareas" | "habitos";
 
 const ATENUADO = 0.22;
+/** Cómo se llama cada tramo del gráfico según el período. */
+const NOMBRE_TRAMO: Record<Periodo, string> = { dia: "bloque de 2 h", semana: "día", mes: "día", anio: "mes" };
 const opacidad = (clave: string, elegido: string | null) => (elegido === null || elegido === clave ? 1 : ATENUADO);
 
 // ---------- Gráfico circular ----------
@@ -232,28 +236,42 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   const alElegir = (clave: string) => setElegido((e) => (e === clave ? null : clave));
   const unidad = esTareas ? (resumen.total === 1 ? "completada" : "completadas") : resumen.total === 1 ? "día cumplido" : "días cumplidos";
 
+  // Cifras para las tarjetas de arriba.
+  const tramo = NOMBRE_TRAMO[periodo];
+  const totalesTramo = resumen.serie.map((t) => Object.values(t.valores).reduce((a, b) => a + b, 0));
+  const promedio = resumen.serie.length ? resumen.total / resumen.serie.length : 0;
+  const iMejor = totalesTramo.reduce((m, v, i) => (v > totalesTramo[m] ? i : m), 0);
+  const principal = resumen.filas[0];
+  const recientes = resumen.hechos.slice(0, 6);
+  const colorDe = new Map(resumen.filas.map((f) => [f.clave, f]));
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="px-4 pt-4 pb-2 sm:px-6">
-        <h1 className="text-lg font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>
-        <div role="group" aria-label="Período" className="mt-2 flex gap-0.5 rounded-md bg-suave p-0.5">
-          {PERIODOS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              aria-pressed={periodo === p.id}
-              onClick={() => setPeriodo(p.id)}
-              className={`flex-1 rounded px-2 py-1 text-xs ${periodo === p.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
-            >
-              {p.nombre}
-            </button>
-          ))}
+      <header data-arrastre-widget className="mx-auto w-full max-w-5xl px-4 pt-4 pb-3 sm:px-6">
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+          <div>
+            <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>
+            <p className="text-xs text-tenue">{esTareas ? "Cuánto avanzas y en qué ámbitos." : "Qué tan constante eres con cada hábito."}</p>
+          </div>
+          <div role="group" aria-label="Período" className="flex gap-0.5 rounded-lg bg-suave p-0.5">
+            {PERIODOS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={periodo === p.id}
+                onClick={() => setPeriodo(p.id)}
+                className={`rounded-md px-3 py-1 text-xs ${periodo === p.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+              >
+                {p.nombre}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-3 flex items-center gap-1">
           <button type="button" aria-label="Período anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => setReferencia((r) => moverPeriodo(periodo, r, -1))}>
             <ChevronLeft size={18} />
           </button>
-          <span data-testid="titulo-periodo" className="text-sm font-medium">
+          <span data-testid="titulo-periodo" className="min-w-0 text-sm font-medium first-letter:uppercase">
             {tituloPeriodo(periodo, referencia)}
           </span>
           <button type="button" aria-label="Período siguiente" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => setReferencia((r) => moverPeriodo(periodo, r, 1))}>
@@ -262,45 +280,102 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
+      <div className="min-h-0 flex-1 overflow-y-auto pb-8">
+        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
         {resumen.total === 0 ? (
-          <p className="mt-12 text-center text-sm text-tenue">{esTareas ? "No completaste tareas en este período." : "No hay días cumplidos en este período."}</p>
+          <div className="mt-8 rounded-2xl border border-dashed border-borde bg-panel/60 px-6 py-12 text-center">
+            <p className="text-sm font-medium">{esTareas ? "No completaste tareas en este período." : "No hay días cumplidos en este período."}</p>
+            <p className="mt-1 text-xs text-tenue">Prueba con otro período o vuelve cuando marques algo como hecho.</p>
+          </div>
         ) : (
           <div className="space-y-4">
-            <section className="rounded-xl border border-borde bg-panel p-4">
-              <h2 className="text-sm font-semibold">{esTareas ? "Por etiqueta" : "Por hábito"}</h2>
-              <p className="text-xs text-tenue">{esTareas ? "Toca una etiqueta para filtrar la lista de tareas." : "Toca un hábito para filtrar la lista."}</p>
-              <ul className="mt-3 space-y-1">
-                {resumen.filas.map((f) => (
-                  <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
-                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className="w-full rounded-md px-1.5 py-1.5 text-left hover:bg-suave">
-                      <span className="flex items-center gap-2 text-sm">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.color }} />
-                        <span className="min-w-0 flex-1 truncate">{f.nombre}</span>
-                        <span className="shrink-0 text-xs text-tenue tabular-nums">
-                          {f.cantidad} • {f.porcentaje}%
+            <div data-testid="cifras" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Cifra titulo={esTareas ? "Completadas" : "Días cumplidos"} valor={String(resumen.total)} destacada />
+              <Cifra titulo={`Promedio por ${tramo}`} valor={promedio >= 10 ? String(Math.round(promedio)) : promedio.toFixed(1).replace(".", ",")} />
+              <Cifra titulo={`Mejor ${tramo}`} valor={String(totalesTramo[iMejor] ?? 0)} detalle={periodo === "mes" ? `Día ${resumen.serie[iMejor]?.etiqueta}` : periodo === "dia" ? `Desde las ${resumen.serie[iMejor]?.etiqueta}` : resumen.serie[iMejor]?.etiqueta} />
+              <Cifra titulo={esTareas ? "Ámbito principal" : "Hábito principal"} valor={`${principal.porcentaje}%`} detalle={principal.nombre} color={principal.color} />
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+              <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
+                <h2 className="text-sm font-semibold">{esTareas ? "Por etiqueta" : "Por hábito"}</h2>
+                <p className="text-xs text-tenue">{esTareas ? "Toca una etiqueta para resaltarla." : "Toca un hábito para resaltarlo."}</p>
+                <div className="mt-3">
+                  <Circular filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={unidad} />
+                </div>
+                <ul className="mt-3 space-y-0.5">
+                  {resumen.filas.map((f) => (
+                    <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
+                      <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className={`w-full rounded-lg px-2 py-1.5 text-left hover:bg-suave ${elegidoVisible === f.clave ? "bg-suave" : ""}`}>
+                        <span className="flex items-center gap-2 text-sm">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.color }} />
+                          <span className="min-w-0 flex-1 truncate">{f.nombre}</span>
+                          <span className="shrink-0 text-xs tabular-nums">
+                            <span className="font-medium">{f.cantidad}</span>
+                            <span className="text-tenue"> · {f.porcentaje}%</span>
+                          </span>
                         </span>
-                      </span>
-                      <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-suave">
-                        <span className="block h-full rounded-full" style={{ width: `${f.porcentaje}%`, background: f.color }} />
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4">
-                <Circular filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={unidad} />
+                        <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-suave">
+                          <span className="block h-full rounded-full" style={{ width: `${f.porcentaje}%`, background: f.color }} />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <div className="space-y-4">
+                <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
+                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="text-sm font-semibold">En el tiempo</h2>
+                    {resumen.filas.length > 1 && (
+                      <ul aria-label="Leyenda" className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-tenue">
+                        {resumen.filas.map((f) => (
+                          <li key={f.clave} className="flex items-center gap-1" style={{ opacity: opacidad(f.clave, elegidoVisible) }}>
+                            <span className="h-2 w-2 rounded-full" style={{ background: f.color }} />
+                            {f.nombre}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <Areas resumen={resumen} elegido={elegidoVisible} alElegir={alElegir} />
+                </section>
+
+                <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
+                  <h2 className="mb-2 text-sm font-semibold">{esTareas ? "Últimas completadas" : "Últimos días cumplidos"}</h2>
+                  <ul className="divide-y divide-borde">
+                    {recientes.map((h) => (
+                      <li key={h.id} className="flex items-center gap-2.5 py-2 text-sm" style={{ opacity: opacidad(h.grupo, elegidoVisible) }}>
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: colorDe.get(h.grupo)?.color ?? "var(--tenue)" }} />
+                        <span className="min-w-0 flex-1 truncate">{h.titulo || "Sin título"}</span>
+                        <span className="shrink-0 text-xs text-tenue tabular-nums">{format(h.momento, esTareas ? "d MMM, HH:mm" : "d MMM", { locale: es })}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               </div>
-            </section>
-
-            <section className="rounded-xl border border-borde bg-panel p-4">
-              <h2 className="mb-2 text-sm font-semibold">En el tiempo</h2>
-              <Areas resumen={resumen} elegido={elegidoVisible} alElegir={alElegir} />
-            </section>
-
+            </div>
           </div>
         )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+/** Tarjeta con una cifra grande y su explicación. */
+function Cifra({ titulo, valor, detalle, color, destacada = false }: { titulo: string; valor: string; detalle?: string; color?: string; destacada?: boolean }) {
+  return (
+    <div className={`rounded-2xl border p-3.5 shadow-sm ${destacada ? "border-transparent bg-acento text-sobre-acento" : "border-borde bg-panel"}`}>
+      <p className={`text-[11px] font-medium uppercase tracking-wide ${destacada ? "opacity-80" : "text-tenue"}`}>{titulo}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums">{valor}</p>
+      {detalle && (
+        <p className={`mt-0.5 flex items-center gap-1.5 truncate text-xs ${destacada ? "opacity-80" : "text-tenue"}`}>
+          {color && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />}
+          <span className="truncate">{detalle}</span>
+        </p>
+      )}
     </div>
   );
 }

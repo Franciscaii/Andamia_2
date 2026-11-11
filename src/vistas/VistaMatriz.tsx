@@ -209,7 +209,7 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* En el widget: compacto y con la esquina derecha libre para el botón del widget. */}
-      <header className={EN_WIDGET ? "flex items-center gap-2 pt-1 pr-12 pb-1.5 pl-3" : "flex flex-wrap items-center gap-2 px-5 pt-5 pb-3"}>
+      <header data-arrastre-widget className={EN_WIDGET ? "flex items-center gap-2 pt-1 pr-12 pb-1.5 pl-3" : "flex flex-wrap items-center gap-2 px-5 pt-5 pb-3"}>
         <h1 className={EN_WIDGET ? "truncate text-base font-semibold" : "text-xl font-semibold"}>Matriz de Eisenhower</h1>
         <div className={EN_WIDGET ? "ml-auto flex shrink-0" : "flex flex-wrap gap-2 sm:ml-auto"}>
           <select aria-label="Filtrar por etiqueta" className={`${claseCampo} !w-auto`} value={etiqueta ?? ""} onChange={(e) => setEtiqueta(e.target.value || null)}>
