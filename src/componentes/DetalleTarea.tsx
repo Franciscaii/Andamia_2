@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Check, RotateCcw, Timer, Trash2, X } from "lucide-react";
 import { listasActivas, opcionesAvanzadas, recordatoriosActivos } from "../config";
 import { useEnfoque } from "../datos/enfoque";
@@ -226,10 +226,21 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
   const restaurarTarea = useTienda((s) => s.restaurarTarea);
 
   const cerrar = () => irA(seccion);
-  const clasePanel = "fixed inset-0 z-40 flex flex-col bg-panel max-md:bg-[var(--panel-solido)] md:static md:z-auto md:w-96 md:shrink-0 md:border-l md:border-borde";
+  // En el celular es una ventana emergente centrada (como "Nueva tarea"); en el PC, un panel a la derecha.
+  const clasePanel =
+    "flex flex-col bg-panel max-md:max-h-[90vh] max-md:w-full max-md:max-w-md max-md:overflow-hidden max-md:rounded-xl max-md:border max-md:border-borde max-md:bg-[var(--panel-solido)] max-md:shadow-xl md:w-96 md:shrink-0 md:border-l md:border-borde";
+  // Función (no componente) para no volver a montar el formulario en cada tecla.
+  const envolver = (children: ReactNode) => (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 md:contents"
+      onMouseDown={(e) => e.target === e.currentTarget && cerrar()}
+    >
+      {children}
+    </div>
+  );
 
   if (!tarea) {
-    return (
+    return envolver(
       <aside aria-label="Detalle de la tarea" className={clasePanel}>
         <div className="flex items-center justify-between p-4 text-sm text-tenue">
           Esta tarea ya no existe.
@@ -246,7 +257,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
   const fecha = aFechaInput(tarea);
   const hora = aHoraInput(tarea);
 
-  return (
+  return envolver(
     <aside aria-label="Detalle de la tarea" className={clasePanel}>
       <header className="flex items-center gap-2 border-b border-borde px-4 py-2.5">
         <button
