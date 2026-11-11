@@ -46,7 +46,7 @@ public class WidgetSemana extends AppWidgetProvider {
             int id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
             String fecha = intent.getStringExtra(EXTRA_FECHA);
             if (id != AppWidgetManager.INVALID_APPWIDGET_ID && fecha != null) {
-                DatosWidget.elegirDia(contexto, id, fecha);
+                DatosWidget.elegirDia(contexto, id, fecha + "|" + hoy());
                 AppWidgetManager gestor = AppWidgetManager.getInstance(contexto);
                 dibujar(contexto, gestor, id);
                 gestor.notifyAppWidgetViewDataChanged(new int[] { id }, R.id.semana_lista);
@@ -72,10 +72,12 @@ public class WidgetSemana extends AppWidgetProvider {
         return datos == null ? null : datos.optJSONArray("semanaDias");
     }
 
-    /** Posición del día elegido: el que se tocó, si sigue en la semana; si no, hoy; si no, el lunes. */
+    /** Posición del día elegido: el que se tocó hoy; si no (o ya es otro día), hoy; si no, el lunes. */
     private static int posicionElegida(Context contexto, int idWidget, JSONArray dias) {
-        String elegido = DatosWidget.diaElegido(contexto, idWidget);
         String hoy = hoy();
+        // Se guarda "día elegido|día en que se eligió": al día siguiente vuelve solo a hoy.
+        String[] guardado = DatosWidget.diaElegido(contexto, idWidget).split("\\|");
+        String elegido = guardado.length == 2 && hoy.equals(guardado[1]) ? guardado[0] : "";
         int deHoy = -1;
         for (int i = 0; i < dias.length(); i++) {
             JSONObject d = dias.optJSONObject(i);
