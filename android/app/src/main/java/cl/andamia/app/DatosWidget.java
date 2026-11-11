@@ -25,6 +25,15 @@ final class DatosWidget {
         return prefs(c).getString(CLAVE_TAREAS, null);
     }
 
+    /** Día (AAAA-MM-DD) que se eligió en un widget Semana. */
+    static void elegirDia(Context c, int idWidget, String fecha) {
+        prefs(c).edit().putString("dia_" + idWidget, fecha).apply();
+    }
+
+    static String diaElegido(Context c, int idWidget) {
+        return prefs(c).getString("dia_" + idWidget, "");
+    }
+
     static synchronized void marcarCompletada(Context c, String id) {
         Set<String> ids = new HashSet<>(prefs(c).getStringSet(CLAVE_COMPLETADAS, new HashSet<>()));
         ids.add(id);

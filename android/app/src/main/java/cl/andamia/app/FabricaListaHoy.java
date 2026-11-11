@@ -1,5 +1,6 @@
 package cl.andamia.app;
 
+import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -44,12 +45,17 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     }
 
     private final Context contexto;
+    /** Widget "Semana" al que pertenece esta lista, o INVALID_APPWIDGET_ID para el widget "Hoy". */
+    private final int idSemana;
     private final List<Fila> filas = new ArrayList<>();
     private int hechas;
     private int total;
+    private String fechaDia = "";
+    private boolean diaEsHoy = true;
 
-    FabricaListaHoy(Context contexto) {
+    FabricaListaHoy(Context contexto, int idSemana) {
         this.contexto = contexto;
+        this.idSemana = idSemana;
     }
 
     private void cargar() {
@@ -63,6 +69,14 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             JSONObject datos = new JSONObject(json);
             String hoy = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
             boolean deOtroDia = !hoy.equals(datos.optString("fecha"));
+            if (idSemana != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                // Widget "Semana": solo el día elegido, con sus propios eventos y tareas.
+                datos = WidgetSemana.dia(contexto, idSemana, datos);
+                if (datos == null) return;
+                deOtroDia = false;
+            }
+            fechaDia = datos.optString("fecha");
+            diaEsHoy = hoy.equals(fechaDia);
 
             JSONArray eventos = datos.optJSONArray("eventos");
             // Los eventos de otro día ya pasaron.
@@ -186,8 +200,10 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         int porcentaje = total == 0 ? 0 : Math.round(hechas * 100f / total);
         vista.setProgressBar(R.id.progreso_barra, 100, porcentaje, false);
         vista.setTextViewText(R.id.progreso_texto, hechas + "/" + total + " (" + porcentaje + "%)");
+        boolean semana = idSemana != AppWidgetManager.INVALID_APPWIDGET_ID;
+        vista.setTextViewText(R.id.progreso_titulo, !semana || diaEsHoy ? "Tareas hoy" : "Tareas del día");
         Intent abrir = new Intent();
-        abrir.setData(Uri.parse("andamia://hoy"));
+        abrir.setData(Uri.parse(semana && !fechaDia.isEmpty() ? "andamia://dia/" + fechaDia : "andamia://hoy"));
         vista.setOnClickFillInIntent(R.id.progreso_fila, abrir);
         return vista;
     }

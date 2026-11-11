@@ -22,7 +22,7 @@ final class Widgets {
     /** Después de que la app manda datos nuevos o se marca una tarea desde un widget. */
     static void redibujarTodo(Context contexto) {
         HoyWidget.redibujarTodos(contexto);
-        redibujarLista(contexto, WidgetSemana.class, "semana");
+        WidgetSemana.redibujarTodos(contexto);
         redibujarLista(contexto, WidgetMatriz.class, "matriz");
         redibujarImagen(contexto, WidgetCalendario.class, "calendario");
         redibujarImagen(contexto, WidgetEstadisticaTareas.class, "tareas");
@@ -55,7 +55,7 @@ final class Widgets {
         return FabricaListaHoy.color(contexto, R.color.widget_acento);
     }
 
-    // ---------- Widgets de lista: Semana y Matriz ----------
+    // ---------- Widget de lista: Matriz ----------
 
     private static void redibujarLista(Context contexto, Class<?> clase, String clave) {
         AppWidgetManager gestor = AppWidgetManager.getInstance(contexto);
@@ -65,10 +65,9 @@ final class Widgets {
     }
 
     static void dibujarLista(Context contexto, AppWidgetManager gestor, int idWidget, String clave) {
-        boolean semana = "semana".equals(clave);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_lista);
-        vista.setTextViewText(R.id.lista_titulo, semana ? "Semana" : "Matriz");
-        vista.setTextViewText(R.id.lista_vacio, semana ? "Nada esta semana.\nToca aquí para abrir Andamia." : "Sin tareas pendientes.\nToca aquí para abrir Andamia.");
+        vista.setTextViewText(R.id.lista_titulo, "Matriz");
+        vista.setTextViewText(R.id.lista_vacio, "Sin tareas pendientes.\nToca aquí para abrir Andamia.");
 
         Intent servicio = new Intent(contexto, ServicioFilas.class);
         servicio.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, idWidget);
@@ -82,11 +81,10 @@ final class Widgets {
         plantilla.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         int banderas = PendingIntent.FLAG_UPDATE_CURRENT
                 | (android.os.Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
-        vista.setPendingIntentTemplate(R.id.lista_filas, PendingIntent.getActivity(contexto, semana ? 20 : 30, plantilla, banderas));
+        vista.setPendingIntentTemplate(R.id.lista_filas, PendingIntent.getActivity(contexto, 30, plantilla, banderas));
 
-        String direccion = semana ? "andamia://hoy" : "andamia://matriz";
-        vista.setOnClickPendingIntent(R.id.lista_titulo, abrirApp(contexto, direccion, semana ? 21 : 31));
-        vista.setOnClickPendingIntent(R.id.lista_vacio, abrirApp(contexto, direccion, semana ? 21 : 31));
+        vista.setOnClickPendingIntent(R.id.lista_titulo, abrirApp(contexto, "andamia://matriz", 31));
+        vista.setOnClickPendingIntent(R.id.lista_vacio, abrirApp(contexto, "andamia://matriz", 31));
         vista.setOnClickPendingIntent(R.id.lista_nueva, abrirApp(contexto, "andamia://nueva", 2));
         gestor.updateAppWidget(idWidget, vista);
     }
