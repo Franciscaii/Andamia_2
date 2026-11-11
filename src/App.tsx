@@ -14,6 +14,7 @@ const MARCA_ETIQUETAS = "andamia-etiquetas-iniciales";
 import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes, VistaTema } from "./vistas/VistaAjustes";
 import { VistaWidgets } from "./vistas/VistaWidgets";
+import { useBarraVentana } from "./logica/puenteEscritorio";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
 import { VistaCalendario } from "./vistas/VistaCalendario";
 import { VistaEnfoque } from "./vistas/VistaEnfoque";
@@ -71,6 +72,7 @@ export default function App() {
   const cargar = useTienda((s) => s.cargar);
   const cerrarError = useTienda((s) => s.cerrarError);
   const [lateralAbierta, setLateralAbierta] = useState(false);
+  const altoBarra = useBarraVentana();
   // En el computador el menú se puede ocultar y volver a mostrar; se recuerda.
   const [menuOculto, setMenuOcultoEstado] = useState(() => {
     try {
@@ -171,6 +173,8 @@ export default function App() {
       )}
 
       <main className="flex min-w-0 flex-1 flex-col">
+        {/* App de PC: franja para mover la ventana; a la derecha quedan los botones de Windows. */}
+        {altoBarra > 0 && <div data-testid="barra-ventana" aria-hidden className="shrink-0 [-webkit-app-region:drag]" style={{ height: altoBarra }} />}
         <div className="barra-lateral flex items-center gap-2 border-b border-borde px-3 py-2 lg:hidden">
           <button type="button" aria-label="Abrir menú" className="rounded-md p-1.5 hover:bg-suave" onClick={() => setLateralAbierta(true)}>
             <Menu size={20} />

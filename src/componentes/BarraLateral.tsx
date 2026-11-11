@@ -160,7 +160,8 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
 
   return (
     <aside className="barra-lateral flex h-full flex-col border-r border-borde">
-      <div className="flex items-center gap-2 px-4 pt-4 pb-3">
+      {/* En la app de PC esta fila también sirve para mover la ventana (no tiene barra de título). */}
+      <div className="flex items-center gap-2 px-4 pt-4 pb-3 [-webkit-app-region:drag] [&_button]:[-webkit-app-region:no-drag]">
         <Marca />
         <span className="text-base font-semibold">Andamia</span>
         <button type="button" aria-label={tema === "oscuro" ? "Usar tema claro" : "Usar tema oscuro"} title={tema === "oscuro" ? "Usar tema claro" : "Usar tema oscuro"} className="ml-auto rounded-md p-1.5 text-tenue hover:bg-suave" onClick={alternarTema}>
