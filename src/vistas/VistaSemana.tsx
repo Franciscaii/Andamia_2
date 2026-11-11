@@ -726,7 +726,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ArrastreSemana ahora={ahora}>
-      <header data-widget-cabecera data-arrastre-widget className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
+      <header data-widget-cabecera className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
         <div className="flex items-center gap-2">
           <div className="flex shrink-0 items-center">
             <button type="button" aria-label="Semana anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => moverSemana(-1)}>
