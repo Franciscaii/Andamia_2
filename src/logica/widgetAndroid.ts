@@ -83,7 +83,8 @@ export function filasDeSemana(e: Estado, ahora: Date) {
     const hechas = c.tareas.filter((t) => t.estado === "completada");
     const titulo = `${nombreCortoDia(dia)} ${format(dia, "d")}${isSameDay(dia, ahora) ? " · Hoy" : ""}${c.progreso.total ? `  ${c.progreso.hechas}/${c.progreso.total}` : ""}`;
     return [
-      { tipo: "seccion", titulo, hoy: isSameDay(dia, ahora) },
+      // dia y numero: para la tira de días del widget Semana (vista Día) del celular.
+      { tipo: "seccion", titulo, hoy: isSameDay(dia, ahora), dia: nombreCortoDia(dia), numero: format(dia, "d") },
       ...c.eventos.slice(0, MAX_POR_SECCION).map((t) => ({ tipo: "evento", ...evento(t) })),
       ...[...pendientes, ...hechas].slice(0, MAX_POR_SECCION).map((t) => ({ tipo: "tarea", ...tarea(t) })),
     ];

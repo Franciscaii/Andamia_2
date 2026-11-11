@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget "Semana" en vista Día: tira con los 7 días arriba y, abajo, lo del día elegido. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_fondo"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/semana_titulo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:text="Hoy"
+            android:textColor="@color/widget_texto"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/semana_nueva"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/widget_boton"
+            android:contentDescription="Nueva tarea"
+            android:gravity="center"
+            android:text="+"
+            android:textColor="@color/widget_boton_texto"
+            android:textSize="22sp" />
+    </LinearLayout>
+
+    <!-- Los 7 días: se toca uno para verlo. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <TextView android:id="@+id/semana_d0" style="@style/WidgetDiaSemana" />
+        <TextView android:id="@+id/semana_d1" style="@style/WidgetDiaSemana" />
+        <TextView android:id="@+id/semana_d2" style="@style/WidgetDiaSemana" />
+        <TextView android:id="@+id/semana_d3" style="@style/WidgetDiaSemana" />
+        <TextView android:id="@+id/semana_d4" style="@style/WidgetDiaSemana" />
+        <TextView android:id="@+id/semana_d5" style="@style/WidgetDiaSemana" />
+        <TextView android:id="@+id/semana_d6" style="@style/WidgetDiaSemana" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="6dp">
+
+        <ListView
+            android:id="@+id/lista_filas"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@null"
+            android:dividerHeight="0dp" />
+
+        <TextView
+            android:id="@+id/lista_vacio"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="Nada este día."
+            android:textColor="@color/widget_texto_tenue"
+            android:textSize="14sp" />
+    </FrameLayout>
+</LinearLayout>

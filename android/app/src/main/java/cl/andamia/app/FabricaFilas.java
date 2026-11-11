@@ -30,9 +30,13 @@ class FabricaFilas implements RemoteViewsService.RemoteViewsFactory {
     private final List<Object> filas = new ArrayList<>();
     private int acento;
 
-    FabricaFilas(Context contexto, String clave) {
+    /** En Semana (vista Día): solo las filas de ese día (0 = lunes), sin su título. -1 = todo. */
+    private final int dia;
+
+    FabricaFilas(Context contexto, String clave, int dia) {
         this.contexto = contexto;
         this.clave = clave == null ? "semana" : clave;
+        this.dia = dia;
     }
 
     private void cargar() {
@@ -47,9 +51,15 @@ class FabricaFilas implements RemoteViewsService.RemoteViewsFactory {
             if (!colorAcento.isEmpty()) acento = Color.parseColor(colorAcento);
             JSONArray lista = datos.optJSONArray(clave);
             if (lista == null) return;
+            int seccionActual = -1;
             for (int i = 0; i < lista.length(); i++) {
                 JSONObject o = lista.getJSONObject(i);
                 String tipo = o.optString("tipo");
+                if ("seccion".equals(tipo)) seccionActual++;
+                if (dia >= 0) {
+                    // Vista Día: se saltan los títulos y lo de los otros días.
+                    if ("seccion".equals(tipo) || seccionActual != dia) continue;
+                }
                 if ("seccion".equals(tipo)) {
                     Seccion s = new Seccion();
                     s.titulo = o.optString("titulo");

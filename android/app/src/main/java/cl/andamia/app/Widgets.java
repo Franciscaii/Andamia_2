@@ -22,7 +22,7 @@ final class Widgets {
     /** Después de que la app manda datos nuevos o se marca una tarea desde un widget. */
     static void redibujarTodo(Context contexto) {
         HoyWidget.redibujarTodos(contexto);
-        redibujarLista(contexto, WidgetSemana.class, "semana");
+        WidgetSemana.redibujarTodos(contexto);
         redibujarLista(contexto, WidgetMatriz.class, "matriz");
         redibujarImagen(contexto, WidgetCalendario.class, "calendario");
         redibujarImagen(contexto, WidgetEstadisticaTareas.class, "tareas");
