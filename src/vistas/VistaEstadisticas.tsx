@@ -27,50 +27,66 @@ function puntoEnCirculo(cx: number, cy: number, r: number, angulo: number) {
   return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
 }
 
-function arco(cx: number, cy: number, rExt: number, rInt: number, desde: number, hasta: number): string {
-  // Un círculo completo se dibuja en dos mitades.
-  if (hasta - desde >= 359.99) return `${arco(cx, cy, rExt, rInt, 0, 180)} ${arco(cx, cy, rExt, rInt, 180, 360)}`;
-  const grande = hasta - desde > 180 ? 1 : 0;
-  const a = puntoEnCirculo(cx, cy, rExt, desde);
-  const b = puntoEnCirculo(cx, cy, rExt, hasta);
-  const c = puntoEnCirculo(cx, cy, rInt, hasta);
-  const d = puntoEnCirculo(cx, cy, rInt, desde);
-  return `M${a.x},${a.y} A${rExt},${rExt} 0 ${grande} 1 ${b.x},${b.y} L${c.x},${c.y} A${rInt},${rInt} 0 ${grande} 0 ${d.x},${d.y} Z`;
+/** Trazo de arco (solo la línea) desde un ángulo a otro; una vuelta completa se hace en dos mitades. */
+function trazoArco(cx: number, cy: number, r: number, desde: number, hasta: number): string {
+  if (hasta - desde >= 359.99) return `${trazoArco(cx, cy, r, 0, 180)} ${trazoArco(cx, cy, r, 180, 360).replace(/^M[^A]+/, "")}`;
+  const a = puntoEnCirculo(cx, cy, r, desde);
+  const b = puntoEnCirculo(cx, cy, r, hasta);
+  return `M${a.x},${a.y} A${r},${r} 0 ${hasta - desde > 180 ? 1 : 0} 1 ${b.x},${b.y}`;
 }
 
+/**
+ * Anillos concéntricos: uno por grupo, del más grande (afuera) al más chico (adentro).
+ * Cada anillo se llena según su porcentaje del total, con puntas redondas y un leve degradado.
+ */
 function Circular({ filas, total, elegido, alElegir, unidad }: { filas: FilaResumen[]; total: number; elegido: string | null; alElegir: (c: string) => void; unidad: string }) {
-  const tam = 180;
+  const tam = 240;
   const c = tam / 2;
-  let angulo = 0;
   const fila = filas.find((f) => f.clave === elegido);
+  const orden = [...filas].sort((a, b) => b.cantidad - a.cantidad);
+  const radioExterno = 110;
+  const radioInterno = 52;
+  // Grosor y separación se reparten el espacio entre el anillo de afuera y el hueco del centro.
+  const espacio = (radioExterno - radioInterno) / Math.max(orden.length, 1);
+  const grosor = Math.max(3, Math.min(14, espacio * 0.72));
   return (
     <figure data-testid="grafico-circular" className="flex justify-center">
-      <svg viewBox={`0 0 ${tam} ${tam}`} className="h-48 w-48" role="img" aria-label={`Reparto por grupo: ${filas.map((f) => `${f.nombre} ${f.porcentaje}%`).join(", ")}`}>
-        {filas.map((f) => {
-          const desde = angulo;
-          angulo += (f.cantidad / total) * 360;
+      <svg viewBox={`0 0 ${tam} ${tam}`} className="h-56 w-56" shapeRendering="geometricPrecision" role="img" aria-label={`Reparto por grupo: ${filas.map((f) => `${f.nombre} ${f.porcentaje}%`).join(", ")}`}>
+        <defs>
+          {orden.map((f) => (
+            <linearGradient key={f.clave} id={`anillo-${f.clave}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={f.color} stopOpacity={0.7} />
+              <stop offset="100%" stopColor={f.color} />
+            </linearGradient>
+          ))}
+        </defs>
+        {orden.map((f, i) => {
+          const r = radioExterno - grosor / 2 - i * espacio;
+          const hasta = Math.max(2, (f.cantidad / total) * 360);
+          const o = opacidad(f.clave, elegido);
           return (
-            <path
-              key={f.clave}
-              data-clave={f.clave}
-              d={arco(c, c, 86, 62, desde, angulo)}
-              fill={f.color}
-              stroke="var(--panel)"
-              strokeWidth={3}
-              strokeLinejoin="round"
-              opacity={opacidad(f.clave, elegido)}
-              className="cursor-pointer transition-opacity"
-              onClick={() => alElegir(f.clave)}
-            >
-              <title>{`${f.nombre}: ${f.cantidad} (${f.porcentaje}%)`}</title>
-            </path>
+            <g key={f.clave} className="cursor-pointer" onClick={() => alElegir(f.clave)}>
+              <circle cx={c} cy={c} r={r} fill="none" stroke="var(--suave)" strokeWidth={grosor} />
+              <path
+                data-clave={f.clave}
+                d={trazoArco(c, c, r, 0, hasta)}
+                fill="none"
+                stroke={`url(#anillo-${f.clave})`}
+                strokeWidth={grosor}
+                strokeLinecap="round"
+                opacity={o}
+                className="transition-opacity"
+              >
+                <title>{`${f.nombre}: ${f.cantidad} (${f.porcentaje}%)`}</title>
+              </path>
+            </g>
           );
         })}
-        <text x={c} y={c - 4} textAnchor="middle" className="fill-texto text-[22px] font-semibold tabular-nums">
+        <text x={c} y={c + 2} textAnchor="middle" className="fill-texto text-[26px] font-semibold tabular-nums">
           {fila ? `${fila.porcentaje}%` : total}
         </text>
-        <text x={c} y={c + 16} textAnchor="middle" className="fill-tenue text-[11px]">
-          {fila ? (fila.nombre.length > 16 ? `${fila.nombre.slice(0, 15)}…` : fila.nombre) : unidad}
+        <text x={c} y={c + 20} textAnchor="middle" className="fill-tenue text-[11px]">
+          {fila ? (fila.nombre.length > 14 ? `${fila.nombre.slice(0, 13)}…` : fila.nombre) : unidad}
         </text>
       </svg>
     </figure>
