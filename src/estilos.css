@@ -147,14 +147,6 @@ body {
 }
 
 /* Widgets del escritorio (app de PC): la ventana es transparente y el color lo pone el marco del widget. */
-/* Widgets del PC: la parte de arriba de cada vista también sirve para arrastrar el widget (sus botones siguen funcionando). */
-html.modo-widget [data-arrastre-widget] {
-  -webkit-app-region: drag;
-}
-html.modo-widget [data-arrastre-widget] :is(button, a, input, select, textarea, label, [role="button"], [role="group"]) {
-  -webkit-app-region: no-drag;
-}
-
 html.modo-widget,
 html.modo-widget body {
   background: transparent;

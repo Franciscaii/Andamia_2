@@ -229,21 +229,16 @@ export function MarcoWidget({
             opacity: o.fondo,
           }}
         />
-        {/* Franja invisible arriba para mover el widget: no ocupa alto, así la Semana aprovecha todo el espacio. */}
+        {/* Franja fina arriba para mover el widget, con una agarradera al centro. Va antes del contenido,
+            así no tapa los filtros ni los botones. */}
         <div
-          aria-hidden
-          className="absolute inset-x-0 top-0 z-30 h-2.5 [-webkit-app-region:drag]"
           data-testid="barra-widget"
           title={`Arrastra aquí para mover el widget ${nombre}`}
-        />
-        {/* Agarradera visible arriba al centro: de aquí se toma el widget para moverlo. */}
-        <div
-          aria-hidden
-          data-testid="agarradera-widget"
-          title={`Arrastra para mover el widget ${nombre}`}
-          className="absolute top-0 left-1/2 z-40 flex h-4 w-20 -translate-x-1/2 cursor-grab items-center justify-center rounded-b-lg bg-[var(--panel-solido)] text-tenue opacity-50 shadow-sm transition-opacity hover:opacity-100 [-webkit-app-region:drag]"
+          className="group/agarre relative z-30 flex h-3.5 shrink-0 cursor-grab items-center justify-center [-webkit-app-region:drag]"
         >
-          <GripHorizontal size={14} />
+          <span data-testid="agarradera-widget" aria-hidden className="flex h-2.5 w-12 items-center justify-center rounded-full bg-[var(--panel-solido)] text-tenue opacity-60 shadow-sm transition-opacity group-hover/agarre:opacity-100">
+            <GripHorizontal size={11} />
+          </span>
         </div>
         {/* Esquinita siempre visible: abre transparencia y esquinas. */}
         <div className="group/esquina absolute top-1 right-1 z-40 flex items-center gap-1 [-webkit-app-region:no-drag]">

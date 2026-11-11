@@ -247,7 +247,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header data-arrastre-widget className="mx-auto w-full max-w-5xl px-4 pt-4 pb-3 sm:px-6">
+      <header className="mx-auto w-full max-w-5xl px-4 pt-4 pb-3 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
           <div>
             <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>
