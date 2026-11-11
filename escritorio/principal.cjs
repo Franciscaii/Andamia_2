@@ -12,6 +12,9 @@ const ORIGEN = new URL(URL_ANDAMIA).origin;
 const ATAJO_NUEVA_TAREA = "Control+Alt+N";
 const RECURSOS = path.join(__dirname, "recursos");
 
+/** Alto de la zona de los botones de Windows en la ventana principal (la página deja ese espacio arriba). */
+const ALTO_BARRA = 32;
+
 let ventana = null;
 let bandeja = null;
 let saliendo = false;
@@ -66,6 +69,10 @@ function crearVentana({ oculta }) {
     icon: path.join(RECURSOS, "icono.ico"),
     backgroundColor: "#faf8f4",
     autoHideMenuBar: true,
+    // Sin la barra de título blanca de Windows: los botones de minimizar, maximizar y cerrar
+    // quedan sobre el contenido (fondo transparente); la página pone una franja para mover la ventana.
+    titleBarStyle: "hidden",
+    titleBarOverlay: { color: "#00000000", symbolColor: "#374151", height: ALTO_BARRA },
     webPreferences: {
       // La página no tiene acceso a los archivos del PC.
       contextIsolation: true,
@@ -405,6 +412,19 @@ ipcMain.on("widget-abrir", (evento, id) => {
 ipcMain.on("widget-cerrar", (evento, id) => {
   if (desdeVentanaPrincipal(evento) && WIDGETS.some((w) => w.id === id)) cerrarWidget(id);
 });
+// La página avisa los colores del tema para que los botones de Windows se vean (claro u oscuro).
+const COLOR_VALIDO = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/;
+ipcMain.on("ventana-colores", (evento, colores) => {
+  if (!desdeVentanaPrincipal(evento) || !colores || typeof colores !== "object") return;
+  const { fondo, simbolos } = colores;
+  if (!COLOR_VALIDO.test(String(fondo)) || !COLOR_VALIDO.test(String(simbolos))) return;
+  try {
+    ventana.setTitleBarOverlay({ color: fondo, symbolColor: simbolos, height: ALTO_BARRA });
+  } catch {
+    // Si el sistema no lo permite, quedan los colores iniciales.
+  }
+});
+
 /** Avisa a la ventana principal qué widgets están puestos (para el botón Añadir / Quitar). */
 function avisarWidgets() {
   if (ventana && !ventana.isDestroyed()) ventana.webContents.send("widgets-cambiaron", idsWidgetsAbiertos());
