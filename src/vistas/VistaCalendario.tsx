@@ -261,7 +261,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {modo === "mes" ? (
-        <header className={`flex items-center gap-2 px-4 sm:px-5 ${EN_WIDGET ? "pt-1 pb-1.5 pr-12 sm:pr-12" : "pt-4 pb-2"}`}>
+        <header data-arrastre-widget className={`flex items-center gap-2 px-4 sm:px-5 ${EN_WIDGET ? "pt-1 pb-1.5 pr-12 sm:pr-12" : "pt-4 pb-2"}`}>
           <div className="flex shrink-0 items-center">
             <button type="button" aria-label="Periodo anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
