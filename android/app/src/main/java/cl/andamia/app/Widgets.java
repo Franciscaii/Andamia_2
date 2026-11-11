@@ -45,13 +45,8 @@ final class Widgets {
         }
     }
 
+    /** Acento del tema del widget que se está dibujando (ver TemaWidget.usar). */
     static int acento(Context contexto, JSONObject datos) {
-        try {
-            String c = datos == null ? "" : datos.optString("acento");
-            if (!c.isEmpty()) return Color.parseColor(c);
-        } catch (IllegalArgumentException e) {
-            // Color desconocido: el azul de los widgets.
-        }
         return FabricaListaHoy.color(contexto, R.color.widget_acento);
     }
 
@@ -65,6 +60,7 @@ final class Widgets {
     }
 
     static void dibujarLista(Context contexto, AppWidgetManager gestor, int idWidget, String clave) {
+        TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_lista);
         vista.setTextViewText(R.id.lista_titulo, "Matriz");
         vista.setTextViewText(R.id.lista_vacio, "Sin tareas pendientes.\nToca aquí para abrir Andamia.");
@@ -111,6 +107,7 @@ final class Widgets {
     }
 
     static void dibujarImagen(Context contexto, AppWidgetManager gestor, int idWidget, String tipo) {
+        TemaWidget.usar(contexto, idWidget);
         int[] t = tamano(contexto, gestor, idWidget);
         float escala = t[2] / 100f;
         JSONObject datos = datos(contexto);

@@ -6,8 +6,8 @@ import { useTienda } from "../datos/tienda";
 import type { Etiqueta, Habito, Lista, Prioridad, RegistroHabito, Tarea } from "../modelos/tipos";
 import { gruposDeEtiquetas, gruposDeHabitos, hechosDeHabitos, hechosDeTareas, resumir, tituloPeriodo, type Resumen } from "./estadisticas";
 import { CUADRANTES, repartirEnCuadrantes } from "./matriz";
-import { leerEleccion, temaEfectivo, textoSobre, type Tema } from "./temas";
-import { leerAspecto, type AspectoWidget } from "./aspectoWidget";
+import { leerEleccion, presetDe, TEMA_INICIAL, TEMAS, temaEfectivo, textoSobre, type Tema } from "./temas";
+import type { AspectoWidget } from "./aspectoWidget";
 import { diasHasta, fechaDeTarea } from "./fechas";
 import { irA } from "./ruta";
 import { contenidoDelDia, diasDeSemana, dificultadDe, nombreCortoDia, tituloDelDia } from "./semana";
@@ -17,6 +17,8 @@ interface PluginWidget {
   actualizar(opciones: { datos: string }): Promise<void>;
   pendientes(): Promise<{ ids: string[] }>;
   puedeAnclar(): Promise<{ puede: boolean }>;
+  listar(): Promise<{ widgets: { id: number; tipo: string; config: string }[] }>;
+  configurar(opciones: { id: number; config: string }): Promise<void>;
   anclar(opciones: { tipo: string }): Promise<{ pedido: boolean }>;
 }
 
@@ -26,6 +28,8 @@ const MAX_TAREAS = 30;
 const NIVEL: Record<Prioridad, number> = { ninguna: 0, baja: 1, media: 2, alta: 3 };
 
 const MAX_POR_SECCION = 15;
+/** Semanas que lleva el widget Semana del celular (desde la pasada). */
+export const SEMANAS_WIDGET = 6;
 const MAX_POR_CELDA = 4;
 
 /** Lo que el widget muestra: el día de hoy como en la semana (eventos, progreso y tareas). */
@@ -83,7 +87,10 @@ interface Estado {
  */
 export function diasDeSemanaWidget(e: Estado, ahora: Date) {
   const { evento, tarea } = filasDe(e.listas, e.etiquetas, ahora);
-  return diasDeSemana(ahora).map((dia) => {
+  // La semana pasada, esta y las 4 siguientes: el widget se mueve entre ellas con sus flechas.
+  const lunes = addDays(diasDeSemana(ahora)[0], -7);
+  const dias = Array.from({ length: SEMANAS_WIDGET * 7 }, (_, i) => addDays(lunes, i));
+  return dias.map((dia) => {
     const c = contenidoDelDia(e.tareas, e.listas, dia, ahora);
     const pendientes = c.tareas.filter((t) => t.estado === "pendiente");
     const hechas = c.tareas.filter((t) => t.estado === "completada");
@@ -91,6 +98,7 @@ export function diasDeSemanaWidget(e: Estado, ahora: Date) {
       fecha: format(dia, "yyyy-MM-dd"),
       nombre: nombreCortoDia(dia),
       numero: dia.getDate(),
+      mes: format(dia, "MMM", { locale: es }).replace(".", ""),
       hoy: isSameDay(dia, ahora),
       titulo: tituloDelDia(dia, ahora),
       eventos: c.eventos.slice(0, MAX_TAREAS).map(evento),
@@ -146,9 +154,6 @@ export function estadisticasDelWidget(e: Estado, ahora: Date) {
   };
 }
 
-/** Clave del aspecto (transparencia y esquinas) de los widgets del celular. */
-export const ASPECTO_ANDROID = "android";
-
 /** Mezcla dos colores #rrggbb: pct% del primero y el resto del segundo (como color-mix en la app). */
 export function mezclarHex(a: string, pct: number, b: string): string {
   const rgb = (h: string) => {
@@ -174,21 +179,19 @@ export function temaParaWidget(t: Tema) {
 }
 
 /** Todo lo que leen los widgets de Android. */
-export function datosDeWidgets(e: Estado, ahora: Date = new Date(), aspecto: AspectoWidget = leerAspecto(ASPECTO_ANDROID)) {
+export function datosDeWidgets(e: Estado, ahora: Date = new Date()) {
   let acento = "";
-  let tema: ReturnType<typeof temaParaWidget> | null = null;
   try {
-    const t = temaEfectivo(leerEleccion());
-    acento = t.acento;
-    tema = temaParaWidget(t);
+    acento = temaEfectivo(leerEleccion()).acento;
   } catch {
-    // Sin tema guardado: el widget usa sus colores de siempre.
+    // Sin tema guardado.
   }
+  // Cada widget elige su propio tema en el apartado Widgets; mientras no elija, usa Clásico.
+  const tema = temaParaWidget(presetDe(TEMA_INICIAL));
   return {
     ...datosDelWidget(e.tareas, e.listas, ahora, e.etiquetas),
     acento,
     tema,
-    aspecto,
     semanaDias: diasDeSemanaWidget(e, ahora),
     matriz: filasDeMatriz(e, ahora),
     mes: mesDelWidget(e, ahora),
@@ -215,18 +218,64 @@ function programarEnvio(): void {
   temporizador = setTimeout(enviarAlWidget, 400);
 }
 
-/** Se cambió la transparencia o las esquinas: los widgets se redibujan ya. */
-export function avisarCambioAspecto(): void {
-  ultimoEnviado = "";
-  programarEnvio();
-}
-
 /** ¿Se pueden poner widgets en la pantalla de inicio desde la app? */
 export async function puedeAnclarWidget(): Promise<boolean> {
   try {
     return (await widget.puedeAnclar()).puede;
   } catch {
     return false;
+  }
+}
+
+/** Cómo se ve un widget puesto: su tema, transparencia y esquinas (cada uno el suyo). */
+export interface ConfigWidget extends AspectoWidget {
+  temaId: string;
+}
+
+export const CONFIG_INICIAL: ConfigWidget = { temaId: TEMA_INICIAL, transparencia: 0, esquinas: 20 };
+
+export interface WidgetPuesto {
+  id: number;
+  tipo: string;
+  config: ConfigWidget;
+}
+
+function leerConfig(json: string): ConfigWidget {
+  try {
+    const c = JSON.parse(json);
+    if (c && typeof c === "object") {
+      return {
+        temaId: TEMAS.some((t) => t.id === c.temaId) ? c.temaId : CONFIG_INICIAL.temaId,
+        transparencia: typeof c.transparencia === "number" ? c.transparencia : CONFIG_INICIAL.transparencia,
+        esquinas: typeof c.esquinas === "number" ? c.esquinas : CONFIG_INICIAL.esquinas,
+      };
+    }
+  } catch {
+    // Sin configurar todavía.
+  }
+  return CONFIG_INICIAL;
+}
+
+/** Lo que se guarda en el celular para un widget: los colores ya calculados de su tema. */
+export function configParaAndroid(c: ConfigWidget): string {
+  return JSON.stringify({ ...c, tema: temaParaWidget(presetDe(c.temaId)) });
+}
+
+/** Los widgets que están puestos en la pantalla de inicio, con su configuración. */
+export async function widgetsPuestos(): Promise<WidgetPuesto[]> {
+  try {
+    const { widgets } = await widget.listar();
+    return widgets.map((w) => ({ id: w.id, tipo: w.tipo, config: leerConfig(w.config) }));
+  } catch {
+    return [];
+  }
+}
+
+export async function configurarWidget(id: number, c: ConfigWidget): Promise<void> {
+  try {
+    await widget.configurar({ id, config: configParaAndroid(c) });
+  } catch {
+    // Sin el plugin (navegador): no hay widgets que cambiar.
   }
 }
 

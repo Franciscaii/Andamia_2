@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fila del medio de una tarjeta. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="0dp" />
+    <solid android:color="@color/widget_evento_suave" />
+    <padding android:left="10dp" android:top="0dp" android:right="10dp" android:bottom="0dp" />
+</shape>

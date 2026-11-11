@@ -55,12 +55,14 @@ public class HoyWidget extends AppWidgetProvider {
     }
 
     static void dibujar(Context contexto, AppWidgetManager gestor, int idWidget) {
+        TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_hoy);
         vista.setTextViewText(R.id.widget_titulo, titulo(contexto));
 
         // La lista se llena desde ServicioListaHoy.
         Intent servicio = new Intent(contexto, ServicioListaHoy.class);
         servicio.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, idWidget);
+        servicio.putExtra(ServicioListaHoy.EXTRA_SEMANA, false);
         servicio.setData(Uri.parse(servicio.toUri(Intent.URI_INTENT_SCHEME)));
         vista.setRemoteAdapter(R.id.widget_lista, servicio);
         vista.setEmptyView(R.id.widget_lista, R.id.widget_vacio);

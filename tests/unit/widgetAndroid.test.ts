@@ -56,11 +56,12 @@ describe("datos de los widgets Semana, Matriz, Calendario y estadísticas", () =
 
   it("la semana trae los 7 días, cada uno con sus eventos y tareas, con hoy marcado", () => {
     const dias = datos.semanaDias;
-    expect(dias).toHaveLength(7);
-    expect(dias[2]).toMatchObject({ hoy: true, titulo: expect.stringContaining("Hoy"), fecha: "2026-11-11" });
-    const jueves = dias.find((d) => d.nombre === "Jue")!;
+    expect(dias).toHaveLength(42);
+    expect(dias[7 + 2]).toMatchObject({ hoy: true, titulo: expect.stringContaining("Hoy"), fecha: "2026-11-11" });
+    const estaSemana = dias.slice(7, 14);
+    const jueves = estaSemana.find((d) => d.nombre === "Jue")!;
     expect(jueves.eventos[0]).toMatchObject({ titulo: "Doctor", color: "#e0245e" });
-    expect(dias.find((d) => d.nombre === "Vie")!.tareas.map((t) => t.titulo)).toContain("Leer");
+    expect(estaSemana.find((d) => d.nombre === "Vie")!.tareas.map((t) => t.titulo)).toContain("Leer");
   });
 
   it("la matriz trae los 4 cuadrantes numerados y solo pendientes", () => {
@@ -94,14 +95,15 @@ describe("tema y aspecto de los widgets de Android", () => {
     expect(mezclarHex("#fff", 100, "#000000")).toBe("#ffffff");
   });
 
-  it("manda los colores del tema y el aspecto elegido", async () => {
+  it("manda los colores de Clásico por defecto y guarda los de cada widget", async () => {
     const { datosDeWidgets, temaParaWidget } = await import("../../src/logica/widgetAndroid");
     const { presetDe } = await import("../../src/logica/temas");
     const t = temaParaWidget(presetDe("castillo"));
     expect(t).toMatchObject({ fondo: "#2b1e16", texto: "#fbebd0", acento: "#f4a340" });
     expect(t.tenue).toMatch(/^#[0-9a-f]{6}$/);
-    const d = datosDeWidgets({ tareas: [], listas: [], etiquetas: [], habitos: [], registros: [] }, new Date(2026, 10, 11), { transparencia: 40, esquinas: 24 });
-    expect(d.aspecto).toEqual({ transparencia: 40, esquinas: 24 });
-    expect(d.tema?.fondo).toMatch(/^#/);
+    const d = datosDeWidgets({ tareas: [], listas: [], etiquetas: [], habitos: [], registros: [] }, new Date(2026, 10, 11));
+    expect(d.tema.fondo).toBe(presetDe("clasico").panel);
+    const { configParaAndroid } = await import("../../src/logica/widgetAndroid");
+    expect(JSON.parse(configParaAndroid({ temaId: "castillo", transparencia: 30, esquinas: 16 }))).toMatchObject({ transparencia: 30, esquinas: 16, tema: { fondo: "#2b1e16" } });
   });
 });

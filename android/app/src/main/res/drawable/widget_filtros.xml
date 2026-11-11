@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fondo de un día en la tira del widget Semana. -->
+<!-- Marco de los filtros Tareas / Eventos / Todos. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <corners android:radius="10dp" />
     <solid android:color="@color/widget_evento_suave" />

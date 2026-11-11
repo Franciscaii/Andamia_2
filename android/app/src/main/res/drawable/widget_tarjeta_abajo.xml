@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Última fila de una tarjeta. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:topLeftRadius="0dp" android:topRightRadius="0dp" android:bottomLeftRadius="14dp" android:bottomRightRadius="14dp" />
+    <solid android:color="@color/widget_evento_suave" />
+    <padding android:left="10dp" android:top="0dp" android:right="10dp" android:bottom="8dp" />
+</shape>
