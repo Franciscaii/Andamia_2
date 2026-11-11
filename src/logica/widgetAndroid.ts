@@ -1,6 +1,6 @@
 import { registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
-import { addDays, endOfMonth, format, isSameDay, isSameMonth, startOfMonth, startOfWeek } from "date-fns";
+import { addDays, endOfMonth, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { useTienda } from "../datos/tienda";
 import type { Etiqueta, Habito, Lista, Prioridad, RegistroHabito, Tarea } from "../modelos/tipos";
@@ -74,19 +74,25 @@ interface Estado {
   registros: RegistroHabito[];
 }
 
-/** Widget "Semana": cada día de esta semana con sus eventos y tareas, en filas. */
-export function filasDeSemana(e: Estado, ahora: Date) {
+/**
+ * Widget "Semana" del celular: los 7 días de esta semana, cada uno con sus eventos y tareas.
+ * El widget muestra un solo día a la vez (como "Día" en la app) y se elige tocando la tira de días.
+ */
+export function diasDeSemanaWidget(e: Estado, ahora: Date) {
   const { evento, tarea } = filasDe(e.listas, e.etiquetas, ahora);
-  return diasDeSemana(ahora).flatMap((dia) => {
+  return diasDeSemana(ahora).map((dia) => {
     const c = contenidoDelDia(e.tareas, e.listas, dia, ahora);
     const pendientes = c.tareas.filter((t) => t.estado === "pendiente");
     const hechas = c.tareas.filter((t) => t.estado === "completada");
-    const titulo = `${nombreCortoDia(dia)} ${format(dia, "d")}${isSameDay(dia, ahora) ? " · Hoy" : ""}${c.progreso.total ? `  ${c.progreso.hechas}/${c.progreso.total}` : ""}`;
-    return [
-      { tipo: "seccion", titulo, hoy: isSameDay(dia, ahora) },
-      ...c.eventos.slice(0, MAX_POR_SECCION).map((t) => ({ tipo: "evento", ...evento(t) })),
-      ...[...pendientes, ...hechas].slice(0, MAX_POR_SECCION).map((t) => ({ tipo: "tarea", ...tarea(t) })),
-    ];
+    return {
+      fecha: format(dia, "yyyy-MM-dd"),
+      nombre: nombreCortoDia(dia),
+      numero: dia.getDate(),
+      hoy: isSameDay(dia, ahora),
+      titulo: tituloDelDia(dia, ahora),
+      eventos: c.eventos.slice(0, MAX_TAREAS).map(evento),
+      tareas: [...pendientes, ...hechas].slice(0, MAX_TAREAS).map(tarea),
+    };
   });
 }
 
@@ -148,7 +154,7 @@ export function datosDeWidgets(e: Estado, ahora: Date = new Date()) {
   return {
     ...datosDelWidget(e.tareas, e.listas, ahora, e.etiquetas),
     acento,
-    semana: filasDeSemana(e, ahora),
+    semanaDias: diasDeSemanaWidget(e, ahora),
     matriz: filasDeMatriz(e, ahora),
     mes: mesDelWidget(e, ahora),
     estadisticas: estadisticasDelWidget(e, ahora),
@@ -214,6 +220,11 @@ export function abrirEnlace(url: string): void {
   if (destino.host === "nueva") {
     irA(hoy);
     enfocarEntradaRapida();
+  } else if (destino.host === "dia") {
+    // El día elegido en el widget Semana: la Semana lo abre en "Día".
+    const fecha = destino.pathname.replace(/^\//, "");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) void import("../vistas/VistaSemana").then((m) => m.verDiaEnSemana(parseISO(fecha)));
+    else irA(hoy);
   } else if (destino.host === "calendario") {
     irA({ tipo: "calendario", modo: "mes" });
   } else if (destino.host === "matriz") {

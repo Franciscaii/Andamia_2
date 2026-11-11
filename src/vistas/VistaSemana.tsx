@@ -502,6 +502,8 @@ export function verDiaEnSemana(dia: Date) {
     return;
   }
   diaPedido = dia;
+  // Si la Semana ya está abierta, se cambia de día ahí mismo.
+  window.dispatchEvent(new CustomEvent<Date>("andamia-ver-dia", { detail: dia }));
   try {
     localStorage.setItem(CLAVE_ALCANCE, "dia");
   } catch {
@@ -685,6 +687,13 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const [alcanceGuardado, setAlcanceEstado] = useState<Alcance>(() => (diaPedido ? "dia" : leerAlcance()));
   useEffect(() => {
     diaPedido = null;
+    const verDia = (e: Event) => {
+      setElegido((e as CustomEvent<Date>).detail);
+      setAlcanceEstado("dia");
+      diaPedido = null;
+    };
+    window.addEventListener("andamia-ver-dia", verDia);
+    return () => window.removeEventListener("andamia-ver-dia", verDia);
   }, []);
   const esEscritorio = useEsEscritorio();
   const alcance: Alcance = esEscritorio ? alcanceGuardado : "dia";

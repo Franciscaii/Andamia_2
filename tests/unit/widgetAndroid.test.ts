@@ -54,12 +54,13 @@ describe("datos de los widgets Semana, Matriz, Calendario y estadísticas", () =
   ] as Tarea[];
   const datos = datosDeWidgets({ tareas, listas, etiquetas: [{ nombre: "universidad", nombreVisible: "Universidad", color: "#14c9a0" }] as never, habitos: [], registros: [] }, ahora);
 
-  it("la semana trae los 7 días como secciones, con hoy marcado", () => {
-    const secciones = datos.semana.filter((f) => f.tipo === "seccion");
-    expect(secciones).toHaveLength(7);
-    expect(secciones[2]).toMatchObject({ titulo: expect.stringContaining("Hoy"), hoy: true });
-    const jueves = datos.semana.findIndex((f) => f.tipo === "seccion" && String((f as { titulo: string }).titulo).startsWith("Jue"));
-    expect(datos.semana[jueves + 1]).toMatchObject({ tipo: "evento", titulo: "Doctor", color: "#e0245e" });
+  it("la semana trae los 7 días, cada uno con sus eventos y tareas, con hoy marcado", () => {
+    const dias = datos.semanaDias;
+    expect(dias).toHaveLength(7);
+    expect(dias[2]).toMatchObject({ hoy: true, titulo: expect.stringContaining("Hoy"), fecha: "2026-11-11" });
+    const jueves = dias.find((d) => d.nombre === "Jue")!;
+    expect(jueves.eventos[0]).toMatchObject({ titulo: "Doctor", color: "#e0245e" });
+    expect(dias.find((d) => d.nombre === "Vie")!.tareas.map((t) => t.titulo)).toContain("Leer");
   });
 
   it("la matriz trae los 4 cuadrantes numerados y solo pendientes", () => {

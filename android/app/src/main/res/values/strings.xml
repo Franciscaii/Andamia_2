@@ -7,7 +7,7 @@
     <string name="widget_nombre">Andamia · Hoy</string>
     <string name="widget_descripcion">Tus tareas de hoy. Toca el círculo para marcarlas como hechas.</string>
     <string name="widget_semana_nombre">Andamia · Semana</string>
-    <string name="widget_semana_descripcion">Los 7 días de esta semana con sus eventos y tareas.</string>
+    <string name="widget_semana_descripcion">Un día de esta semana con sus eventos y tareas; toca la tira de días para cambiarlo.</string>
     <string name="widget_matriz_nombre">Andamia · Matriz</string>
     <string name="widget_matriz_descripcion">Tus tareas pendientes en los cuatro cuadrantes.</string>
     <string name="widget_calendario_nombre">Andamia · Calendario</string>

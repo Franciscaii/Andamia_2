@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget "Semana" del celular: tira con los 7 días y, abajo, solo el día elegido (como "Día" en la app). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_fondo"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/semana_titulo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:text="Semana"
+            android:textColor="@color/widget_texto"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/semana_nueva"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/widget_boton"
+            android:contentDescription="Nueva tarea"
+            android:gravity="center"
+            android:text="+"
+            android:textColor="@color/widget_boton_texto"
+            android:textSize="22sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/semana_dia_0"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="0dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_dia"
+            android:gravity="center"
+            android:lineSpacingExtra="1dp"
+            android:maxLines="2"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/widget_texto"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/semana_dia_1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_dia"
+            android:gravity="center"
+            android:lineSpacingExtra="1dp"
+            android:maxLines="2"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/widget_texto"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/semana_dia_2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_dia"
+            android:gravity="center"
+            android:lineSpacingExtra="1dp"
+            android:maxLines="2"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/widget_texto"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/semana_dia_3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_dia"
+            android:gravity="center"
+            android:lineSpacingExtra="1dp"
+            android:maxLines="2"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/widget_texto"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/semana_dia_4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_dia"
+            android:gravity="center"
+            android:lineSpacingExtra="1dp"
+            android:maxLines="2"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/widget_texto"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/semana_dia_5"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:background="@drawable/widget_dia"
+            android:gravity="center"
+            android:lineSpacingExtra="1dp"
+            android:maxLines="2"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/widget_texto"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/semana_dia_6"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="0dp"
+            android:background="@drawable/widget_dia"
+            android:gravity="center"
+            android:lineSpacingExtra="1dp"
+            android:maxLines="2"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:textColor="@color/widget_texto"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="4dp">
+
+        <!-- Eventos, la barra de progreso del día y las tareas del día elegido. -->
+        <ListView
+            android:id="@+id/semana_lista"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@null"
+            android:dividerHeight="0dp" />
+
+        <TextView
+            android:id="@+id/semana_vacio"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="Nada este día.\nToca aquí para abrir Andamia."
+            android:textColor="@color/widget_texto_tenue"
+            android:textSize="14sp" />
+    </FrameLayout>
+</LinearLayout>
