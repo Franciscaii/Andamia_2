@@ -86,6 +86,8 @@ final class Widgets {
         vista.setOnClickPendingIntent(R.id.lista_titulo, abrirApp(contexto, "andamia://matriz", 31));
         vista.setOnClickPendingIntent(R.id.lista_vacio, abrirApp(contexto, "andamia://matriz", 31));
         vista.setOnClickPendingIntent(R.id.lista_nueva, abrirApp(contexto, "andamia://nueva", 2));
+        TemaWidget.cabecera(contexto, vista, R.id.lista_titulo, R.id.lista_nueva, R.id.lista_vacio);
+        TemaWidget.fondo(contexto, gestor, idWidget, vista);
         gestor.updateAppWidget(idWidget, vista);
     }
 
@@ -130,6 +132,7 @@ final class Widgets {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_imagen);
         vista.setImageViewBitmap(R.id.imagen_vista, imagen);
         vista.setOnClickPendingIntent(R.id.imagen_vista, abrirApp(contexto, direccion, codigo));
+        TemaWidget.fondo(contexto, gestor, idWidget, vista);
         gestor.updateAppWidget(idWidget, vista);
     }
 }

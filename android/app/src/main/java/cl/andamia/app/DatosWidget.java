@@ -21,6 +21,14 @@ final class DatosWidget {
         prefs(c).edit().putString(CLAVE_TAREAS, json).apply();
     }
 
+    static void guardarTema(Context c, String json) {
+        prefs(c).edit().putString("tema", json).apply();
+    }
+
+    static String leerTema(Context c) {
+        return prefs(c).getString("tema", null);
+    }
+
     static String leerTareas(Context c) {
         return prefs(c).getString(CLAVE_TAREAS, null);
     }

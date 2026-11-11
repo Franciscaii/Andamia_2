@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Widget "Semana" del celular: tira con los 7 días y, abajo, solo el día elegido (como "Día" en la app). -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Fondo con el color del tema, la transparencia y las esquinas elegidas (lo dibuja TemaWidget). -->
+    <ImageView
+        android:id="@+id/fondo_widget"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_fondo" />
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_fondo"
     android:orientation="vertical"
     android:padding="12dp">
 
@@ -182,3 +194,4 @@
             android:textSize="14sp" />
     </FrameLayout>
 </LinearLayout>
+</FrameLayout>

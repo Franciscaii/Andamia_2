@@ -86,3 +86,22 @@ describe("datos de los widgets Semana, Matriz, Calendario y estadísticas", () =
     expect(datos.estadisticas.habitos.total).toBe(0);
   });
 });
+
+describe("tema y aspecto de los widgets de Android", () => {
+  it("mezcla colores en hexadecimal, como color-mix", async () => {
+    const { mezclarHex } = await import("../../src/logica/widgetAndroid");
+    expect(mezclarHex("#000000", 50, "#ffffff")).toBe("#808080");
+    expect(mezclarHex("#fff", 100, "#000000")).toBe("#ffffff");
+  });
+
+  it("manda los colores del tema y el aspecto elegido", async () => {
+    const { datosDeWidgets, temaParaWidget } = await import("../../src/logica/widgetAndroid");
+    const { presetDe } = await import("../../src/logica/temas");
+    const t = temaParaWidget(presetDe("castillo"));
+    expect(t).toMatchObject({ fondo: "#2b1e16", texto: "#fbebd0", acento: "#f4a340" });
+    expect(t.tenue).toMatch(/^#[0-9a-f]{6}$/);
+    const d = datosDeWidgets({ tareas: [], listas: [], etiquetas: [], habitos: [], registros: [] }, new Date(2026, 10, 11), { transparencia: 40, esquinas: 24 });
+    expect(d.aspecto).toEqual({ transparencia: 40, esquinas: 24 });
+    expect(d.tema?.fondo).toMatch(/^#/);
+  });
+});

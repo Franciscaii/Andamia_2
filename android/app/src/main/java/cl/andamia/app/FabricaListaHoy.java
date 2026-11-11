@@ -155,6 +155,8 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     @Override public boolean hasStableIds() { return false; }
 
     static int color(Context contexto, int recurso) {
+        Integer delTema = TemaWidget.color(contexto, recurso);
+        if (delTema != null) return delTema;
         return contexto.getResources().getColor(recurso, contexto.getTheme());
     }
 
@@ -189,6 +191,9 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             // Color desconocido: se queda el morado.
         }
         vista.setInt(R.id.evento_color, "setBackgroundColor", colorEvento);
+        vista.setTextColor(R.id.evento_titulo, color(contexto, R.color.widget_texto));
+        vista.setTextColor(R.id.evento_hora, color(contexto, R.color.widget_texto_tenue));
+        TemaWidget.tenirFondo(vista, R.id.evento_fila, color(contexto, R.color.widget_evento_suave));
         Intent abrir = new Intent();
         abrir.setData(Uri.parse("andamia://tarea/" + Uri.encode(f.id)));
         vista.setOnClickFillInIntent(R.id.evento_fila, abrir);
@@ -199,6 +204,9 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_progreso);
         int porcentaje = total == 0 ? 0 : Math.round(hechas * 100f / total);
         vista.setProgressBar(R.id.progreso_barra, 100, porcentaje, false);
+        TemaWidget.barra(contexto, vista, R.id.progreso_barra);
+        vista.setTextColor(R.id.progreso_titulo, color(contexto, R.color.widget_texto));
+        vista.setTextColor(R.id.progreso_texto, color(contexto, R.color.widget_texto_tenue));
         vista.setTextViewText(R.id.progreso_texto, hechas + "/" + total + " (" + porcentaje + "%)");
         boolean semana = idSemana != AppWidgetManager.INVALID_APPWIDGET_ID;
         vista.setTextViewText(R.id.progreso_titulo, !semana || diaEsHoy ? "Tareas hoy" : "Tareas del día");
@@ -230,6 +238,8 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setTextViewText(R.id.fila_importancia, dificultad);
         vista.setTextColor(R.id.fila_importancia, colorNivel(contexto, f.dificultad));
         vista.setViewVisibility(R.id.fila_importancia, dificultad.isEmpty() ? View.GONE : View.VISIBLE);
+        TemaWidget.tenirFondo(vista, R.id.fila_importancia, color(contexto, R.color.widget_barra_fondo));
+        TemaWidget.tenirFondo(vista, R.id.fila_etiqueta, color(contexto, R.color.widget_barra_fondo));
 
         String detalle = f.atrasada ? (f.detalle.isEmpty() ? "Atrasada" : "Atrasada · " + f.detalle) : f.detalle;
         vista.setTextViewText(R.id.fila_detalle, detalle);
@@ -266,7 +276,11 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         switch (f.tipo) {
             case TIPO_EVENTO: return filaEvento(contexto, f);
             case TIPO_PROGRESO: return filaProgreso();
-            case TIPO_SECCION: return new RemoteViews(contexto.getPackageName(), R.layout.widget_seccion);
+            case TIPO_SECCION: {
+                RemoteViews seccion = new RemoteViews(contexto.getPackageName(), R.layout.widget_seccion);
+                seccion.setTextColor(R.id.seccion_titulo, color(contexto, R.color.widget_texto_tenue));
+                return seccion;
+            }
             default: return filaTarea(contexto, f);
         }
     }
