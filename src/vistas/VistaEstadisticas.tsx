@@ -1,7 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { useTienda } from "../datos/tienda";
 import {
   gruposDeEtiquetas,
@@ -20,8 +18,6 @@ import {
 export type TipoEstadistica = "tareas" | "habitos";
 
 const ATENUADO = 0.22;
-/** Cómo se llama cada tramo del gráfico según el período. */
-const NOMBRE_TRAMO: Record<Periodo, string> = { dia: "bloque de 2 h", semana: "día", mes: "día", anio: "mes" };
 const opacidad = (clave: string, elegido: string | null) => (elegido === null || elegido === clave ? 1 : ATENUADO);
 
 // ---------- Gráfico circular ----------
@@ -49,7 +45,7 @@ function Circular({ filas, total, elegido, alElegir, unidad }: { filas: FilaResu
   const fila = filas.find((f) => f.clave === elegido);
   return (
     <figure data-testid="grafico-circular" className="flex justify-center">
-      <svg viewBox={`0 0 ${tam} ${tam}`} className="h-44 w-44" role="img" aria-label={`Reparto por grupo: ${filas.map((f) => `${f.nombre} ${f.porcentaje}%`).join(", ")}`}>
+      <svg viewBox={`0 0 ${tam} ${tam}`} className="h-48 w-48" role="img" aria-label={`Reparto por grupo: ${filas.map((f) => `${f.nombre} ${f.porcentaje}%`).join(", ")}`}>
         {filas.map((f) => {
           const desde = angulo;
           angulo += (f.cantidad / total) * 360;
@@ -57,10 +53,11 @@ function Circular({ filas, total, elegido, alElegir, unidad }: { filas: FilaResu
             <path
               key={f.clave}
               data-clave={f.clave}
-              d={arco(c, c, 84, 58, desde, angulo)}
+              d={arco(c, c, 86, 62, desde, angulo)}
               fill={f.color}
               stroke="var(--panel)"
-              strokeWidth={2}
+              strokeWidth={3}
+              strokeLinejoin="round"
               opacity={opacidad(f.clave, elegido)}
               className="cursor-pointer transition-opacity"
               onClick={() => alElegir(f.clave)}
@@ -80,65 +77,38 @@ function Circular({ filas, total, elegido, alElegir, unidad }: { filas: FilaResu
   );
 }
 
-// ---------- Gráfico de áreas apiladas ----------
+// ---------- Barras apiladas en el tiempo ----------
 
-/** Curva suave que no se pasa de los puntos (monótona), para que las áreas no se crucen. */
-function curva(puntos: { x: number; y: number }[]): string {
-  const n = puntos.length;
-  if (n === 0) return "";
-  if (n === 1) return `L${puntos[0].x},${puntos[0].y}`;
-  const m: number[] = [];
-  const d: number[] = [];
-  for (let i = 0; i < n - 1; i++) d.push((puntos[i + 1].y - puntos[i].y) / (puntos[i + 1].x - puntos[i].x));
-  m.push(d[0]);
-  for (let i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
-  m.push(d[n - 2]);
-  for (let i = 0; i < n - 1; i++) {
-    if (d[i] === 0) {
-      m[i] = 0;
-      m[i + 1] = 0;
-      continue;
-    }
-    const a = m[i] / d[i];
-    const b = m[i + 1] / d[i];
-    const s = a * a + b * b;
-    if (s > 9) {
-      const t = 3 / Math.sqrt(s);
-      m[i] = t * a * d[i];
-      m[i + 1] = t * b * d[i];
-    }
-  }
-  let camino = "";
-  for (let i = 0; i < n - 1; i++) {
-    const h = (puntos[i + 1].x - puntos[i].x) / 3;
-    camino += ` C${puntos[i].x + h},${puntos[i].y + m[i] * h} ${puntos[i + 1].x - h},${puntos[i + 1].y - m[i + 1] * h} ${puntos[i + 1].x},${puntos[i + 1].y}`;
-  }
-  return camino;
+/** Rectángulo con las dos esquinas de arriba redondeadas (las de abajo quedan rectas, apoyadas en la base). */
+function barraRedondeada(x: number, y: number, ancho: number, alto: number, radio: number): string {
+  const r = Math.min(radio, ancho / 2, alto);
+  return `M${x},${y + alto} V${y + r} Q${x},${y} ${x + r},${y} H${x + ancho - r} Q${x + ancho},${y} ${x + ancho},${y + r} V${y + alto} Z`;
 }
 
 function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: string | null; alElegir: (c: string) => void }) {
   const [hover, setHover] = useState<number | null>(null);
-  // Lienzo angosto: en el celular los textos del eje se leen bien.
-  const ancho = 360;
-  const alto = 190;
-  const margen = { izq: 22, der: 6, arr: 8, aba: 20 };
+  // El lienzo mide lo mismo que su recuadro: así las letras y las barras no se agrandan en pantallas anchas.
+  const caja = useRef<HTMLElement>(null);
+  const [ancho, setAncho] = useState(360);
+  useEffect(() => {
+    const el = caja.current;
+    if (!el) return;
+    const medir = () => setAncho(Math.max(240, Math.round(el.clientWidth)));
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const alto = 200;
+  const margen = { izq: 26, der: 6, arr: 10, aba: 22 };
   const { serie, filas } = resumen;
   const n = serie.length;
   const totales = serie.map((t) => filas.reduce((s, f) => s + (t.valores[f.clave] ?? 0), 0));
   const maximo = Math.max(1, ...totales);
-  const x = (i: number) => margen.izq + (n === 1 ? 0 : (i / (n - 1)) * (ancho - margen.izq - margen.der));
+  const paso = (ancho - margen.izq - margen.der) / n;
+  const anchoBarra = Math.max(4, Math.min(36, paso * 0.56));
+  const xCentro = (i: number) => margen.izq + paso * (i + 0.5);
   const y = (v: number) => alto - margen.aba - (v / maximo) * (alto - margen.arr - margen.aba);
-
-  // Apilar en el orden de la lista: el grupo más grande queda abajo.
-  const base = new Array(n).fill(0);
-  const capas = filas.map((f) => {
-    const abajo = [...base];
-    const arriba = serie.map((t, i) => (base[i] += t.valores[f.clave] ?? 0));
-    const sup = arriba.map((v, i) => ({ x: x(i), y: y(v) }));
-    const inf = abajo.map((v, i) => ({ x: x(i), y: y(v) })).reverse();
-    const d = `M${sup[0].x},${sup[0].y}${curva(sup)} L${inf[0].x},${inf[0].y}${curva(inf)} Z`;
-    return { fila: f, d };
-  });
 
   const cadaCuanto = Math.ceil(n / 7);
   const pasoY = maximo <= 4 ? 1 : Math.ceil(maximo / 4);
@@ -146,7 +116,7 @@ function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: stri
   for (let v = 0; v <= maximo; v += pasoY) marcasY.push(v);
 
   return (
-    <figure data-testid="grafico-areas" className="relative">
+    <figure ref={caja} data-testid="grafico-areas" className="relative">
       <svg
         viewBox={`0 0 ${ancho} ${alto}`}
         className="h-auto w-full"
@@ -156,45 +126,58 @@ function Areas({ resumen, elegido, alElegir }: { resumen: Resumen; elegido: stri
         onMouseMove={(e) => {
           const caja = e.currentTarget.getBoundingClientRect();
           const px = ((e.clientX - caja.left) / caja.width) * ancho;
-          const i = Math.round(((px - margen.izq) / (ancho - margen.izq - margen.der)) * (n - 1));
+          const i = Math.floor((px - margen.izq) / paso);
           setHover(Math.min(n - 1, Math.max(0, i)));
         }}
       >
         {marcasY.map((v) => (
           <g key={v}>
-            <line x1={margen.izq} x2={ancho - margen.der} y1={y(v)} y2={y(v)} stroke="var(--borde)" strokeWidth={1} />
-            <text x={margen.izq - 6} y={y(v) + 4} textAnchor="end" className="fill-tenue text-[10px] tabular-nums">
+            <line x1={margen.izq} x2={ancho - margen.der} y1={y(v)} y2={y(v)} stroke="var(--borde)" strokeWidth={1} strokeDasharray={v === 0 ? undefined : "2 4"} />
+            <text x={margen.izq - 6} y={y(v) + 3.5} textAnchor="end" className="fill-tenue text-[11px] tabular-nums">
               {v}
             </text>
           </g>
         ))}
-        {capas.map(({ fila, d }) => (
-          <path
-            key={fila.clave}
-            data-clave={fila.clave}
-            d={d}
-            fill={fila.color}
-            fillOpacity={0.85 * opacidad(fila.clave, elegido)}
-            stroke="var(--panel)"
-            strokeWidth={2}
-            className="cursor-pointer transition-[fill-opacity]"
-            onClick={() => alElegir(fila.clave)}
-          />
-        ))}
+        {hover !== null && <rect x={xCentro(hover) - paso / 2 + 1} y={margen.arr - 4} width={paso - 2} height={alto - margen.arr - margen.aba + 4} rx={6} fill="var(--suave)" pointerEvents="none" />}
+        {serie.map((t, i) => {
+          // Cada columna apila los grupos en el orden de la lista; solo el tramo de arriba lleva esquinas redondas.
+          let acumulado = 0;
+          const tramos = filas.filter((f) => (t.valores[f.clave] ?? 0) > 0);
+          return tramos.map((f, k) => {
+            const v = t.valores[f.clave] ?? 0;
+            const y0 = y(acumulado);
+            acumulado += v;
+            const y1 = y(acumulado);
+            const x = xCentro(i) - anchoBarra / 2;
+            // 2 px de separación entre tramos, del color del fondo.
+            const altoTramo = Math.max(1, y0 - y1 - (k > 0 ? 2 : 0));
+            const d = k === tramos.length - 1 ? barraRedondeada(x, y1, anchoBarra, altoTramo, 4) : `M${x},${y1} h${anchoBarra} v${altoTramo} h${-anchoBarra} Z`;
+            return (
+              <path
+                key={`${i}-${f.clave}`}
+                data-clave={f.clave}
+                d={d}
+                fill={f.color}
+                fillOpacity={0.9 * opacidad(f.clave, elegido)}
+                className="cursor-pointer transition-[fill-opacity]"
+                onClick={() => alElegir(f.clave)}
+              />
+            );
+          });
+        })}
         {serie.map((t, i) =>
           i % cadaCuanto === 0 || i === n - 1 ? (
-            <text key={i} x={x(i)} y={alto - 6} textAnchor={i === 0 ? "start" : i === n - 1 ? "end" : "middle"} className="fill-tenue text-[10px]">
+            <text key={i} x={xCentro(i)} y={alto - 6} textAnchor="middle" className="fill-tenue text-[11px]">
               {t.etiqueta}
             </text>
           ) : null,
         )}
-        {hover !== null && <line x1={x(hover)} x2={x(hover)} y1={margen.arr} y2={alto - margen.aba} stroke="var(--tenue)" strokeWidth={1} strokeDasharray="3 3" pointerEvents="none" />}
       </svg>
       {hover !== null && (
         <div
           role="tooltip"
-          className="pointer-events-none absolute top-1 z-10 min-w-[8rem] rounded-md border border-borde bg-panel px-2.5 py-1.5 text-xs shadow-md"
-          style={{ left: `${(x(hover) / ancho) * 100}%`, transform: x(hover) > ancho / 2 ? "translateX(calc(-100% - 8px))" : "translateX(8px)" }}
+          className="pointer-events-none absolute top-1 z-10 min-w-[8rem] rounded-lg border border-borde bg-panel px-2.5 py-1.5 text-xs shadow-md"
+          style={{ left: `${(xCentro(hover) / ancho) * 100}%`, transform: xCentro(hover) > ancho / 2 ? "translateX(calc(-100% - 12px))" : "translateX(12px)" }}
         >
           <p className="mb-0.5 font-semibold">{serie[hover].etiqueta}</p>
           {filas
@@ -236,42 +219,28 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   const alElegir = (clave: string) => setElegido((e) => (e === clave ? null : clave));
   const unidad = esTareas ? (resumen.total === 1 ? "completada" : "completadas") : resumen.total === 1 ? "día cumplido" : "días cumplidos";
 
-  // Cifras para las tarjetas de arriba.
-  const tramo = NOMBRE_TRAMO[periodo];
-  const totalesTramo = resumen.serie.map((t) => Object.values(t.valores).reduce((a, b) => a + b, 0));
-  const promedio = resumen.serie.length ? resumen.total / resumen.serie.length : 0;
-  const iMejor = totalesTramo.reduce((m, v, i) => (v > totalesTramo[m] ? i : m), 0);
-  const principal = resumen.filas[0];
-  const recientes = resumen.hechos.slice(0, 6);
-  const colorDe = new Map(resumen.filas.map((f) => [f.clave, f]));
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="mx-auto w-full max-w-5xl px-4 pt-4 pb-3 sm:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-          <div>
-            <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>
-            <p className="text-xs text-tenue">{esTareas ? "Cuánto avanzas y en qué ámbitos." : "Qué tan constante eres con cada hábito."}</p>
-          </div>
-          <div role="group" aria-label="Período" className="flex gap-0.5 rounded-lg bg-suave p-0.5">
-            {PERIODOS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                aria-pressed={periodo === p.id}
-                onClick={() => setPeriodo(p.id)}
-                className={`rounded-md px-3 py-1 text-xs ${periodo === p.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
-              >
-                {p.nombre}
-              </button>
-            ))}
-          </div>
+      <header className="px-4 pt-4 pb-2 sm:px-6">
+        <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>
+        <div role="group" aria-label="Período" className="mt-3 flex gap-0.5 rounded-lg bg-suave p-0.5">
+          {PERIODOS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              aria-pressed={periodo === p.id}
+              onClick={() => setPeriodo(p.id)}
+              className={`flex-1 rounded-md px-2 py-1 text-xs transition-colors ${periodo === p.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+            >
+              {p.nombre}
+            </button>
+          ))}
         </div>
-        <div className="mt-3 flex items-center gap-1">
+        <div className="mt-2 flex items-center justify-between">
           <button type="button" aria-label="Período anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => setReferencia((r) => moverPeriodo(periodo, r, -1))}>
             <ChevronLeft size={18} />
           </button>
-          <span data-testid="titulo-periodo" className="min-w-0 text-sm font-medium first-letter:uppercase">
+          <span data-testid="titulo-periodo" className="text-sm font-medium">
             {tituloPeriodo(periodo, referencia)}
           </span>
           <button type="button" aria-label="Período siguiente" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => setReferencia((r) => moverPeriodo(periodo, r, 1))}>
@@ -280,102 +249,45 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pb-8">
-        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
         {resumen.total === 0 ? (
-          <div className="mt-8 rounded-2xl border border-dashed border-borde bg-panel/60 px-6 py-12 text-center">
-            <p className="text-sm font-medium">{esTareas ? "No completaste tareas en este período." : "No hay días cumplidos en este período."}</p>
-            <p className="mt-1 text-xs text-tenue">Prueba con otro período o vuelve cuando marques algo como hecho.</p>
-          </div>
+          <p className="mt-8 rounded-2xl border border-dashed border-borde px-6 py-10 text-center text-sm text-tenue">{esTareas ? "No completaste tareas en este período." : "No hay días cumplidos en este período."}</p>
         ) : (
           <div className="space-y-4">
-            <div data-testid="cifras" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <Cifra titulo={esTareas ? "Completadas" : "Días cumplidos"} valor={String(resumen.total)} destacada />
-              <Cifra titulo={`Promedio por ${tramo}`} valor={promedio >= 10 ? String(Math.round(promedio)) : promedio.toFixed(1).replace(".", ",")} />
-              <Cifra titulo={`Mejor ${tramo}`} valor={String(totalesTramo[iMejor] ?? 0)} detalle={periodo === "mes" ? `Día ${resumen.serie[iMejor]?.etiqueta}` : periodo === "dia" ? `Desde las ${resumen.serie[iMejor]?.etiqueta}` : resumen.serie[iMejor]?.etiqueta} />
-              <Cifra titulo={esTareas ? "Ámbito principal" : "Hábito principal"} valor={`${principal.porcentaje}%`} detalle={principal.nombre} color={principal.color} />
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-              <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
-                <h2 className="text-sm font-semibold">{esTareas ? "Por etiqueta" : "Por hábito"}</h2>
-                <p className="text-xs text-tenue">{esTareas ? "Toca una etiqueta para resaltarla." : "Toca un hábito para resaltarlo."}</p>
-                <div className="mt-3">
-                  <Circular filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={unidad} />
-                </div>
-                <ul className="mt-3 space-y-0.5">
-                  {resumen.filas.map((f) => (
-                    <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
-                      <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className={`w-full rounded-lg px-2 py-1.5 text-left hover:bg-suave ${elegidoVisible === f.clave ? "bg-suave" : ""}`}>
-                        <span className="flex items-center gap-2 text-sm">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.color }} />
-                          <span className="min-w-0 flex-1 truncate">{f.nombre}</span>
-                          <span className="shrink-0 text-xs tabular-nums">
-                            <span className="font-medium">{f.cantidad}</span>
-                            <span className="text-tenue"> · {f.porcentaje}%</span>
-                          </span>
+            <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
+              <h2 className="text-sm font-semibold">{esTareas ? "Por etiqueta" : "Por hábito"}</h2>
+              <p className="text-xs text-tenue">{esTareas ? "Toca una etiqueta para filtrar la lista de tareas." : "Toca un hábito para filtrar la lista."}</p>
+              <ul className="mt-3 space-y-1">
+                {resumen.filas.map((f) => (
+                  <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
+                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className={`w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-suave ${elegidoVisible === f.clave ? "bg-suave" : ""}`}>
+                      <span className="flex items-center gap-2 text-sm">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.color }} />
+                        <span className="min-w-0 flex-1 truncate">{f.nombre}</span>
+                        <span className="shrink-0 text-xs text-tenue tabular-nums">
+                          {f.cantidad} • {f.porcentaje}%
                         </span>
-                        <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-suave">
-                          <span className="block h-full rounded-full" style={{ width: `${f.porcentaje}%`, background: f.color }} />
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <div className="space-y-4">
-                <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
-                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                    <h2 className="text-sm font-semibold">En el tiempo</h2>
-                    {resumen.filas.length > 1 && (
-                      <ul aria-label="Leyenda" className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-tenue">
-                        {resumen.filas.map((f) => (
-                          <li key={f.clave} className="flex items-center gap-1" style={{ opacity: opacidad(f.clave, elegidoVisible) }}>
-                            <span className="h-2 w-2 rounded-full" style={{ background: f.color }} />
-                            {f.nombre}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  <Areas resumen={resumen} elegido={elegidoVisible} alElegir={alElegir} />
-                </section>
-
-                <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
-                  <h2 className="mb-2 text-sm font-semibold">{esTareas ? "Últimas completadas" : "Últimos días cumplidos"}</h2>
-                  <ul className="divide-y divide-borde">
-                    {recientes.map((h) => (
-                      <li key={h.id} className="flex items-center gap-2.5 py-2 text-sm" style={{ opacity: opacidad(h.grupo, elegidoVisible) }}>
-                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: colorDe.get(h.grupo)?.color ?? "var(--tenue)" }} />
-                        <span className="min-w-0 flex-1 truncate">{h.titulo || "Sin título"}</span>
-                        <span className="shrink-0 text-xs text-tenue tabular-nums">{format(h.momento, esTareas ? "d MMM, HH:mm" : "d MMM", { locale: es })}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+                      </span>
+                      <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-suave">
+                        <span className="block h-full rounded-full" style={{ width: `${f.porcentaje}%`, background: f.color }} />
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4">
+                <Circular filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={unidad} />
               </div>
-            </div>
+            </section>
+
+            <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
+              <h2 className="mb-2 text-sm font-semibold">En el tiempo</h2>
+              <Areas resumen={resumen} elegido={elegidoVisible} alElegir={alElegir} />
+            </section>
+
           </div>
         )}
-        </div>
       </div>
-    </div>
-  );
-}
-
-/** Tarjeta con una cifra grande y su explicación. */
-function Cifra({ titulo, valor, detalle, color, destacada = false }: { titulo: string; valor: string; detalle?: string; color?: string; destacada?: boolean }) {
-  return (
-    <div className={`rounded-2xl border p-3.5 shadow-sm ${destacada ? "border-transparent bg-acento text-sobre-acento" : "border-borde bg-panel"}`}>
-      <p className={`text-[11px] font-medium uppercase tracking-wide ${destacada ? "opacity-80" : "text-tenue"}`}>{titulo}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{valor}</p>
-      {detalle && (
-        <p className={`mt-0.5 flex items-center gap-1.5 truncate text-xs ${destacada ? "opacity-80" : "text-tenue"}`}>
-          {color && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />}
-          <span className="truncate">{detalle}</span>
-        </p>
-      )}
     </div>
   );
 }
