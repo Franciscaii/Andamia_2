@@ -1,5 +1,7 @@
 package cl.andamia.app;
 
+import android.content.Intent;
+import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.res.ColorStateList;
@@ -167,5 +169,15 @@ final class TemaWidget {
         float radio = Math.min(p.esquinas * escala, Math.min(ancho, alto) / 2f);
         lienzo.drawRoundRect(new RectF(0, 0, ancho, alto), radio, radio, pintura);
         vista.setImageViewBitmap(R.id.fondo_widget, imagen);
+        // Tocar cualquier parte libre del widget abre Andamia.
+        vista.setOnClickPendingIntent(R.id.fondo_widget, abrirAndamia(c));
+    }
+
+    static PendingIntent abrirAndamia(Context c) {
+        Intent intent = new Intent(c, MainActivity.class);
+        intent.setAction(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        return PendingIntent.getActivity(c, 90, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 }

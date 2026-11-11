@@ -252,6 +252,13 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         return vista;
     }
 
+    /** Abre Andamia en el día que muestra el widget (o en Hoy). */
+    private Intent abrirDia() {
+        Intent abrir = new Intent();
+        abrir.setData(Uri.parse(semana && !fechaDia.isEmpty() ? "andamia://dia/" + fechaDia : "andamia://hoy"));
+        return abrir;
+    }
+
     private RemoteViews filaProgreso() {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_progreso);
         int porcentaje = total == 0 ? 0 : Math.round(hechas * 100f / total);
@@ -327,7 +334,11 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         Fila f = filas.get(posicion);
         switch (f.tipo) {
             case TIPO_EVENTO: return filaEvento(contexto, f);
-            case TIPO_ESPACIO: return new RemoteViews(contexto.getPackageName(), R.layout.widget_espacio);
+            case TIPO_ESPACIO: {
+                RemoteViews espacio = new RemoteViews(contexto.getPackageName(), R.layout.widget_espacio);
+                espacio.setOnClickFillInIntent(R.id.espacio_fila, abrirDia());
+                return espacio;
+            }
             case TIPO_PROGRESO: {
                 RemoteViews vista = filaProgreso();
                 enTarjeta(vista, R.id.progreso_fila, f);
@@ -337,11 +348,14 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                 RemoteViews seccion = new RemoteViews(contexto.getPackageName(), R.layout.widget_seccion);
                 seccion.setTextColor(R.id.seccion_titulo, color(contexto, semana ? R.color.widget_texto : R.color.widget_texto_tenue));
                 enTarjeta(seccion, R.id.seccion_titulo, f);
+                seccion.setOnClickFillInIntent(R.id.seccion_titulo, abrirDia());
                 return seccion;
             }
             default: {
                 RemoteViews vista = filaTarea(contexto, f);
                 enTarjeta(vista, R.id.fila_raiz, f);
+                // Los bordes de la fila (fuera de la casilla y del texto) abren el día en Andamia.
+                vista.setOnClickFillInIntent(R.id.fila_raiz, abrirDia());
                 return vista;
             }
         }
