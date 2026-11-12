@@ -17,8 +17,9 @@ interface PluginWidget {
   actualizar(opciones: { datos: string }): Promise<void>;
   pendientes(): Promise<{ ids: string[] }>;
   puedeAnclar(): Promise<{ puede: boolean }>;
-  listar(): Promise<{ widgets: { id: number; tipo: string; config: string }[] }>;
+  listar(): Promise<{ widgets: { id: number; tipo: string; config: string }[]; tipos?: Record<string, string> }>;
   configurar(opciones: { id: number; config: string }): Promise<void>;
+  configurarTipo(opciones: { tipo: string; config: string }): Promise<void>;
   anclar(opciones: { tipo: string }): Promise<{ pedido: boolean }>;
 }
 
@@ -268,6 +269,34 @@ export async function widgetsPuestos(): Promise<WidgetPuesto[]> {
     return widgets.map((w) => ({ id: w.id, tipo: w.tipo, config: leerConfig(w.config) }));
   } catch {
     return [];
+  }
+}
+
+/**
+ * Ajustes por tipo de widget (Semana, Calendario...) y cuántos hay puestos de cada uno.
+ * Si un tipo no tiene ajustes propios todavía, toma los del primero que esté puesto.
+ */
+export async function widgetsPorTipo(): Promise<Record<string, { puestos: number; config: ConfigWidget }>> {
+  try {
+    const { widgets, tipos = {} } = await widget.listar();
+    const resultado: Record<string, { puestos: number; config: ConfigWidget }> = {};
+    for (const [tipo, json] of Object.entries(tipos)) resultado[tipo] = { puestos: 0, config: leerConfig(json) };
+    for (const w of widgets) {
+      const actual = resultado[w.tipo] ?? { puestos: 0, config: leerConfig(w.config) };
+      resultado[w.tipo] = { ...actual, puestos: actual.puestos + 1 };
+    }
+    return resultado;
+  } catch {
+    return {};
+  }
+}
+
+/** Guarda tema, transparencia y esquinas de un tipo de widget y los aplica a todos los de ese tipo. */
+export async function configurarTipoWidget(tipo: string, c: ConfigWidget): Promise<void> {
+  try {
+    await widget.configurarTipo({ tipo, config: configParaAndroid(c) });
+  } catch {
+    // Sin el plugin (navegador): no hay widgets que cambiar.
   }
 }
 

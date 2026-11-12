@@ -82,6 +82,11 @@ final class TemaWidget {
         if (guardada != null) return guardada;
         Paleta p = defecto(c);
         String json = DatosWidget.leerConfig(c, idWidget);
+        if (json == null) {
+            // Recién puesto: usa los ajustes de su tipo, si se eligieron en el apartado Widgets.
+            String tipo = WidgetPlugin.tipoDe(c, idWidget);
+            if (tipo != null) json = DatosWidget.leerConfigTipo(c, tipo);
+        }
         if (json != null) {
             try {
                 JSONObject o = new JSONObject(json);

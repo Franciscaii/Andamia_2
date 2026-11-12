@@ -42,6 +42,15 @@ final class DatosWidget {
         return prefs(c).getString("config_" + idWidget, null);
     }
 
+    /** Ajustes de un tipo de widget (Semana, Calendario...): valen para todos los de ese tipo. */
+    static void guardarConfigTipo(Context c, String tipo, String json) {
+        prefs(c).edit().putString("config_tipo_" + tipo, json).apply();
+    }
+
+    static String leerConfigTipo(Context c, String tipo) {
+        return prefs(c).getString("config_tipo_" + tipo, null);
+    }
+
     /** Filtro del widget Semana: "tareas", "eventos" o "todos". */
     static void elegirFiltro(Context c, int idWidget, String filtro) {
         prefs(c).edit().putString("filtro_" + idWidget, filtro).apply();
