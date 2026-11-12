@@ -296,8 +296,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setTextViewText(R.id.fila_importancia, dificultad);
         vista.setTextColor(R.id.fila_importancia, colorNivel(contexto, f.dificultad));
         vista.setViewVisibility(R.id.fila_importancia, dificultad.isEmpty() ? View.GONE : View.VISIBLE);
-        TemaWidget.tenirFondo(vista, R.id.fila_importancia, color(contexto, R.color.widget_barra_fondo));
-        TemaWidget.tenirFondo(vista, R.id.fila_etiqueta, color(contexto, R.color.widget_barra_fondo));
+        TemaWidget.tenirFondo(vista, R.id.fila_importancia, colorNivel(contexto, f.dificultad));
 
         String detalle = f.atrasada ? (f.detalle.isEmpty() ? "Atrasada" : "Atrasada · " + f.detalle) : f.detalle;
         vista.setTextViewText(R.id.fila_detalle, detalle);
@@ -314,6 +313,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             // Color desconocido: se queda el gris.
         }
         vista.setTextColor(R.id.fila_etiqueta, colorEtiqueta);
+        TemaWidget.tenirFondo(vista, R.id.fila_etiqueta, colorEtiqueta);
 
         if (!f.hecha) {
             Intent marcar = new Intent();

@@ -3,7 +3,7 @@ import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, u
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
-import { addDays, format, isSameDay, parseISO } from "date-fns";
+import { addDays, addMonths, format, isSameDay, isSameMonth, parseISO, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, GripVertical, Plus } from "lucide-react";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
@@ -538,6 +538,64 @@ function BotonDia({ dia, activo, ahora, alElegir }: { dia: Date; activo: boolean
   );
 }
 
+/** Las 6 semanas (de lunes a domingo) que muestran el mes de ese día. */
+export function semanasDelMes(dia: Date): Date[][] {
+  const lunes = diasDeSemana(startOfMonth(dia))[0];
+  return Array.from({ length: 6 }, (_, s) => Array.from({ length: 7 }, (_, d) => addDays(lunes, s * 7 + d)));
+}
+
+/** Un día del mes desplegado (celular): número, círculo si está elegido y punto si tiene algo. */
+function DiaDelMes({ dia, activo, delMes, ahora, alElegir }: { dia: Date; activo: boolean; delMes: boolean; ahora: Date; alElegir: () => void }) {
+  const tareas = useTienda((s) => s.tareas);
+  const listas = useTienda((s) => s.listas);
+  const esHoy = isSameDay(dia, ahora);
+  const conAlgo = hayAlgoElDia(tareas, listas, dia, ahora);
+  return (
+    <button
+      type="button"
+      aria-pressed={activo}
+      aria-label={format(dia, "EEEE d 'de' MMMM", { locale: es })}
+      onClick={alElegir}
+      data-testid="dia-mes"
+      className="flex flex-col items-center gap-0.5 rounded-lg py-0.5"
+    >
+      <span
+        className={`flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums ${
+          activo ? "bg-acento font-semibold text-sobre-acento" : esHoy ? "border-2 border-acento font-semibold" : delMes ? "" : "text-tenue opacity-60"
+        }`}
+      >
+        {format(dia, "d")}
+      </span>
+      <span className={`h-1.5 w-1.5 rounded-full ${conAlgo ? "bg-acento" : "bg-transparent"}`} />
+    </button>
+  );
+}
+
+/**
+ * Reconoce un deslizamiento con el dedo que empieza en la zona: al soltar (aunque sea fuera de ella)
+ * entrega lo que se movió en horizontal y en vertical.
+ */
+function useDeslizar(alSoltar: (dx: number, dy: number) => void) {
+  const alSoltarRef = useRef(alSoltar);
+  alSoltarRef.current = alSoltar;
+  return {
+    onPointerDown: (e: EventoPuntero) => {
+      const desde = { x: e.clientX, y: e.clientY };
+      const fin = (ev: PointerEvent) => {
+        window.removeEventListener("pointerup", fin);
+        window.removeEventListener("pointercancel", cancelar);
+        alSoltarRef.current(ev.clientX - desde.x, ev.clientY - desde.y);
+      };
+      const cancelar = () => {
+        window.removeEventListener("pointerup", fin);
+        window.removeEventListener("pointercancel", cancelar);
+      };
+      window.addEventListener("pointerup", fin);
+      window.addEventListener("pointercancel", cancelar);
+    },
+  };
+}
+
 /** Columna de un día en la vista de 7 días; también recibe tareas soltadas. */
 function ColumnaDia({ dia, esHoy, ahora, estilo, refColumna, angosta = false, children }: { dia: Date; esHoy: boolean; ahora: Date; estilo: CSSProperties; refColumna: (el: HTMLElement | null) => void; angosta?: boolean; children: ReactNode }) {
   const { setNodeRef, isOver } = useZonaDia(dia);
@@ -732,19 +790,35 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
   const elegirDia = (d: Date) => setElegido(d);
+  // En el celular, arrastrar hacia abajo la tira de días despliega el mes completo.
+  const [mesAbierto, setMesAbierto] = useState(false);
+  const verMes = mesAbierto && !esEscritorio;
+  const moverMes = (meses: number) =>
+    setElegido((d) => {
+      const primero = startOfMonth(addMonths(d, meses));
+      return isSameMonth(primero, ahora) ? ahora : primero;
+    });
+  const mover = (n: number) => (verMes ? moverMes(n) : moverSemana(n));
+  const gestos = useDeslizar((dx, dy) => {
+    if (esEscritorio) return;
+    const ax = Math.abs(dx);
+    const ay = Math.abs(dy);
+    if (ay > 40 && ay > ax) setMesAbierto(dy > 0);
+    else if (ax > 50 && ax > ay) mover(dx < 0 ? 1 : -1);
+  });
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ArrastreSemana ahora={ahora}>
       <header data-widget-cabecera className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
         <div className="flex items-center gap-2">
           <div className="flex shrink-0 items-center">
-            <button type="button" aria-label="Semana anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => moverSemana(-1)}>
+            <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
             <h1 className="px-0.5 text-center text-lg font-semibold" title={format(elegido, "MMMM yyyy", { locale: es })}>
               {mes}
             </h1>
-            <button type="button" aria-label="Semana siguiente" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => moverSemana(1)}>
+            <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(1)}>
               <ChevronRight size={18} />
             </button>
           </div>
@@ -786,11 +860,43 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
 
         {alcance === "dia" && (
-        <div className="mt-2 grid grid-cols-7 gap-1" role="group" aria-label="Días de la semana">
-          {dias.map((d) => (
-            <BotonDia key={d.toISOString()} dia={d} activo={isSameDay(d, elegido)} ahora={ahora} alElegir={() => elegirDia(d)} />
-          ))}
-        </div>
+          <div {...gestos} data-testid="zona-dias" className={esEscritorio ? "" : "touch-none select-none"}>
+            {verMes ? (
+              <div className="mt-2" role="group" aria-label="Días del mes">
+                <div className="grid grid-cols-7 gap-1">
+                  {dias.map((d) => (
+                    <span key={d.toISOString()} className="text-center text-xs text-tenue">
+                      {nombreCortoDia(d)}
+                    </span>
+                  ))}
+                </div>
+                {semanasDelMes(elegido).map((semana) => (
+                  <div key={semana[0].toISOString()} className="grid grid-cols-7 gap-1">
+                    {semana.map((d) => (
+                      <DiaDelMes key={d.toISOString()} dia={d} activo={isSameDay(d, elegido)} delMes={isSameMonth(d, elegido)} ahora={ahora} alElegir={() => elegirDia(d)} />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-2 grid grid-cols-7 gap-1" role="group" aria-label="Días de la semana">
+                {dias.map((d) => (
+                  <BotonDia key={d.toISOString()} dia={d} activo={isSameDay(d, elegido)} ahora={ahora} alElegir={() => elegirDia(d)} />
+                ))}
+              </div>
+            )}
+            {!esEscritorio && (
+              <button
+                type="button"
+                aria-label={verMes ? "Ver solo la semana" : "Ver el mes completo"}
+                aria-expanded={verMes}
+                className="mx-auto flex h-4 w-16 items-center justify-center"
+                onClick={() => setMesAbierto(!verMes)}
+              >
+                <span className="h-1 w-8 rounded-full bg-borde" />
+              </button>
+            )}
+          </div>
         )}
       </header>
 
