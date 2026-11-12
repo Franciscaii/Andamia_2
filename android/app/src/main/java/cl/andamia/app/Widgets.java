@@ -24,7 +24,7 @@ final class Widgets {
         HoyWidget.redibujarTodos(contexto);
         WidgetSemana.redibujarTodos(contexto);
         redibujarLista(contexto, WidgetMatriz.class, "matriz");
-        redibujarImagen(contexto, WidgetCalendario.class, "calendario");
+        WidgetCalendario.redibujarTodos(contexto);
         redibujarImagen(contexto, WidgetEstadisticaTareas.class, "tareas");
         redibujarImagen(contexto, WidgetEstadisticaHabitos.class, "habitos");
     }
@@ -96,12 +96,22 @@ final class Widgets {
 
     /** Tamaño del widget en píxeles, acotado para no pasar el límite de memoria de los widgets. */
     private static int[] tamano(Context contexto, AppWidgetManager gestor, int idWidget) {
+        return tamano(contexto, gestor, idWidget, 0);
+    }
+
+    /** Igual, descontando arriba una franja de controles (dp) que no es parte de la imagen. */
+    static int[] tamano(Context contexto, AppWidgetManager gestor, int idWidget, int altoControlesDp) {
         float densidad = contexto.getResources().getDisplayMetrics().density;
         Bundle opciones = gestor.getAppWidgetOptions(idWidget);
         int anchoDp = opciones.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 250);
         int altoDp = opciones.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 250);
         if (anchoDp <= 0) anchoDp = 250;
         if (altoDp <= 0) altoDp = 250;
+        if (altoControlesDp > 0) {
+            // La imagen va dentro del relleno (12 dp a cada lado) y bajo los controles.
+            anchoDp = Math.max(40, anchoDp - 24);
+            altoDp = Math.max(40, altoDp - altoControlesDp);
+        }
         float escala = Math.min(densidad, 900f / Math.max(anchoDp, altoDp));
         return new int[] { Math.max(1, Math.round(anchoDp * escala)), Math.max(1, Math.round(altoDp * escala)), Math.round(escala * 100) };
     }
@@ -116,7 +126,7 @@ final class Widgets {
         String direccion;
         int codigo;
         if ("calendario".equals(tipo)) {
-            imagen = Dibujos.calendario(contexto, datos == null ? null : datos.optJSONObject("mes"), t[0], t[1], escala, acento);
+            imagen = Dibujos.calendario(contexto, datos == null ? null : datos.optJSONObject("mes"), t[0], t[1], escala, acento, "todos", true);
             direccion = "andamia://calendario";
             codigo = 40;
         } else {
