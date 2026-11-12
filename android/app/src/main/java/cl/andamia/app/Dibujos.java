@@ -82,9 +82,8 @@ final class Dibujos {
         boolean soloTareas = "tareas".equals(filtro);
         boolean soloEventos = "eventos".equals(filtro);
 
-        // Nombres de los días, en mayúsculas y grandes como el calendario del celular.
+        // Nombres de los días, en mayúsculas y grandes como el calendario del celular (sin domingo rojo).
         String[] dias = { "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM" };
-        int rojo = Color.rgb(229, 72, 77);
         float anchoCelda = (ancho - 2 * m) / 7f;
         JSONArray celdas = mes.optJSONArray("celdas");
         if (celdas == null || celdas.length() == 0) return imagen;
@@ -94,7 +93,6 @@ final class Dibujos {
         cabecera.setTextAlign(Paint.Align.CENTER);
         y += 8 * d + tamCabecera * 1.4f;
         for (int i = 0; i < 7; i++) {
-            cabecera.setColor(i == 6 ? rojo : conAlfa(colorTexto, 210));
             lienzo.drawText(dias[i], m + anchoCelda * (i + 0.5f), y, cabecera);
         }
         y += 7 * d;
@@ -141,7 +139,7 @@ final class Dibujos {
                 numero.setColor(Color.WHITE);
                 numero.setFakeBoldText(true);
             } else {
-                numero.setColor(conAlfa(col == 6 ? rojo : colorTexto, alfa));
+                numero.setColor(conAlfa(colorTexto, alfa));
                 numero.setFakeBoldText(false);
             }
             lienzo.drawText(String.valueOf(celda.optInt("dia")), cx, base, numero);

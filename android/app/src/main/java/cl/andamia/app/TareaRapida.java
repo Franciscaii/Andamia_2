@@ -77,14 +77,10 @@ final class TareaRapida {
         }
     }
 
-    /** Anota la nueva, la muestra en los widgets y avisa a la app si está abierta. */
-    static void guardar(Context c, String titulo, String fecha, boolean evento) {
-        JSONObject nueva = new JSONObject();
+    /** Anota la nueva (tarea, evento o hábito), la muestra en los widgets y avisa a la app si está abierta. */
+    static void guardar(Context c, JSONObject nueva) {
         try {
             nueva.put("id", PREFIJO + UUID.randomUUID());
-            nueva.put("titulo", titulo);
-            nueva.put("fecha", fecha);
-            nueva.put("evento", evento);
         } catch (Exception e) {
             return;
         }
@@ -132,8 +128,14 @@ final class TareaRapida {
 
     /** Pone una nueva en el día que le toca de Semana, de Hoy y de cada mes del Calendario. */
     private static void inyectar(JSONObject datos, JSONObject n) throws Exception {
+        // Los hábitos no salen en Semana ni en Calendario.
+        if ("habito".equals(n.optString("tipo"))) return;
         String fecha = n.optString("fecha");
         boolean evento = n.optBoolean("evento");
+        int prioridad = nivel(n.optString("prioridad"));
+        String color = n.optString("color");
+        String indole = n.optString("indole");
+        JSONObject etiqueta = etiqueta(datos, indole);
         String titulo = n.optString("titulo");
         String id = n.optString("id");
 
@@ -142,15 +144,15 @@ final class TareaRapida {
         fila.put("titulo", titulo);
         if (evento) {
             fila.put("hora", "");
-            fila.put("color", "");
+            fila.put("color", color);
         } else {
             fila.put("detalle", "");
             fila.put("atrasada", false);
             fila.put("hecha", false);
-            fila.put("prioridad", 0);
-            fila.put("dificultad", 0);
-            fila.put("etiqueta", "");
-            fila.put("colorEtiqueta", "");
+            fila.put("prioridad", prioridad);
+            fila.put("dificultad", nivel(n.optString("dificultad")));
+            fila.put("etiqueta", etiqueta == null ? indole : etiqueta.optString("nombre"));
+            fila.put("colorEtiqueta", etiqueta == null ? "" : etiqueta.optString("color"));
         }
 
         JSONArray dias = datos.optJSONArray("semanaDias");
@@ -162,13 +164,29 @@ final class TareaRapida {
 
         JSONObject entrada = new JSONObject();
         entrada.put("titulo", titulo);
-        entrada.put("color", "");
+        entrada.put("color", evento ? color : "");
         entrada.put("evento", evento);
         entrada.put("hecha", false);
-        entrada.put("nivel", 0);
+        entrada.put("nivel", evento ? 0 : prioridad);
         JSONArray meses = datos.optJSONArray("meses");
         for (int i = 0; meses != null && i < meses.length(); i++) agregarAlMes(meses.optJSONObject(i), fecha, entrada, evento);
         agregarAlMes(datos.optJSONObject("mes"), fecha, entrada, evento);
+    }
+
+    private static int nivel(String s) {
+        return "alta".equals(s) ? 3 : "media".equals(s) ? 2 : "baja".equals(s) ? 1 : 0;
+    }
+
+    /** Nombre visible y color de la índole elegida, de la lista que manda la app. */
+    private static JSONObject etiqueta(JSONObject datos, String clave) {
+        if (clave == null || clave.isEmpty()) return null;
+        JSONObject f = datos.optJSONObject("formulario");
+        JSONArray lista = f == null ? null : f.optJSONArray("indoles");
+        for (int i = 0; lista != null && i < lista.length(); i++) {
+            JSONObject e = lista.optJSONObject(i);
+            if (e != null && clave.equals(e.optString("clave"))) return e;
+        }
+        return null;
     }
 
     /** Eventos al final; tareas antes de las ya hechas, que van abajo. */
