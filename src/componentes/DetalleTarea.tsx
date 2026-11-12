@@ -228,7 +228,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
   const cerrar = () => irA(seccion);
   // En el celular es una ventana emergente centrada (como "Nueva tarea"); en el PC, un panel a la derecha.
   const clasePanel =
-    "flex flex-col bg-panel max-md:max-h-[90vh] max-md:w-full max-md:max-w-md max-md:overflow-hidden max-md:rounded-xl max-md:border max-md:border-borde max-md:bg-[var(--panel-solido)] max-md:shadow-xl md:w-96 md:shrink-0 md:border-l md:border-borde";
+    "flex flex-col bg-panel max-md:relative max-md:max-h-[90vh] max-md:w-full max-md:max-w-md max-md:overflow-hidden max-md:rounded-xl max-md:border max-md:border-borde max-md:bg-[var(--panel-solido)] max-md:shadow-xl md:w-96 md:shrink-0 md:border-l md:border-borde";
   // Función (no componente) para no volver a montar el formulario en cada tecla.
   const envolver = (children: ReactNode) => (
     <div
@@ -259,7 +259,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
 
   return envolver(
     <aside aria-label="Detalle de la tarea" className={clasePanel}>
-      <header className="flex items-center gap-2 border-b border-borde px-4 py-2.5">
+      <header className="flex items-center gap-2 px-4 py-2.5 max-md:absolute max-md:top-3 max-md:right-2 max-md:z-10 max-md:p-0 md:border-b md:border-borde">
         <button
           type="button"
           role="checkbox"
@@ -268,21 +268,21 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
           disabled={enPapelera}
           onClick={() => void completarTarea(tarea.id, !hecha)}
           style={{ borderColor: hecha ? COLOR_HECHA : COLOR_PRIORIDAD[tarea.prioridad], background: hecha ? COLOR_HECHA : undefined }}
-          className="flex h-5 w-5 items-center justify-center rounded border-2"
+          className="flex h-5 w-5 items-center justify-center rounded border-2 max-md:hidden"
         >
           {hecha && <Check size={13} strokeWidth={3} className="text-panel" />}
         </button>
-        <span className="text-xs text-tenue">{enPapelera ? "En la papelera" : hecha ? "Completada" : "Pendiente"}</span>
+        <span className="text-xs text-tenue max-md:hidden">{enPapelera ? "En la papelera" : hecha ? "Completada" : "Pendiente"}</span>
         <button type="button" aria-label="Cerrar detalle" className="ml-auto rounded p-1 text-tenue hover:bg-suave" onClick={cerrar}>
           <X size={18} />
         </button>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <fieldset disabled={enPapelera} className="min-w-0 space-y-5">
+        <fieldset disabled={enPapelera} className="min-w-0 space-y-5 max-md:space-y-4">
           <input
             aria-label="Título"
-            className="w-full bg-transparent text-lg font-semibold outline-none"
+            className="w-full bg-transparent text-lg font-semibold outline-none max-md:pr-8"
             placeholder="Sin título"
             value={tarea.titulo}
             onChange={(e) => actualizarTarea(tarea.id, { titulo: e.target.value })}
