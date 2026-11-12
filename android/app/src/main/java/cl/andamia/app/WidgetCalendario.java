@@ -29,7 +29,7 @@ public class WidgetCalendario extends AppWidgetProvider {
     private static final String[] FILTROS = { "tareas", "eventos", "todos" };
     private static final int[] BOTONES_FILTRO = { R.id.cal_f_tareas, R.id.cal_f_eventos, R.id.cal_f_todos };
     /** Alto aproximado de la fila de arriba (dp), para dibujar el mes con su proporción real. */
-    private static final int ALTO_CABECERA_DP = 62;
+    private static final int ALTO_CABECERA_DP = 66;
 
     @Override
     public void onUpdate(Context contexto, AppWidgetManager gestor, int[] ids) {
@@ -123,7 +123,7 @@ public class WidgetCalendario extends AppWidgetProvider {
         if (meses != null && meses.length() > 0) {
             int elegido = posicionElegida(contexto, idWidget, meses);
             mes = meses.optJSONObject(elegido);
-            vista.setTextViewText(R.id.cal_mes, mes == null ? "" : mes.optString("corto"));
+            vista.setTextViewText(R.id.cal_mes, mes == null ? "" : mes.optString("corto").toUpperCase(java.util.Locale.ROOT));
             vista.setViewVisibility(R.id.cal_atras, elegido > 0 ? View.VISIBLE : View.INVISIBLE);
             vista.setViewVisibility(R.id.cal_adelante, elegido < meses.length() - 1 ? View.VISIBLE : View.INVISIBLE);
             if (elegido > 0) vista.setOnClickPendingIntent(R.id.cal_atras, accion(contexto, idWidget, "mes", String.valueOf(elegido - 1), 20));

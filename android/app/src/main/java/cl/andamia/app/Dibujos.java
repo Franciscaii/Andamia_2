@@ -82,64 +82,76 @@ final class Dibujos {
         boolean soloTareas = "tareas".equals(filtro);
         boolean soloEventos = "eventos".equals(filtro);
 
-        // Nombres de los días.
-        String[] dias = { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" };
+        // Nombres de los días, en mayúsculas y grandes como el calendario del celular.
+        String[] dias = { "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM" };
+        int rojo = Color.rgb(229, 72, 77);
         float anchoCelda = (ancho - 2 * m) / 7f;
-        TextPaint cabecera = texto(colorTenue, 10.5f * d, false);
-        cabecera.setTextAlign(Paint.Align.CENTER);
-        y += 18 * d;
-        for (int i = 0; i < 7; i++) lienzo.drawText(dias[i], m + anchoCelda * (i + 0.5f), y, cabecera);
-        y += 6 * d;
-
         JSONArray celdas = mes.optJSONArray("celdas");
         if (celdas == null || celdas.length() == 0) return imagen;
         int filas = (celdas.length() + 6) / 7;
-        float altoCelda = (alto - y - Math.max(m, 2 * d)) / filas;
+        float tamCabecera = Math.min(13.5f * d, anchoCelda * 0.3f);
+        TextPaint cabecera = texto(conAlfa(colorTexto, 210), tamCabecera, false);
+        cabecera.setTextAlign(Paint.Align.CENTER);
+        y += 8 * d + tamCabecera * 1.4f;
+        for (int i = 0; i < 7; i++) {
+            cabecera.setColor(i == 6 ? rojo : conAlfa(colorTexto, 210));
+            lienzo.drawText(dias[i], m + anchoCelda * (i + 0.5f), y, cabecera);
+        }
+        y += 7 * d;
         Paint linea = new Paint(Paint.ANTI_ALIAS_FLAG);
         linea.setColor(colorLinea);
         linea.setStrokeWidth(Math.max(1, d));
+        lienzo.drawLine(m, y, ancho - m, y, linea);
+
+        float altoCelda = (alto - y - Math.max(m, 2 * d)) / filas;
         Paint relleno = new Paint(Paint.ANTI_ALIAS_FLAG);
         Paint borde = new Paint(Paint.ANTI_ALIAS_FLAG);
         borde.setStyle(Paint.Style.STROKE);
-        borde.setStrokeWidth(1.4f * d);
 
-        TextPaint numero = texto(colorTexto, 11 * d, false);
-        TextPaint entrada = texto(colorTexto, 9.5f * d, false);
-        TextPaint mas = texto(colorTenue, 9 * d, false);
-        float altoEntrada = 13 * d;
+        float tamNumero = Math.max(10 * d, Math.min(16.5f * d, Math.min(altoCelda * 0.26f, anchoCelda * 0.38f)));
+        TextPaint numero = texto(colorTexto, tamNumero, false);
+        numero.setTextAlign(Paint.Align.CENTER);
+        float tamEntrada = Math.max(8.5f * d, Math.min(12f * d, anchoCelda * 0.26f));
+        TextPaint entrada = texto(colorTexto, tamEntrada, false);
+        TextPaint mas = texto(colorTenue, tamEntrada * 0.9f, false);
+        float altoLinea = tamEntrada * 1.22f;
+        float arribaEntradas = tamNumero * 1.7f;
 
         for (int i = 0; i < celdas.length(); i++) {
             JSONObject celda = celdas.optJSONObject(i);
             if (celda == null) continue;
-            float x0 = m + anchoCelda * (i % 7);
+            int col = i % 7;
+            float x0 = m + anchoCelda * col;
             float y0 = y + altoCelda * (i / 7);
-            if (i % 7 == 0) lienzo.drawLine(m, y0, ancho - m, y0, linea);
-
-            // Número del día; hoy va en un círculo del color del tema.
+            if (col == 0 && i > 0) lienzo.drawLine(m, y0, ancho - m, y0, linea);
             boolean hoy = celda.optBoolean("hoy");
             boolean delMes = celda.optBoolean("delMes", true);
-            String n = String.valueOf(celda.optInt("dia"));
-            float cx = x0 + 9 * d;
-            float cy = y0 + 9 * d;
+            int alfa = delMes ? 255 : 110;
+
+            // Hoy: recuadro redondeado alrededor de toda la celda y el número resaltado.
+            float cx = x0 + anchoCelda / 2f;
+            float base = y0 + 4 * d + tamNumero;
             if (hoy) {
+                borde.setColor(conAlfa(colorTexto, 200));
+                borde.setStrokeWidth(1.5f * d);
+                lienzo.drawRoundRect(new RectF(x0 + 1.5f * d, y0 + 1.5f * d, x0 + anchoCelda - 1.5f * d, y0 + altoCelda - 1.5f * d), 7 * d, 7 * d, borde);
+                float lado = tamNumero * 1.45f;
                 relleno.setColor(acento);
-                lienzo.drawCircle(cx, cy, 8 * d, relleno);
+                lienzo.drawRoundRect(new RectF(cx - lado / 2f, base - tamNumero * 0.36f - lado / 2f, cx + lado / 2f, base - tamNumero * 0.36f + lado / 2f), 5 * d, 5 * d, relleno);
                 numero.setColor(Color.WHITE);
                 numero.setFakeBoldText(true);
             } else {
-                numero.setColor(delMes ? colorTexto : conAlfa(colorTenue, 140));
+                numero.setColor(conAlfa(col == 6 ? rojo : colorTexto, alfa));
                 numero.setFakeBoldText(false);
             }
-            numero.setTextAlign(Paint.Align.CENTER);
-            lienzo.drawText(n, cx, cy + 4 * d, numero);
+            lienzo.drawText(String.valueOf(celda.optInt("dia")), cx, base, numero);
 
-            // Entradas que caben; el resto como "+n".
+            // Entradas del filtro elegido (Tareas, Eventos o Todos).
             JSONArray todas = celda.optJSONArray("entradas");
             int total = celda.optInt("total", todas == null ? 0 : todas.length());
             int eventos = celda.optInt("eventos", 0);
             if (soloTareas) total -= eventos;
             if (soloEventos) total = eventos;
-            // Solo las del filtro elegido (Tareas, Eventos o Todos).
             JSONArray entradas = new JSONArray();
             for (int k = 0; todas != null && k < todas.length(); k++) {
                 JSONObject e = todas.optJSONObject(k);
@@ -149,39 +161,61 @@ final class Dibujos {
                 entradas.put(e);
             }
             if (total <= 0 || entradas.length() == 0) continue;
-            float libre = altoCelda - 20 * d;
-            int caben = (int) Math.floor(libre / altoEntrada);
-            if (caben < total) caben = Math.max(0, (int) Math.floor((libre - 10 * d) / altoEntrada));
+
+            // Cada entrada en un bloque con barra de color; dos líneas si caben todas así.
+            float libre = altoCelda - arribaEntradas - 2 * d;
+            float hueco = 2 * d;
+            int lineas = libre >= Math.min(total, entradas.length()) * (2 * altoLinea + hueco) ? 2 : 1;
+            float altoBloque = lineas * altoLinea + hueco;
+            int caben = (int) Math.floor(libre / altoBloque);
+            if (caben < total) {
+                lineas = 1;
+                altoBloque = altoLinea + hueco;
+                caben = (int) Math.floor(libre / altoBloque);
+                if (caben < total) caben = Math.max(0, (int) Math.floor((libre - altoLinea) / altoBloque));
+            }
             int mostradas = Math.min(caben, entradas.length());
-            float ey = y0 + 20 * d;
+            float ey = y0 + arribaEntradas;
+            float ix = x0 + 2 * d;
+            float fx = x0 + anchoCelda - 2 * d;
             for (int k = 0; k < mostradas; k++) {
                 JSONObject e = entradas.optJSONObject(k);
                 if (e == null) continue;
-                float ix = x0 + 2 * d;
-                float anchoTexto = anchoCelda - 4 * d;
-                if (e.optBoolean("evento")) {
-                    int ce = colorSeguro(e.optString("color"), colorEvento);
-                    relleno.setColor(conAlfa(ce, 60));
-                    lienzo.drawRoundRect(new RectF(ix, ey, x0 + anchoCelda - 2 * d, ey + altoEntrada - 2 * d), 3 * d, 3 * d, relleno);
-                    relleno.setColor(ce);
-                    lienzo.drawRect(ix, ey, ix + 2 * d, ey + altoEntrada - 2 * d, relleno);
-                    entrada.setStrikeThruText(false);
-                    entrada.setColor(colorTexto);
-                    escribir(lienzo, e.optString("titulo"), ix + 4 * d, ey + 8.5f * d, anchoTexto - 5 * d, entrada);
-                } else {
-                    boolean hecha = e.optBoolean("hecha");
-                    borde.setColor(hecha ? colorTenue : FabricaListaHoy.colorNivel(c, e.optInt("nivel")));
-                    float lado = 7 * d;
-                    lienzo.drawRect(ix + 0.5f * d, ey + 1.5f * d, ix + 0.5f * d + lado, ey + 1.5f * d + lado, borde);
-                    entrada.setStrikeThruText(hecha);
-                    entrada.setColor(hecha ? colorTenue : colorTexto);
-                    escribir(lienzo, e.optString("titulo"), ix + lado + 3 * d, ey + 8.5f * d, anchoTexto - lado - 3 * d, entrada);
+                boolean esEvento = e.optBoolean("evento");
+                boolean hecha = e.optBoolean("hecha");
+                int ce = esEvento ? colorSeguro(e.optString("color"), colorEvento) : FabricaListaHoy.colorNivel(c, e.optInt("nivel"));
+                if (hecha) ce = colorTenue;
+                float alto0 = lineas * altoLinea;
+                if (esEvento) {
+                    relleno.setColor(conAlfa(ce, delMes ? 70 : 35));
+                    lienzo.drawRoundRect(new RectF(ix, ey, fx, ey + alto0), 3 * d, 3 * d, relleno);
                 }
-                ey += altoEntrada;
+                relleno.setColor(conAlfa(ce, alfa));
+                lienzo.drawRoundRect(new RectF(ix, ey, ix + 2.5f * d, ey + alto0), 1.2f * d, 1.2f * d, relleno);
+                entrada.setStrikeThruText(hecha);
+                entrada.setColor(conAlfa(hecha ? colorTenue : colorTexto, alfa));
+                partido(lienzo, e.optString("titulo"), ix + 4.5f * d, ey, fx - ix - 5 * d, lineas, altoLinea, entrada);
+                ey += altoBloque;
             }
-            if (total > mostradas && libre >= 10 * d) lienzo.drawText("+" + (total - mostradas), x0 + 3 * d, ey + 7 * d, mas);
+            if (total > mostradas) {
+                mas.setColor(conAlfa(colorTenue, alfa));
+                lienzo.drawText("+" + (total - mostradas), ix + 2 * d, ey + tamEntrada * 0.95f, mas);
+            }
         }
         return imagen;
+    }
+
+    /** Escribe el texto cortado por letras en hasta "lineas" renglones, como el calendario del celular. */
+    private static void partido(Canvas lienzo, String s, float x, float y, float ancho, int lineas, float altoLinea, TextPaint p) {
+        if (ancho <= 0 || s == null) return;
+        int desde = 0;
+        for (int l = 0; l < lineas && desde < s.length(); l++) {
+            int n = p.breakText(s, desde, s.length(), true, ancho, null);
+            if (n <= 0) break;
+            lienzo.drawText(s, desde, desde + n, x, y + altoLinea * (l + 1) - altoLinea * 0.25f, p);
+            desde += n;
+            while (desde < s.length() && s.charAt(desde) == ' ') desde++;
+        }
     }
 
     // ---------- Estadísticas ----------
