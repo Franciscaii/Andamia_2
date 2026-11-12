@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as EventoTeclado, type PointerEvent as EventoPuntero, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
-import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
@@ -65,6 +65,8 @@ interface Arrastre {
   ref: (n: HTMLElement | null) => void;
   estilo: CSSProperties;
   asa: HTMLAttributes<HTMLButtonElement>;
+  /** En el celular: mantener presionada cualquier parte de la fila también la toma. */
+  fila?: HTMLAttributes<HTMLLIElement>;
   arrastrando: boolean;
 }
 
@@ -91,8 +93,9 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre, estrecha = false }: { 
     <li
       ref={arrastre?.ref}
       style={arrastre?.estilo}
+      {...arrastre?.fila}
       data-testid="fila-tarea"
-      className={`flex items-start gap-2.5 rounded-lg py-2 ${arrastre ? "pr-2 pl-0.5" : "px-2"} ${abierta ? "bg-acento-suave" : "hover:bg-suave"} ${arrastre?.arrastrando ? "relative z-10 bg-panel shadow-lg" : ""}`}
+      className={`flex items-start gap-2.5 rounded-lg py-2 ${arrastre ? "pr-2 pl-0.5 select-none [-webkit-touch-callout:none]" : "px-2"} ${abierta ? "bg-acento-suave" : "hover:bg-suave"} ${arrastre?.arrastrando ? "relative z-10 bg-panel shadow-lg" : ""}`}
     >
       {arrastre && (
         <button type="button" aria-label={`Mover ${tarea.titulo}`} title="Arrastra para subir o bajar" className="-mr-1.5 shrink-0 cursor-grab touch-none rounded p-0.5 leading-none text-tenue opacity-60 hover:opacity-100" {...arrastre.asa}>
@@ -144,13 +147,21 @@ const esZonaDia = (id: string) => id.startsWith(ZONA_DIA);
 
 function FilaOrdenableSemana({ tarea, abierta, hoy, estrecha, dia }: { tarea: Tarea; abierta: boolean; hoy: Date; estrecha: boolean; dia: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tarea.id, data: { dia } });
+  // El asa se toma al instante (ratón, teclado); con el dedo, también toda la fila tras mantenerla presionada.
+  const { onTouchStart, ...resto } = listeners ?? {};
   return (
     <FilaTareaSemana
       tarea={tarea}
       abierta={abierta}
       hoy={hoy}
       estrecha={estrecha}
-      arrastre={{ ref: setNodeRef, estilo: { transform: CSS.Translate.toString(transform), transition }, asa: { ...attributes, ...listeners }, arrastrando: isDragging }}
+      arrastre={{
+        ref: setNodeRef,
+        estilo: { transform: CSS.Translate.toString(transform), transition },
+        asa: { ...attributes, ...resto, onTouchStart: (e) => e.stopPropagation() },
+        fila: { onTouchStart: onTouchStart as HTMLAttributes<HTMLLIElement>["onTouchStart"] },
+        arrastrando: isDragging,
+      }}
     />
   );
 }
@@ -182,6 +193,8 @@ function ArrastreSemana({ ahora, children }: { ahora: Date; children: ReactNode 
   const [activa, setActiva] = useState<Tarea | null>(null);
   const sensores = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Con el dedo en cualquier parte de la fila: mantener presionado un momento (deslizar sin esperar desplaza la lista).
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const pendientesDe = (dia: string) => contenidoDelDia(tareas, listas, parseISO(dia), ahora).tareas.filter((t) => t.estado === "pendiente");
@@ -548,16 +561,18 @@ export function semanasDelMes(dia: Date): Date[][] {
 function DiaDelMes({ dia, activo, delMes, ahora, alElegir }: { dia: Date; activo: boolean; delMes: boolean; ahora: Date; alElegir: () => void }) {
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
+  const { setNodeRef, isOver } = useZonaDia(dia);
   const esHoy = isSameDay(dia, ahora);
   const conAlgo = hayAlgoElDia(tareas, listas, dia, ahora);
   return (
     <button
+      ref={setNodeRef}
       type="button"
       aria-pressed={activo}
       aria-label={format(dia, "EEEE d 'de' MMMM", { locale: es })}
       onClick={alElegir}
       data-testid="dia-mes"
-      className="flex flex-col items-center gap-0.5 rounded-lg py-0.5"
+      className={`flex flex-col items-center gap-0.5 rounded-lg py-0.5 ${isOver ? "bg-acento-suave ring-2 ring-acento" : ""}`}
     >
       <span
         className={`flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums ${

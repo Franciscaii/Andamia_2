@@ -1,6 +1,6 @@
 import { registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
-import { addDays, endOfMonth, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from "date-fns";
+import { addDays, addMonths, endOfMonth, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { useTienda } from "../datos/tienda";
 import type { Etiqueta, Habito, Lista, Prioridad, RegistroHabito, Tarea } from "../modelos/tipos";
@@ -118,10 +118,10 @@ export function filasDeMatriz(e: Estado, ahora: Date) {
   ]);
 }
 
-/** Widget "Calendario": el mes de hoy, de lunes a domingo, con lo que tiene cada día. */
-export function mesDelWidget(e: Estado, ahora: Date) {
-  const inicio = startOfWeek(startOfMonth(ahora), { weekStartsOn: 1 });
-  const fin = endOfMonth(ahora);
+/** Widget "Calendario": un mes (por defecto el de hoy), de lunes a domingo, con lo que tiene cada día. */
+export function mesDelWidget(e: Estado, ahora: Date, base: Date = ahora) {
+  const inicio = startOfWeek(startOfMonth(base), { weekStartsOn: 1 });
+  const fin = endOfMonth(base);
   const celdas = [];
   for (let dia = inicio; dia <= fin || celdas.length % 7 !== 0; dia = addDays(dia, 1)) {
     const c = contenidoDelDia(e.tareas, e.listas, dia, ahora);
@@ -129,10 +129,32 @@ export function mesDelWidget(e: Estado, ahora: Date) {
       ...c.eventos.map((t) => ({ titulo: t.titulo, color: t.colorEvento ?? "", evento: true, hecha: false, nivel: 0 })),
       ...c.tareas.map((t) => ({ titulo: t.titulo, color: "", evento: false, hecha: t.estado === "completada", nivel: NIVEL[t.prioridad] ?? 0 })),
     ];
-    celdas.push({ dia: dia.getDate(), delMes: isSameMonth(dia, ahora), hoy: isSameDay(dia, ahora), entradas: entradas.slice(0, MAX_POR_CELDA), total: entradas.length });
+    celdas.push({
+      dia: dia.getDate(),
+      delMes: isSameMonth(dia, base),
+      hoy: isSameDay(dia, ahora),
+      entradas: entradas.slice(0, MAX_POR_CELDA),
+      total: entradas.length,
+      eventos: c.eventos.length,
+    });
   }
-  const mes = format(ahora, "MMMM yyyy", { locale: es });
-  return { titulo: mes.charAt(0).toUpperCase() + mes.slice(1), celdas };
+  const mes = format(base, "MMMM yyyy", { locale: es });
+  const corto = format(base, "MMM", { locale: es }).replace(".", "");
+  return {
+    titulo: mes.charAt(0).toUpperCase() + mes.slice(1),
+    // Como en la app: "Nov", y el año solo si no es el actual.
+    corto: corto.charAt(0).toUpperCase() + corto.slice(1) + (base.getFullYear() !== ahora.getFullYear() ? ` ${base.getFullYear()}` : ""),
+    actual: isSameMonth(base, ahora),
+    celdas,
+  };
+}
+
+/** Meses que el widget Calendario puede mostrar con sus flechas: desde 2 antes hasta 6 después del actual. */
+export const MESES_ANTES_WIDGET = 2;
+export const MESES_DESPUES_WIDGET = 6;
+
+export function mesesDelWidget(e: Estado, ahora: Date) {
+  return Array.from({ length: MESES_ANTES_WIDGET + MESES_DESPUES_WIDGET + 1 }, (_, i) => mesDelWidget(e, ahora, addMonths(ahora, i - MESES_ANTES_WIDGET)));
 }
 
 function resumenParaWidget(r: Resumen, titulo: string, periodo: string) {
@@ -196,6 +218,7 @@ export function datosDeWidgets(e: Estado, ahora: Date = new Date()) {
     semanaDias: diasDeSemanaWidget(e, ahora),
     matriz: filasDeMatriz(e, ahora),
     mes: mesDelWidget(e, ahora),
+    meses: mesesDelWidget(e, ahora),
     estadisticas: estadisticasDelWidget(e, ahora),
   };
 }

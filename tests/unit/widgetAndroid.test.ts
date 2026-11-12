@@ -107,3 +107,16 @@ describe("tema y aspecto de los widgets de Android", () => {
     expect(JSON.parse(configParaAndroid({ temaId: "castillo", transparencia: 30, esquinas: 16 }))).toMatchObject({ transparencia: 30, esquinas: 16, tema: { fondo: "#2b1e16" } });
   });
 });
+
+describe("meses del widget Calendario", () => {
+  it("manda 9 meses (2 antes y 6 después), con el actual marcado", async () => {
+    const { mesesDelWidget } = await import("../../src/logica/widgetAndroid");
+    const meses = mesesDelWidget({ tareas: [], listas: [], etiquetas: [], habitos: [], marcas: [] } as never, new Date(2026, 10, 11));
+    expect(meses).toHaveLength(9);
+    expect(meses[2].actual).toBe(true);
+    expect(meses[2].corto).toBe("Nov");
+    expect(meses[3].corto).toBe("Dic");
+    expect(meses[4].corto).toBe("Ene 2027");
+    expect(meses.every((m) => m.celdas.length % 7 === 0)).toBe(true);
+  });
+});

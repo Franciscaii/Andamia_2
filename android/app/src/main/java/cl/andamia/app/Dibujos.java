@@ -4,8 +4,11 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.text.TextPaint;
 import android.text.TextUtils;
@@ -58,7 +61,7 @@ final class Dibujos {
 
     // ---------- Calendario ----------
 
-    static Bitmap calendario(Context c, JSONObject mes, int ancho, int alto, float d, int acento) {
+    static Bitmap calendario(Context c, JSONObject mes, int ancho, int alto, float d, int acento, String filtro, boolean conTitulo) {
         Bitmap imagen = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888);
         Canvas lienzo = new Canvas(imagen);
         int colorTexto = color(c, R.color.widget_texto);
@@ -72,8 +75,12 @@ final class Dibujos {
             mensaje(lienzo, "Abre Andamia para ver tu mes", ancho, alto, texto(colorTenue, 13 * d, false));
             return imagen;
         }
-        float y = m + 16 * d;
-        escribir(lienzo, mes.optString("titulo"), m, y, ancho - 2 * m, titulo);
+        // Con controles arriba (widget Calendario), el mes va sin márgenes y sin título propio.
+        if (!conTitulo) m = 0;
+        float y = conTitulo ? m + 16 * d : -8 * d;
+        if (conTitulo) escribir(lienzo, mes.optString("titulo"), m, y, ancho - 2 * m, titulo);
+        boolean soloTareas = "tareas".equals(filtro);
+        boolean soloEventos = "eventos".equals(filtro);
 
         // Nombres de los días.
         String[] dias = { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" };
@@ -87,7 +94,7 @@ final class Dibujos {
         JSONArray celdas = mes.optJSONArray("celdas");
         if (celdas == null || celdas.length() == 0) return imagen;
         int filas = (celdas.length() + 6) / 7;
-        float altoCelda = (alto - y - m) / filas;
+        float altoCelda = (alto - y - Math.max(m, 2 * d)) / filas;
         Paint linea = new Paint(Paint.ANTI_ALIAS_FLAG);
         linea.setColor(colorLinea);
         linea.setStrokeWidth(Math.max(1, d));
@@ -127,9 +134,21 @@ final class Dibujos {
             lienzo.drawText(n, cx, cy + 4 * d, numero);
 
             // Entradas que caben; el resto como "+n".
-            JSONArray entradas = celda.optJSONArray("entradas");
-            int total = celda.optInt("total", entradas == null ? 0 : entradas.length());
-            if (entradas == null || total == 0) continue;
+            JSONArray todas = celda.optJSONArray("entradas");
+            int total = celda.optInt("total", todas == null ? 0 : todas.length());
+            int eventos = celda.optInt("eventos", 0);
+            if (soloTareas) total -= eventos;
+            if (soloEventos) total = eventos;
+            // Solo las del filtro elegido (Tareas, Eventos o Todos).
+            JSONArray entradas = new JSONArray();
+            for (int k = 0; todas != null && k < todas.length(); k++) {
+                JSONObject e = todas.optJSONObject(k);
+                if (e == null) continue;
+                boolean esEvento = e.optBoolean("evento");
+                if ((soloTareas && esEvento) || (soloEventos && !esEvento)) continue;
+                entradas.put(e);
+            }
+            if (total <= 0 || entradas.length() == 0) continue;
             float libre = altoCelda - 20 * d;
             int caben = (int) Math.floor(libre / altoEntrada);
             if (caben < total) caben = Math.max(0, (int) Math.floor((libre - 10 * d) / altoEntrada));
@@ -246,39 +265,79 @@ final class Dibujos {
 
         if (!conBarras) return imagen;
 
-        // Barras apiladas por día de la semana.
+        // Ondas suaves superpuestas por día, como el gráfico "En el tiempo" de la app.
         float base = alto - m - 12 * d;
         float tope = base - altoBarras + 14 * d;
+        int dias = serie.length();
         int maximo = 1;
-        for (int i = 0; i < serie.length(); i++) {
+        int[] sumas = new int[n];
+        for (int i = 0; i < dias; i++) {
             JSONArray v = serie.optJSONObject(i).optJSONArray("valores");
-            int suma = 0;
-            for (int k = 0; v != null && k < v.length(); k++) suma += v.optInt(k);
-            maximo = Math.max(maximo, suma);
+            for (int k = 0; v != null && k < v.length() && k < n; k++) {
+                maximo = Math.max(maximo, v.optInt(k));
+                sumas[k] += v.optInt(k);
+            }
         }
         Paint lineaBase = new Paint();
         lineaBase.setColor(colorLinea);
         lineaBase.setStrokeWidth(Math.max(1, d));
         lienzo.drawLine(m, base, ancho - m, base, lineaBase);
-        float paso = (ancho - 2 * m) / serie.length();
-        float anchoBarra = Math.min(22 * d, paso * 0.6f);
-        TextPaint dia = texto(colorTenue, 9.5f * d, false);
-        dia.setTextAlign(Paint.Align.CENTER);
-        Paint barra = new Paint(Paint.ANTI_ALIAS_FLAG);
-        for (int i = 0; i < serie.length(); i++) {
-            JSONObject s = serie.optJSONObject(i);
-            float bx = m + paso * (i + 0.5f);
-            float by = base;
-            JSONArray v = s.optJSONArray("valores");
-            for (int k = 0; v != null && k < v.length() && k < n; k++) {
-                float h = (base - tope) * v.optInt(k) / maximo;
-                if (h <= 0) continue;
-                barra.setColor(colores[k]);
-                lienzo.drawRect(bx - anchoBarra / 2f, by - h, bx + anchoBarra / 2f, by, barra);
-                by -= h;
+        float paso = dias > 1 ? (ancho - 2 * m) / (dias - 1) : 0;
+        // Los grupos más grandes van detrás para que los chicos se vean.
+        Integer[] orden = new Integer[n];
+        for (int k = 0; k < n; k++) orden[k] = k;
+        java.util.Arrays.sort(orden, (a, b) -> sumas[b] - sumas[a]);
+        Paint area = new Paint(Paint.ANTI_ALIAS_FLAG);
+        area.setStyle(Paint.Style.FILL);
+        Paint trazo = new Paint(Paint.ANTI_ALIAS_FLAG);
+        trazo.setStyle(Paint.Style.STROKE);
+        trazo.setStrokeWidth(2 * d);
+        trazo.setStrokeJoin(Paint.Join.ROUND);
+        trazo.setStrokeCap(Paint.Cap.ROUND);
+        for (int o = 0; o < n; o++) {
+            int k = orden[o];
+            if (sumas[k] == 0) continue;
+            float[] xs = new float[dias];
+            float[] ys = new float[dias];
+            for (int i = 0; i < dias; i++) {
+                JSONArray v = serie.optJSONObject(i).optJSONArray("valores");
+                int valor = v == null ? 0 : v.optInt(k);
+                xs[i] = dias > 1 ? m + paso * i : ancho / 2f;
+                ys[i] = base - (base - tope) * valor / maximo;
             }
-            lienzo.drawText(s.optString("etiqueta"), bx, base + 11 * d, dia);
+            Path linea = curvaSuave(xs, ys);
+            Path relleno = new Path(linea);
+            relleno.lineTo(xs[dias - 1], base);
+            relleno.lineTo(xs[0], base);
+            relleno.close();
+            area.setShader(new LinearGradient(0, tope, 0, base, conAlfa(colores[k], 190), conAlfa(colores[k], 20), Shader.TileMode.CLAMP));
+            lienzo.drawPath(relleno, area);
+            trazo.setColor(colores[k]);
+            lienzo.drawPath(linea, trazo);
+        }
+        TextPaint dia = texto(colorTenue, 9.5f * d, false);
+        for (int i = 0; i < dias; i++) {
+            float bx = dias > 1 ? m + paso * i : ancho / 2f;
+            dia.setTextAlign(i == 0 && dias > 1 ? Paint.Align.LEFT : i == dias - 1 && dias > 1 ? Paint.Align.RIGHT : Paint.Align.CENTER);
+            lienzo.drawText(serie.optJSONObject(i).optString("etiqueta"), bx, base + 11 * d, dia);
         }
         return imagen;
+    }
+
+    /** Curva B-spline como curveBasis de d3, la misma que usa el gráfico de la app. */
+    private static Path curvaSuave(float[] xs, float[] ys) {
+        Path p = new Path();
+        int n = xs.length;
+        p.moveTo(xs[0], ys[0]);
+        if (n == 1) return p;
+        if (n == 2) { p.lineTo(xs[1], ys[1]); return p; }
+        p.lineTo((5 * xs[0] + xs[1]) / 6, (5 * ys[0] + ys[1]) / 6);
+        for (int i = 2; i <= n; i++) {
+            float x0 = xs[i - 2], y0 = ys[i - 2], x1 = xs[i - 1], y1 = ys[i - 1];
+            float x = i < n ? xs[i] : x1, y = i < n ? ys[i] : y1;
+            p.cubicTo((2 * x0 + x1) / 3, (2 * y0 + y1) / 3, (x0 + 2 * x1) / 3, (y0 + 2 * y1) / 3, (x0 + 4 * x1 + x) / 6, (y0 + 4 * y1 + y) / 6);
+        }
+        p.lineTo(xs[n - 1], ys[n - 1]);
+        return p;
     }
 }
