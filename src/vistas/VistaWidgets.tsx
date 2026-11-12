@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CalendarCheck, CalendarDays, CalendarRange, ChartArea, ChartPie, Grid2x2, Monitor, type LucideIcon } from "lucide-react";
+import { CalendarDays, CalendarRange, ChartArea, ChartPie, ChevronDown, Grid2x2, Monitor, type LucideIcon } from "lucide-react";
 import { puenteEscritorio, useWidgetsAbiertos } from "../logica/puenteEscritorio";
 import { WIDGETS, type TipoWidget } from "../logica/widgetEscritorio";
 import { esAppNativa } from "../logica/plataforma";
 import { MAX_TRANSPARENCIA } from "../logica/aspectoWidget";
 import { presetDe, TEMAS } from "../logica/temas";
-import { anclarWidget, configurarWidget, puedeAnclarWidget, temaParaWidget, widgetsPuestos, type ConfigWidget, type WidgetPuesto } from "../logica/widgetAndroid";
+import { anclarWidget, CONFIG_INICIAL, configurarTipoWidget, puedeAnclarWidget, widgetsPorTipo, type ConfigWidget } from "../logica/widgetAndroid";
 
 const DETALLE: Record<TipoWidget, { icono: LucideIcon; texto: string }> = {
   semana: { icono: CalendarRange, texto: "Los 7 días con sus eventos y tareas." },
@@ -16,83 +16,112 @@ const DETALLE: Record<TipoWidget, { icono: LucideIcon; texto: string }> = {
 };
 
 /** Widgets de la pantalla de inicio del celular, en el orden en que aparecen. */
-const WIDGETS_ANDROID: { tipo: string; nombre: string; texto: string; icono: LucideIcon }[] = [
-  { tipo: "semana", nombre: "Semana", texto: "La tira de 7 días y lo del día que elijas.", icono: CalendarRange },
-  { tipo: "hoy", nombre: "Hoy", texto: "Eventos, progreso y tareas de hoy.", icono: CalendarCheck },
-  { tipo: "calendario", nombre: "Calendario", texto: "El mes completo, con lo que tienes cada día.", icono: CalendarDays },
-  { tipo: "matriz", nombre: "Matriz", texto: "Los 4 cuadrantes de la Matriz de Eisenhower.", icono: Grid2x2 },
-  { tipo: "estadistica-tareas", nombre: "Estadística Tareas", texto: "Tareas completadas esta semana.", icono: ChartPie },
-  { tipo: "estadistica-habitos", nombre: "Estadística Hábitos", texto: "Hábitos cumplidos esta semana.", icono: ChartArea },
+const WIDGETS_ANDROID: { tipo: string; nombre: string; icono: LucideIcon }[] = [
+  { tipo: "semana", nombre: "Semana", icono: CalendarRange },
+  { tipo: "calendario", nombre: "Calendario", icono: CalendarDays },
+  { tipo: "estadistica-tareas", nombre: "Estadística Tareas", icono: ChartPie },
+  { tipo: "estadistica-habitos", nombre: "Estadística Hábitos", icono: ChartArea },
 ];
 
-/** Esquinas máximas en el celular (dp). */
+/** Esquinas máximas en el celular (dp); se muestran como porcentaje de este máximo. */
 const MAX_ESQUINAS_ANDROID = 40;
 
-function Deslizador({ etiqueta, valor, max, unidad, alCambiar }: { etiqueta: string; valor: number; max: number; unidad: string; alCambiar: (v: number) => void }) {
+function Deslizador({ etiqueta, valor, max, porcentaje, alCambiar }: { etiqueta: string; valor: number; max: number; porcentaje: number; alCambiar: (v: number) => void }) {
   return (
     <label className="block">
       <span className="flex justify-between text-sm">
         <span>{etiqueta}</span>
-        <span className="text-tenue tabular-nums">
-          {valor}
-          {unidad}
-        </span>
+        <span className="text-tenue tabular-nums">{porcentaje}%</span>
       </span>
       <input type="range" min={0} max={max} value={valor} aria-label={etiqueta} onChange={(e) => alCambiar(Number(e.target.value))} className="mt-2 w-full accent-[var(--acento)]" />
     </label>
   );
 }
 
-/** Un widget puesto en la pantalla de inicio, con su propio tema, transparencia y esquinas. */
-function AjustesDeWidget({ puesto, nombre }: { puesto: WidgetPuesto; nombre: string }) {
-  const [config, setConfig] = useState<ConfigWidget>(puesto.config);
+/** Una tarjeta por widget: Añadir/Quitar y, al desplegarla, su tema, transparencia y esquinas. */
+function TarjetaWidget({
+  w,
+  puestos,
+  configInicial,
+  puede,
+  alAnclar,
+  alQuitar,
+}: {
+  w: (typeof WIDGETS_ANDROID)[number];
+  puestos: number;
+  configInicial: ConfigWidget;
+  puede: boolean;
+  alAnclar: () => void;
+  alQuitar: () => void;
+}) {
+  const [abierta, setAbierta] = useState(false);
+  const [config, setConfig] = useState<ConfigWidget>(configInicial);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Si los ajustes llegan del celular después de abrir el apartado, se muestran.
+  useEffect(() => setConfig(configInicial), [configInicial]);
   const cambiar = (c: ConfigWidget) => {
     setConfig(c);
     // Se guarda al soltar el deslizador (un poco después del último cambio).
     if (temporizador.current) clearTimeout(temporizador.current);
-    temporizador.current = setTimeout(() => void configurarWidget(puesto.id, c), 250);
+    temporizador.current = setTimeout(() => void configurarTipoWidget(w.tipo, c), 250);
   };
-  const t = temaParaWidget(presetDe(config.temaId));
-  const opacidad = 1 - config.transparencia / 100;
+  const puesto = puestos > 0;
   return (
-    <li data-testid="widget-puesto" className="rounded-2xl border border-borde bg-panel p-4 shadow-sm">
-      <p className="text-sm font-semibold">{nombre}</p>
-      <div className="mt-3 rounded-xl bg-gradient-to-br from-slate-500 to-slate-800 p-4">
-        <div
-          data-testid="vista-previa-widget"
-          className="mx-auto max-w-56 px-4 py-3 shadow-lg"
-          style={{ borderRadius: config.esquinas, background: `color-mix(in srgb, ${t.fondo} ${Math.round(opacidad * 100)}%, transparent)`, color: t.texto }}
-        >
-          <p className="text-sm font-semibold">Tareas hoy</p>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: t.suave }}>
-            <div className="h-full w-1/3 rounded-full" style={{ background: t.acento }} />
-          </div>
-          <p className="mt-2 text-xs" style={{ color: t.tenue }}>
-            Así se verá este widget.
-          </p>
-        </div>
-      </div>
-      <p className="mt-4 text-sm">Tema</p>
-      <div role="radiogroup" aria-label={`Tema de ${nombre}`} className="mt-2 flex flex-wrap gap-2">
-        {TEMAS.map((tema) => (
-          <button
-            key={tema.id}
-            type="button"
-            role="radio"
-            aria-checked={config.temaId === tema.id}
-            onClick={() => cambiar({ ...config, temaId: tema.id })}
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${config.temaId === tema.id ? "border-acento bg-acento-suave font-medium" : "border-borde"}`}
-          >
-            <span className="h-3.5 w-3.5 rounded-full border border-black/10" style={{ background: `linear-gradient(135deg, ${tema.panel} 50%, ${tema.acento} 50%)` }} />
-            {tema.nombre}
+    <li data-testid="widget-celular" className="rounded-2xl border border-borde bg-panel shadow-sm">
+      <div className="flex items-center gap-3 p-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-acento">
+          <w.icono size={20} />
+        </span>
+        <p className="min-w-0 flex-1 text-sm font-semibold">{w.nombre}</p>
+        {puesto ? (
+          <button type="button" aria-label={`Quitar de la pantalla de inicio: ${w.nombre}`} className="shrink-0 rounded-full border border-borde px-3 py-1.5 text-xs font-medium hover:bg-suave" onClick={alQuitar}>
+            Quitar
           </button>
-        ))}
+        ) : (
+          puede && (
+            <button type="button" aria-label={`Añadir a la pantalla de inicio: ${w.nombre}`} className="shrink-0 rounded-full bg-acento px-3 py-1.5 text-xs font-medium text-sobre-acento hover:opacity-90" onClick={alAnclar}>
+              Añadir
+            </button>
+          )
+        )}
+        <button type="button" aria-expanded={abierta} aria-label={`Ajustes de ${w.nombre}`} className="shrink-0 rounded p-1 text-tenue hover:bg-suave" onClick={() => setAbierta(!abierta)}>
+          <ChevronDown size={18} className={`transition-transform ${abierta ? "rotate-180" : ""}`} />
+        </button>
       </div>
-      <div className="mt-4 space-y-4">
-        <Deslizador etiqueta="Transparencia" valor={config.transparencia} max={MAX_TRANSPARENCIA} unidad="%" alCambiar={(v) => cambiar({ ...config, transparencia: v })} />
-        <Deslizador etiqueta="Esquinas" valor={config.esquinas} max={MAX_ESQUINAS_ANDROID} unidad="" alCambiar={(v) => cambiar({ ...config, esquinas: v })} />
-      </div>
+      {abierta && (
+        <div className="mx-3 mb-3 space-y-4 rounded-xl border border-borde p-3">
+          <div>
+            <p className="text-sm">Tema</p>
+            <div role="radiogroup" aria-label={`Tema de ${w.nombre}`} className="mt-2 flex flex-wrap gap-2.5">
+              {TEMAS.map((tema) => {
+                const elegido = config.temaId === tema.id;
+                return (
+                  <button
+                    key={tema.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={elegido}
+                    aria-label={tema.nombre}
+                    title={tema.nombre}
+                    onClick={() => cambiar({ ...config, temaId: tema.id })}
+                    className={`h-8 w-8 rounded-full border border-black/10 ${elegido ? "ring-2 ring-acento ring-offset-2 ring-offset-[var(--panel)]" : ""}`}
+                    style={{ background: `linear-gradient(135deg, ${tema.panel} 50%, ${tema.acento} 50%)` }}
+                  />
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-tenue">{presetDe(config.temaId).nombre}</p>
+          </div>
+          <Deslizador etiqueta="Transparencia" valor={config.transparencia} max={MAX_TRANSPARENCIA} porcentaje={config.transparencia} alCambiar={(v) => cambiar({ ...config, transparencia: v })} />
+          <Deslizador
+            etiqueta="Esquinas"
+            valor={config.esquinas}
+            max={MAX_ESQUINAS_ANDROID}
+            porcentaje={Math.round((config.esquinas / MAX_ESQUINAS_ANDROID) * 100)}
+            alCambiar={(v) => cambiar({ ...config, esquinas: v })}
+          />
+        </div>
+      )}
     </li>
   );
 }
@@ -101,12 +130,12 @@ function AjustesDeWidget({ puesto, nombre }: { puesto: WidgetPuesto; nombre: str
 function WidgetsCelular() {
   const [puede, setPuede] = useState(true);
   const [aviso, setAviso] = useState("");
-  const [puestos, setPuestos] = useState<WidgetPuesto[] | null>(null);
-  const recargar = useCallback(() => void widgetsPuestos().then(setPuestos), []);
+  const [porTipo, setPorTipo] = useState<Record<string, { puestos: number; config: ConfigWidget }>>({});
+  const recargar = useCallback(() => void widgetsPorTipo().then(setPorTipo), []);
   useEffect(() => {
     void puedeAnclarWidget().then(setPuede);
     recargar();
-    // Al volver de la pantalla de inicio (después de poner un widget), se ve en la lista.
+    // Al volver de la pantalla de inicio (después de poner o quitar un widget), se actualiza.
     const alVolver = () => document.visibilityState === "visible" && recargar();
     document.addEventListener("visibilitychange", alVolver);
     window.addEventListener("focus", recargar);
@@ -120,48 +149,27 @@ function WidgetsCelular() {
     setAviso(pedido ? `Confirma en el aviso del celular para poner "${nombre}" en la pantalla de inicio.` : "Este celular no deja ponerlo desde aquí: mantén presionada la pantalla de inicio → Widgets → Andamia.");
     if (pedido) for (const ms of [2000, 5000, 10000]) setTimeout(recargar, ms);
   };
-  const nombreDe = (tipo: string) => WIDGETS_ANDROID.find((w) => w.tipo === tipo)?.nombre ?? tipo;
-  const numerados = (puestos ?? []).map((p, i, todos) => {
-    const iguales = todos.filter((o) => o.tipo === p.tipo);
-    return { p, nombre: iguales.length > 1 ? `${nombreDe(p.tipo)} ${iguales.indexOf(p) + 1}` : nombreDe(p.tipo), i };
-  });
+  // Android no deja que una app quite widgets: se explica cómo hacerlo.
+  const quitar = (nombre: string) => setAviso(`Para quitar "${nombre}": en la pantalla de inicio, mantén presionado el widget y toca "Quitar".`);
   return (
     <>
       <p className="mt-1 text-sm text-tenue">Ponlos en la pantalla de inicio. Cada widget tiene su propio tema, transparencia y esquinas.</p>
-
-      <h2 className="mt-6 text-sm font-semibold">Tus widgets</h2>
-      {puestos !== null && puestos.length === 0 ? (
-        <p className="mt-2 rounded-xl border border-dashed border-borde p-4 text-sm text-tenue">Todavía no tienes widgets en la pantalla de inicio. Añade uno de la lista de abajo.</p>
-      ) : (
-        <ul className="mt-2 space-y-3" aria-label="Widgets en la pantalla de inicio">
-          {numerados.map(({ p, nombre }) => (
-            <AjustesDeWidget key={p.id} puesto={p} nombre={nombre} />
-          ))}
-        </ul>
-      )}
-
-      <h2 className="mt-6 text-sm font-semibold">Añadir a la pantalla de inicio</h2>
       {aviso && (
-        <p role="status" className="mt-2 rounded-lg bg-acento-suave px-3 py-2 text-sm">
+        <p role="status" className="mt-4 rounded-lg bg-acento-suave px-3 py-2 text-sm">
           {aviso}
         </p>
       )}
-      <ul className="mt-2 grid gap-3" aria-label="Widgets disponibles">
+      <ul className="mt-4 space-y-3" aria-label="Widgets del celular">
         {WIDGETS_ANDROID.map((w) => (
-          <li key={w.tipo} data-testid="widget-celular" className="flex items-center gap-3 rounded-xl border border-borde bg-panel p-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-acento">
-              <w.icono size={20} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">{w.nombre}</p>
-              <p className="text-xs text-tenue">{w.texto}</p>
-            </div>
-            {puede && (
-              <button type="button" aria-label={`Añadir a la pantalla de inicio: ${w.nombre}`} className="shrink-0 rounded-md bg-acento px-3 py-1.5 text-xs font-medium text-sobre-acento hover:opacity-90" onClick={() => void anclar(w.tipo, w.nombre)}>
-                Añadir
-              </button>
-            )}
-          </li>
+          <TarjetaWidget
+            key={w.tipo}
+            w={w}
+            puestos={porTipo[w.tipo]?.puestos ?? 0}
+            configInicial={porTipo[w.tipo]?.config ?? CONFIG_INICIAL}
+            puede={puede}
+            alAnclar={() => void anclar(w.tipo, w.nombre)}
+            alQuitar={() => quitar(w.nombre)}
+          />
         ))}
       </ul>
       {!puede && <p className="mt-3 text-xs text-tenue">Para ponerlos: mantén presionada la pantalla de inicio → Widgets → Andamia.</p>}

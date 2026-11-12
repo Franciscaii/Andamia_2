@@ -1,6 +1,7 @@
 package cl.andamia.app;
 
 import android.appwidget.AppWidgetManager;
+import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Build;
@@ -71,8 +72,14 @@ public class WidgetPlugin extends Plugin {
                 lista.put(w);
             }
         }
+        JSObject tipos = new JSObject();
+        for (String tipo : TIPOS) {
+            String config = DatosWidget.leerConfigTipo(contexto, tipo);
+            if (config != null) tipos.put(tipo, config);
+        }
         JSObject respuesta = new JSObject();
         respuesta.put("widgets", lista);
+        respuesta.put("tipos", tipos);
         call.resolve(respuesta);
     }
 
@@ -90,6 +97,40 @@ public class WidgetPlugin extends Plugin {
         TemaWidget.olvidar();
         Widgets.redibujarTodo(contexto);
         call.resolve();
+    }
+
+    /** Guarda los ajustes de un tipo de widget y los aplica a todos los de ese tipo ya puestos. */
+    @PluginMethod
+    public void configurarTipo(PluginCall call) {
+        String tipo = call.getString("tipo");
+        String config = call.getString("config");
+        Class<?> clase = claseDe(tipo);
+        if (clase == null || config == null) {
+            call.reject("Falta el tipo de widget o su configuración");
+            return;
+        }
+        Context contexto = getContext();
+        DatosWidget.guardarConfigTipo(contexto, tipo, config);
+        for (int id : AppWidgetManager.getInstance(contexto).getAppWidgetIds(new ComponentName(contexto, clase))) {
+            DatosWidget.guardarConfig(contexto, id, config);
+        }
+        TemaWidget.olvidar();
+        Widgets.redibujarTodo(contexto);
+        call.resolve();
+    }
+
+    private static Class<?> claseDe(String tipo) {
+        for (int i = 0; i < TIPOS.length; i++) if (TIPOS[i].equals(tipo)) return CLASES[i];
+        return null;
+    }
+
+    /** El tipo ("semana", "calendario"...) de un widget puesto, o null si no se sabe. */
+    static String tipoDe(Context contexto, int idWidget) {
+        AppWidgetProviderInfo info = AppWidgetManager.getInstance(contexto).getAppWidgetInfo(idWidget);
+        if (info == null || info.provider == null) return null;
+        String clase = info.provider.getClassName();
+        for (int i = 0; i < TIPOS.length; i++) if (CLASES[i].getName().equals(clase)) return TIPOS[i];
+        return null;
     }
 
     /** Pide al celular poner un widget en la pantalla de inicio (el celular muestra su propio aviso). */
