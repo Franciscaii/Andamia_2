@@ -69,6 +69,15 @@ final class DatosWidget {
         return prefs(c).getString("dia_" + idWidget, "");
     }
 
+    /** Etiqueta (o hábito) destacada en un widget de estadísticas; -1 si ninguna. */
+    static void elegirEtiqueta(Context c, int idWidget, int indice) {
+        prefs(c).edit().putInt("etiqueta_" + idWidget, indice).apply();
+    }
+
+    static int etiquetaElegida(Context c, int idWidget) {
+        return prefs(c).getInt("etiqueta_" + idWidget, -1);
+    }
+
     static synchronized void marcarCompletada(Context c, String id) {
         Set<String> ids = new HashSet<>(prefs(c).getStringSet(CLAVE_COMPLETADAS, new HashSet<>()));
         ids.add(id);

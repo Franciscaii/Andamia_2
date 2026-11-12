@@ -98,6 +98,10 @@ public class WidgetCalendario extends AppWidgetProvider {
     static void dibujar(Context contexto, AppWidgetManager gestor, int idWidget) {
         TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_calendario);
+        TemaWidget.letra(vista, R.id.cal_mes, 19);
+        TemaWidget.letra(vista, R.id.cal_f_tareas, 12);
+        TemaWidget.letra(vista, R.id.cal_f_eventos, 12);
+        TemaWidget.letra(vista, R.id.cal_f_todos, 12);
         int texto = FabricaListaHoy.color(contexto, R.color.widget_texto);
         int acento = FabricaListaHoy.color(contexto, R.color.widget_acento);
         int sobreAcento = FabricaListaHoy.color(contexto, R.color.widget_boton_texto);

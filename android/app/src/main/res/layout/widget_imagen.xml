@@ -19,4 +19,69 @@
         android:layout_height="match_parent"
         android:contentDescription="Abrir en Andamia"
         android:scaleType="fitXY" />
+
+    <!-- Estadísticas: zonas invisibles sobre cada fila de la leyenda, para destacar esa etiqueta al tocarla. -->
+    <FrameLayout
+        android:id="@+id/est_zona_0"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_gravity="top|start"
+        android:contentDescription="Destacar esta etiqueta"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/est_zona_1"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_gravity="top|start"
+        android:contentDescription="Destacar esta etiqueta"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/est_zona_2"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_gravity="top|start"
+        android:contentDescription="Destacar esta etiqueta"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/est_zona_3"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_gravity="top|start"
+        android:contentDescription="Destacar esta etiqueta"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/est_zona_4"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_gravity="top|start"
+        android:contentDescription="Destacar esta etiqueta"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/est_zona_5"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_gravity="top|start"
+        android:contentDescription="Destacar esta etiqueta"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/est_zona_6"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_gravity="top|start"
+        android:contentDescription="Destacar esta etiqueta"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/est_zona_7"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:layout_gravity="top|start"
+        android:contentDescription="Destacar esta etiqueta"
+        android:visibility="gone" />
 </FrameLayout>

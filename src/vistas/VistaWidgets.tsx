@@ -5,7 +5,7 @@ import { WIDGETS, type TipoWidget } from "../logica/widgetEscritorio";
 import { esAppNativa } from "../logica/plataforma";
 import { MAX_TRANSPARENCIA } from "../logica/aspectoWidget";
 import { presetDe, TEMAS } from "../logica/temas";
-import { anclarWidget, CONFIG_INICIAL, configurarTipoWidget, puedeAnclarWidget, widgetsPorTipo, type ConfigWidget } from "../logica/widgetAndroid";
+import { anclarWidget, CONFIG_INICIAL, LETRA_MAX, LETRA_MIN, configurarTipoWidget, puedeAnclarWidget, widgetsPorTipo, type ConfigWidget } from "../logica/widgetAndroid";
 
 const DETALLE: Record<TipoWidget, { icono: LucideIcon; texto: string }> = {
   semana: { icono: CalendarRange, texto: "Los 7 días con sus eventos y tareas." },
@@ -26,14 +26,14 @@ const WIDGETS_ANDROID: { tipo: string; nombre: string; icono: LucideIcon }[] = [
 /** Esquinas máximas en el celular (dp); se muestran como porcentaje de este máximo. */
 const MAX_ESQUINAS_ANDROID = 40;
 
-function Deslizador({ etiqueta, valor, max, porcentaje, alCambiar }: { etiqueta: string; valor: number; max: number; porcentaje: number; alCambiar: (v: number) => void }) {
+function Deslizador({ etiqueta, valor, min = 0, max, porcentaje, alCambiar }: { etiqueta: string; valor: number; min?: number; max: number; porcentaje: number; alCambiar: (v: number) => void }) {
   return (
     <label className="block">
       <span className="flex justify-between text-sm">
         <span>{etiqueta}</span>
         <span className="text-tenue tabular-nums">{porcentaje}%</span>
       </span>
-      <input type="range" min={0} max={max} value={valor} aria-label={etiqueta} onChange={(e) => alCambiar(Number(e.target.value))} className="mt-2 w-full accent-[var(--acento)]" />
+      <input type="range" min={min} max={max} step={min ? 5 : 1} value={valor} aria-label={etiqueta} onChange={(e) => alCambiar(Number(e.target.value))} className="mt-2 w-full accent-[var(--acento)]" />
     </label>
   );
 }
@@ -120,6 +120,7 @@ function TarjetaWidget({
             porcentaje={Math.round((config.esquinas / MAX_ESQUINAS_ANDROID) * 100)}
             alCambiar={(v) => cambiar({ ...config, esquinas: v })}
           />
+          <Deslizador etiqueta="Tamaño de letra" valor={config.letra} min={LETRA_MIN} max={LETRA_MAX} porcentaje={config.letra} alCambiar={(v) => cambiar({ ...config, letra: v })} />
         </div>
       )}
     </li>
@@ -153,7 +154,7 @@ function WidgetsCelular() {
   const quitar = (nombre: string) => setAviso(`Para quitar "${nombre}": en la pantalla de inicio, mantén presionado el widget y toca "Quitar".`);
   return (
     <>
-      <p className="mt-1 text-sm text-tenue">Ponlos en la pantalla de inicio. Cada widget tiene su propio tema, transparencia y esquinas.</p>
+      <p className="mt-1 text-sm text-tenue">Ponlos en la pantalla de inicio. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
       {aviso && (
         <p role="status" className="mt-4 rounded-lg bg-acento-suave px-3 py-2 text-sm">
           {aviso}

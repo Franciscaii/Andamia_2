@@ -104,7 +104,7 @@ describe("tema y aspecto de los widgets de Android", () => {
     const d = datosDeWidgets({ tareas: [], listas: [], etiquetas: [], habitos: [], registros: [] }, new Date(2026, 10, 11));
     expect(d.tema.fondo).toBe(presetDe("clasico").panel);
     const { configParaAndroid } = await import("../../src/logica/widgetAndroid");
-    expect(JSON.parse(configParaAndroid({ temaId: "castillo", transparencia: 30, esquinas: 16 }))).toMatchObject({ transparencia: 30, esquinas: 16, tema: { fondo: "#2b1e16" } });
+    expect(JSON.parse(configParaAndroid({ temaId: "castillo", transparencia: 30, esquinas: 16, letra: 120 }))).toMatchObject({ transparencia: 30, esquinas: 16, letra: 120, tema: { fondo: "#2b1e16" } });
   });
 });
 
@@ -157,5 +157,20 @@ describe("cuadro + del widget: tarea, evento o hábito", () => {
     expect(frecuenciaValida({ tipo: "dias", dias: [] })).toEqual({ tipo: "diaria" });
     expect(frecuenciaValida({ tipo: "semanal", veces: 12 })).toEqual({ tipo: "semanal", veces: 7 });
     expect(frecuenciaValida(null)).toEqual({ tipo: "diaria" });
+  });
+});
+
+describe("tamaño de letra y temas nuevos", () => {
+  it("lee la letra de cada widget, acotada, y 100% si no tiene", async () => {
+    const { leerConfig } = await import("../../src/logica/widgetAndroid");
+    expect(leerConfig('{"temaId":"rosa","transparencia":0,"esquinas":20,"letra":300}')).toMatchObject({ temaId: "rosa", letra: 150 });
+    expect(leerConfig('{"temaId":"clasico"}').letra).toBe(100);
+  });
+
+  it("trae los temas nuevos para la app y los widgets", async () => {
+    const { TEMAS } = await import("../../src/logica/temas");
+    const ids = TEMAS.map((t) => t.id);
+    for (const id of ["oceano", "rosa", "arena", "cielo", "grafito", "medianoche", "cereza"]) expect(ids).toContain(id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
