@@ -1,4 +1,4 @@
-import { registerPlugin } from "@capacitor/core";
+import { registerPlugin, type PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { addDays, addMonths, endOfMonth, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
@@ -16,6 +16,9 @@ import { contenidoDelDia, diasDeSemana, dificultadDe, nombreCortoDia, tituloDelD
 interface PluginWidget {
   actualizar(opciones: { datos: string }): Promise<void>;
   pendientes(): Promise<{ ids: string[] }>;
+  /** Tareas y eventos escritos en el "+" de los widgets, como JSON (ver TareaRapida.java). */
+  rapidas(): Promise<{ items: string }>;
+  addListener(evento: "rapida", alAvisar: () => void): Promise<PluginListenerHandle>;
   puedeAnclar(): Promise<{ puede: boolean }>;
   listar(): Promise<{ widgets: { id: number; tipo: string; config: string }[]; tipos?: Record<string, string> }>;
   configurar(opciones: { id: number; config: string }): Promise<void>;
@@ -130,6 +133,7 @@ export function mesDelWidget(e: Estado, ahora: Date, base: Date = ahora) {
       ...c.tareas.map((t) => ({ titulo: t.titulo, color: "", evento: false, hecha: t.estado === "completada", nivel: NIVEL[t.prioridad] ?? 0 })),
     ];
     celdas.push({
+      fecha: format(dia, "yyyy-MM-dd"),
       dia: dia.getDate(),
       delMes: isSameMonth(dia, base),
       hoy: isSameDay(dia, ahora),
@@ -340,12 +344,52 @@ export async function anclarWidget(tipo: string): Promise<boolean> {
   }
 }
 
-/** Completa en Andamia las tareas que se marcaron como hechas desde el widget. */
-async function aplicarMarcadasEnWidget(): Promise<void> {
+/** Lo que se escribió en el "+" de un widget sin abrir la app (cola de TareaRapida.java). */
+export interface NuevaDesdeWidget {
+  id: string;
+  titulo: string;
+  fecha: string;
+  evento: boolean;
+}
+
+/** Lee la cola que manda el widget; descarta lo que no tenga forma de tarea. */
+export function leerRapidas(json: string): NuevaDesdeWidget[] {
+  try {
+    const lista: unknown = JSON.parse(json);
+    if (!Array.isArray(lista)) return [];
+    return lista.filter(
+      (n): n is NuevaDesdeWidget =>
+        typeof n === "object" && n !== null && typeof n.titulo === "string" && n.titulo.trim() !== "" && typeof n.fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(n.fecha),
+    );
+  } catch {
+    return [];
+  }
+}
+
+let aplicando: Promise<void> | null = null;
+
+/** Crea lo escrito en los widgets y completa lo que se marcó como hecho ahí. */
+function aplicarMarcadasEnWidget(): Promise<void> {
+  // Una sola pasada a la vez: el aviso del widget y el "resume" pueden llegar juntos.
+  aplicando ??= aplicarAhora().finally(() => {
+    aplicando = null;
+  });
+  return aplicando;
+}
+
+async function aplicarAhora(): Promise<void> {
   const estado = useTienda.getState();
   if (estado.cargando) return;
+  // Las de la cola se muestran en el widget con un id provisorio; se anota el real.
+  const real = new Map<string, string>();
+  const { items } = await widget.rapidas();
+  for (const n of leerRapidas(items)) {
+    const tarea = await useTienda.getState().crearTarea({ titulo: n.titulo, esEvento: Boolean(n.evento), vence: n.fecha, todoElDia: true });
+    if (tarea && n.id) real.set(n.id, tarea.id);
+  }
   const { ids } = await widget.pendientes();
-  for (const id of ids) {
+  for (const marcado of ids) {
+    const id = real.get(marcado) ?? marcado;
     const tarea = useTienda.getState().tareas.find((t) => t.id === id);
     if (tarea && tarea.estado === "pendiente" && tarea.eliminadaEn === null) {
       await useTienda.getState().completarTarea(id, true);
@@ -414,6 +458,8 @@ export async function iniciarWidgetAndroid(): Promise<void> {
       programarEnvio();
   });
   await App.addListener("appUrlOpen", ({ url }) => abrirEnlace(url));
+  // Con la app viva, lo escrito en el "+" de un widget se crea al instante.
+  await widget.addListener("rapida", () => void aplicarMarcadasEnWidget());
   await App.addListener("resume", () => {
     void aplicarMarcadasEnWidget();
     // Al volver otro día, "Hoy" cambia aunque no cambien las tareas.

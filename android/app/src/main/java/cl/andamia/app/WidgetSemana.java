@@ -224,7 +224,7 @@ public class WidgetSemana extends AppWidgetProvider {
 
         vista.setOnClickPendingIntent(R.id.semana_mes, Widgets.abrirApp(contexto, direccion, 21));
         vista.setOnClickPendingIntent(R.id.semana_vacio, Widgets.abrirApp(contexto, direccion, 21));
-        vista.setOnClickPendingIntent(R.id.semana_nueva, Widgets.abrirApp(contexto, "andamia://nueva", 2));
+        vista.setOnClickPendingIntent(R.id.semana_nueva, TareaRapida.abrir(contexto, idWidget, "semana"));
         vista.setTextColor(R.id.semana_nueva, sobreAcento);
         TemaWidget.tenirFondo(vista, R.id.semana_nueva, acento);
         vista.setTextColor(R.id.semana_vacio, tenue);
