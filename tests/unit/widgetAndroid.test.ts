@@ -120,3 +120,24 @@ describe("meses del widget Calendario", () => {
     expect(meses.every((m) => m.celdas.length % 7 === 0)).toBe(true);
   });
 });
+
+describe("tareas escritas en el + del widget", () => {
+  it("cada celda del mes lleva su fecha, para poner ahí lo nuevo", async () => {
+    const { mesDelWidget } = await import("../../src/logica/widgetAndroid");
+    const mes = mesDelWidget({ tareas: [], listas: [], etiquetas: [], habitos: [], registros: [] } as never, new Date(2026, 10, 11));
+    expect(mes.celdas[0].fecha).toBe("2026-10-26");
+    expect(mes.celdas.find((c) => c.dia === 11 && c.delMes)?.fecha).toBe("2026-11-11");
+  });
+
+  it("lee la cola del widget y descarta lo que no sirve", async () => {
+    const { leerRapidas } = await import("../../src/logica/widgetAndroid");
+    const json = JSON.stringify([
+      { id: "rapida-1", titulo: "Comprar pan", fecha: "2026-11-12", evento: false },
+      { id: "rapida-2", titulo: "Doctor", fecha: "2026-11-13", evento: true },
+      { id: "rapida-3", titulo: "   ", fecha: "2026-11-13", evento: false },
+      { id: "rapida-4", titulo: "Sin fecha", fecha: "mañana", evento: false },
+    ]);
+    expect(leerRapidas(json).map((n) => n.titulo)).toEqual(["Comprar pan", "Doctor"]);
+    expect(leerRapidas("no es json")).toEqual([]);
+  });
+});

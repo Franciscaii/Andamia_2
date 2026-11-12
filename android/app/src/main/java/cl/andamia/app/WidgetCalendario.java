@@ -67,7 +67,7 @@ public class WidgetCalendario extends AppWidgetProvider {
     }
 
     /** Posición del mes elegido en la lista que manda la app; si se eligió otro mes antes, vuelve al actual. */
-    private static int posicionElegida(Context contexto, int idWidget, JSONArray meses) {
+    static int posicionElegida(Context contexto, int idWidget, JSONArray meses) {
         int actual = 0;
         for (int i = 0; i < meses.length(); i++) {
             JSONObject m = meses.optJSONObject(i);
@@ -140,7 +140,7 @@ public class WidgetCalendario extends AppWidgetProvider {
         Bitmap imagen = Dibujos.calendario(contexto, mes, t[0], t[1], t[2] / 100f, acento, filtro, false);
         vista.setImageViewBitmap(R.id.cal_imagen, imagen);
         vista.setOnClickPendingIntent(R.id.cal_imagen, Widgets.abrirApp(contexto, "andamia://calendario", 40));
-        vista.setOnClickPendingIntent(R.id.cal_nueva, Widgets.abrirApp(contexto, "andamia://nueva", 2));
+        vista.setOnClickPendingIntent(R.id.cal_nueva, TareaRapida.abrir(contexto, idWidget, "calendario"));
         vista.setTextColor(R.id.cal_nueva, sobreAcento);
         TemaWidget.tenirFondo(vista, R.id.cal_nueva, acento);
         TemaWidget.fondo(contexto, gestor, idWidget, vista);

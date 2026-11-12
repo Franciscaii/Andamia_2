@@ -16,6 +16,27 @@ import java.util.Set;
 /** Puente entre la app (JavaScript) y el widget "Hoy" de la pantalla de inicio. */
 @CapacitorPlugin(name = "AndamiaWidget")
 public class WidgetPlugin extends Plugin {
+    /** La app abierta (o en segundo plano), para avisarle de lo escrito en un widget. */
+    private static volatile WidgetPlugin instancia;
+
+    @Override
+    public void load() {
+        instancia = this;
+    }
+
+    /** Si Andamia está viva, crea al tiro lo escrito en el "+" de un widget. */
+    static void avisarRapida() {
+        WidgetPlugin p = instancia;
+        if (p != null) p.notifyListeners("rapida", new JSObject());
+    }
+
+    /** Devuelve (y olvida) las tareas y eventos escritos desde los widgets, como JSON. */
+    @PluginMethod
+    public void rapidas(PluginCall call) {
+        JSObject respuesta = new JSObject();
+        respuesta.put("items", TareaRapida.tomar(getContext()));
+        call.resolve(respuesta);
+    }
 
     /** Guarda las tareas de hoy que mostrará el widget y lo redibuja. */
     @PluginMethod
@@ -26,7 +47,8 @@ public class WidgetPlugin extends Plugin {
             return;
         }
         Context contexto = getContext();
-        DatosWidget.guardarTareas(contexto, datos);
+        // Lo escrito en los widgets que la app aún no crea sigue a la vista.
+        DatosWidget.guardarTareas(contexto, TareaRapida.conPendientes(contexto, datos));
         try {
             // Tema y aspecto aparte, para leerlos rápido en cada dibujo.
             org.json.JSONObject todo = new org.json.JSONObject(datos);
