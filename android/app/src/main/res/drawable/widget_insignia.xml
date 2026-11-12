@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Insignia de dificultad, como en la app: fondo suave del color del nivel (se tiñe desde el código). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <corners android:radius="3dp" />
-    <solid android:color="@color/widget_barra_fondo" />
+    <corners android:radius="4dp" />
+    <solid android:color="#29FFFFFF" />
 </shape>
