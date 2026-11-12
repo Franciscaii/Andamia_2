@@ -233,6 +233,8 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
 
     static RemoteViews filaEvento(Context contexto, Fila f) {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_evento);
+        TemaWidget.letra(vista, R.id.evento_titulo, 14);
+        TemaWidget.letra(vista, R.id.evento_hora, 12);
         vista.setTextViewText(R.id.evento_titulo, f.titulo);
         vista.setTextViewText(R.id.evento_hora, f.detalle);
         vista.setViewVisibility(R.id.evento_hora, f.detalle.isEmpty() ? View.GONE : View.VISIBLE);
@@ -261,6 +263,8 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
 
     private RemoteViews filaProgreso() {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_progreso);
+        TemaWidget.letra(vista, R.id.progreso_titulo, 13);
+        TemaWidget.letra(vista, R.id.progreso_texto, 13);
         int porcentaje = total == 0 ? 0 : Math.round(hechas * 100f / total);
         vista.setProgressBar(R.id.progreso_barra, 100, porcentaje, false);
         TemaWidget.barra(contexto, vista, R.id.progreso_barra);
@@ -276,6 +280,10 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
 
     static RemoteViews filaTarea(Context contexto, Fila f) {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_fila);
+        TemaWidget.letra(vista, R.id.fila_titulo, 15);
+        TemaWidget.letra(vista, R.id.fila_importancia, 11);
+        TemaWidget.letra(vista, R.id.fila_detalle, 12);
+        TemaWidget.letra(vista, R.id.fila_etiqueta, 12);
 
         if (f.hecha) {
             SpannableString tachado = new SpannableString(f.titulo);
@@ -346,6 +354,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             }
             case TIPO_SECCION: {
                 RemoteViews seccion = new RemoteViews(contexto.getPackageName(), R.layout.widget_seccion);
+                TemaWidget.letra(seccion, R.id.seccion_titulo, 13);
                 seccion.setTextColor(R.id.seccion_titulo, color(contexto, semana ? R.color.widget_texto : R.color.widget_texto_tenue));
                 enTarjeta(seccion, R.id.seccion_titulo, f);
                 seccion.setOnClickFillInIntent(R.id.seccion_titulo, abrirDia());

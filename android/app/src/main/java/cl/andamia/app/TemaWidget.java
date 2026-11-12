@@ -32,6 +32,8 @@ final class TemaWidget {
         int transparencia = 0;
         /** Radio de las esquinas, en dp. */
         int esquinas = 20;
+        /** Tamaño de la letra, en porcentaje del normal (80 a 150). */
+        int letra = 100;
     }
 
     private static final Map<Integer, Paleta> porWidget = new HashMap<>();
@@ -97,6 +99,7 @@ final class TemaWidget {
                 leerColores(propia, o.optJSONObject("tema"));
                 propia.transparencia = Math.max(0, Math.min(90, o.optInt("transparencia", 0)));
                 propia.esquinas = Math.max(0, Math.min(48, o.optInt("esquinas", 20)));
+                propia.letra = Math.max(80, Math.min(150, o.optInt("letra", 100)));
                 p = propia;
             } catch (Exception e) {
                 // Configuración dañada: queda la de por defecto.
@@ -111,6 +114,17 @@ final class TemaWidget {
         Paleta p = paleta(c, idWidget);
         actual.set(p);
         return p;
+    }
+
+    /** Cuánto se agranda o achica la letra del widget que se está dibujando (1 = normal). */
+    static float letra() {
+        Paleta p = actual.get();
+        return p == null ? 1f : p.letra / 100f;
+    }
+
+    /** Pone el tamaño de letra elegido a un texto del widget (su tamaño normal en sp). */
+    static void letra(RemoteViews vista, int id, float sp) {
+        vista.setTextViewTextSize(id, android.util.TypedValue.COMPLEX_UNIT_SP, sp * letra());
     }
 
     /** El color del tema que reemplaza a ese recurso, o null si se usa el del recurso. */

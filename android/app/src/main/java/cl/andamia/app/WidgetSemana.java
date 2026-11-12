@@ -141,6 +141,17 @@ public class WidgetSemana extends AppWidgetProvider {
     static void dibujar(Context contexto, AppWidgetManager gestor, int idWidget) {
         TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_semana);
+        TemaWidget.letra(vista, R.id.semana_mes, 16);
+        TemaWidget.letra(vista, R.id.semana_f_tareas, 12);
+        TemaWidget.letra(vista, R.id.semana_f_eventos, 12);
+        TemaWidget.letra(vista, R.id.semana_f_todos, 12);
+        TemaWidget.letra(vista, R.id.semana_vacio, 14);
+        int[] nombres = { R.id.semana_nom_0, R.id.semana_nom_1, R.id.semana_nom_2, R.id.semana_nom_3, R.id.semana_nom_4, R.id.semana_nom_5, R.id.semana_nom_6 };
+        int[] numeros = { R.id.semana_num_0, R.id.semana_num_1, R.id.semana_num_2, R.id.semana_num_3, R.id.semana_num_4, R.id.semana_num_5, R.id.semana_num_6 };
+        for (int i = 0; i < 7; i++) {
+            TemaWidget.letra(vista, nombres[i], 12);
+            TemaWidget.letra(vista, numeros[i], 14);
+        }
         int texto = FabricaListaHoy.color(contexto, R.color.widget_texto);
         int tenue = FabricaListaHoy.color(contexto, R.color.widget_texto_tenue);
         int acento = FabricaListaHoy.color(contexto, R.color.widget_acento);

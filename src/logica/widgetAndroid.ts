@@ -268,9 +268,13 @@ export async function puedeAnclarWidget(): Promise<boolean> {
 /** Cómo se ve un widget puesto: su tema, transparencia y esquinas (cada uno el suyo). */
 export interface ConfigWidget extends AspectoWidget {
   temaId: string;
+  /** Tamaño de la letra, en porcentaje del normal. */
+  letra: number;
 }
 
-export const CONFIG_INICIAL: ConfigWidget = { temaId: TEMA_INICIAL, transparencia: 0, esquinas: 20 };
+export const LETRA_MIN = 80;
+export const LETRA_MAX = 150;
+export const CONFIG_INICIAL: ConfigWidget = { temaId: TEMA_INICIAL, transparencia: 0, esquinas: 20, letra: 100 };
 
 export interface WidgetPuesto {
   id: number;
@@ -278,7 +282,7 @@ export interface WidgetPuesto {
   config: ConfigWidget;
 }
 
-function leerConfig(json: string): ConfigWidget {
+export function leerConfig(json: string): ConfigWidget {
   try {
     const c = JSON.parse(json);
     if (c && typeof c === "object") {
@@ -286,6 +290,7 @@ function leerConfig(json: string): ConfigWidget {
         temaId: TEMAS.some((t) => t.id === c.temaId) ? c.temaId : CONFIG_INICIAL.temaId,
         transparencia: typeof c.transparencia === "number" ? c.transparencia : CONFIG_INICIAL.transparencia,
         esquinas: typeof c.esquinas === "number" ? c.esquinas : CONFIG_INICIAL.esquinas,
+        letra: typeof c.letra === "number" ? Math.min(LETRA_MAX, Math.max(LETRA_MIN, Math.round(c.letra))) : CONFIG_INICIAL.letra,
       };
     }
   } catch {

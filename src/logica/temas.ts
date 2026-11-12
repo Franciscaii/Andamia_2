@@ -37,6 +37,13 @@ export const TEMAS: Tema[] = [
   { ...BASE, id: "cristal", nombre: "Cristal", oscuro: false, lateral: "#000000", lateralTexto: "#ffffff", fondo: "#6a8fd8", fondo2: "#c98bd9", tipoFondo: "degradado", panel: "#ffffff", texto: "#111827", acento: "#4f46e5", opacidadLateral: 35, opacidadPaneles: 82, radio: 12 },
   { ...BASE, id: "menta", nombre: "Menta", oscuro: false, lateral: "#0f766e", lateralTexto: "#ffffff", fondo: "#ffffff", fondo2: "#e6f7f4", tipoFondo: "degradado", panel: "#ffffff", texto: "#134e4a", acento: "#0f766e", radio: 12 },
   { ...BASE, id: "lavanda", nombre: "Lavanda", oscuro: false, lateral: "#6d28d9", lateralTexto: "#ffffff", fondo: "#fcfaff", fondo2: "#f1eafd", tipoFondo: "solido", panel: "#ffffff", texto: "#3b1f73", acento: "#6d28d9", radio: 12 },
+  { ...BASE, id: "oceano", nombre: "Océano", oscuro: false, lateral: "#0e4f74", lateralTexto: "#ffffff", fondo: "#f1f8fc", fondo2: "#d9ecf7", tipoFondo: "degradado", panel: "#ffffff", texto: "#0f2f45", acento: "#0e7490", radio: 12 },
+  { ...BASE, id: "rosa", nombre: "Rosa", oscuro: false, lateral: "#c2185b", lateralTexto: "#ffffff", fondo: "#fff6fa", fondo2: "#fde3ee", tipoFondo: "degradado", panel: "#ffffff", texto: "#5a1734", acento: "#d63384", radio: 14 },
+  { ...BASE, id: "arena", nombre: "Arena", oscuro: false, lateral: "#8a5a2b", lateralTexto: "#fff8ee", fondo: "#faf6ef", fondo2: "#f1e6d4", tipoFondo: "degradado", panel: "#fffdf9", texto: "#3e2c1a", acento: "#b06a2c", radio: 10 },
+  { ...BASE, id: "cielo", nombre: "Cielo", oscuro: false, lateral: "#2563eb", lateralTexto: "#ffffff", fondo: "#bfe3ff", fondo2: "#f3d9ff", tipoFondo: "degradado", panel: "#ffffff", texto: "#1e293b", acento: "#2563eb", opacidadLateral: 85, opacidadPaneles: 88, radio: 14 },
+  { ...BASE, id: "grafito", nombre: "Grafito", oscuro: true, lateral: "#18181b", lateralTexto: "#fafafa", fondo: "#121214", fondo2: "#1c1c20", tipoFondo: "solido", panel: "#1f1f23", texto: "#ececf1", acento: "#fbbf24", radio: 10 },
+  { ...BASE, id: "medianoche", nombre: "Medianoche", oscuro: true, lateral: "#1e1036", lateralTexto: "#ede9fe", fondo: "#140b26", fondo2: "#2a1650", tipoFondo: "degradado", panel: "#22163b", texto: "#f3e8ff", acento: "#a78bfa", radio: 12 },
+  { ...BASE, id: "cereza", nombre: "Cereza", oscuro: true, lateral: "#3b0d16", lateralTexto: "#ffe4e6", fondo: "#1f0a10", fondo2: "#3d1220", tipoFondo: "degradado", panel: "#2a1018", texto: "#ffe4e6", acento: "#fb7185", radio: 12 },
   { ...BASE, id: "atardecer", nombre: "Atardecer", oscuro: false, lateral: "#be3a5a", lateralTexto: "#fff5ee", fondo: "#fff5ec", fondo2: "#ffdce5", tipoFondo: "degradado", panel: "#ffffff", texto: "#5c1f30", acento: "#be3a5a" },
 ];
 
