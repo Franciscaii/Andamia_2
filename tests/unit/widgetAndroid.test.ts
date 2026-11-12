@@ -141,3 +141,21 @@ describe("tareas escritas en el + del widget", () => {
     expect(leerRapidas("no es json")).toEqual([]);
   });
 });
+
+describe("cuadro + del widget: tarea, evento o hábito", () => {
+  it("manda las índoles con su nombre visible y color, y los colores de la app", async () => {
+    const { formularioDelWidget } = await import("../../src/logica/widgetAndroid");
+    const f = formularioDelWidget({ etiquetas: [{ nombre: "universidad", nombreVisible: "Universidad", color: "#14c9a0" }] as never });
+    expect(f.indoles).toEqual([{ clave: "universidad", nombre: "Universidad", color: "#14c9a0" }]);
+    expect(f.coloresHabito).toHaveLength(8);
+    expect(f.coloresEvento.length).toBeGreaterThan(8);
+  });
+
+  it("acepta solo frecuencias de hábito válidas", async () => {
+    const { frecuenciaValida } = await import("../../src/logica/widgetAndroid");
+    expect(frecuenciaValida({ tipo: "dias", dias: [4, 0, 9, 0] })).toEqual({ tipo: "dias", dias: [0, 4] });
+    expect(frecuenciaValida({ tipo: "dias", dias: [] })).toEqual({ tipo: "diaria" });
+    expect(frecuenciaValida({ tipo: "semanal", veces: 12 })).toEqual({ tipo: "semanal", veces: 7 });
+    expect(frecuenciaValida(null)).toEqual({ tipo: "diaria" });
+  });
+});

@@ -3,7 +3,7 @@ import { App } from "@capacitor/app";
 import { addDays, addMonths, endOfMonth, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { useTienda } from "../datos/tienda";
-import type { Etiqueta, Habito, Lista, Prioridad, RegistroHabito, Tarea } from "../modelos/tipos";
+import { COLORES_ETIQUETA, COLORES_LISTA, type Etiqueta, type FrecuenciaHabito, type Habito, type Lista, type Prioridad, type RegistroHabito, type Tarea } from "../modelos/tipos";
 import { gruposDeEtiquetas, gruposDeHabitos, hechosDeHabitos, hechosDeTareas, resumir, tituloPeriodo, type Resumen } from "./estadisticas";
 import { CUADRANTES, repartirEnCuadrantes } from "./matriz";
 import { leerEleccion, presetDe, TEMA_INICIAL, TEMAS, temaEfectivo, textoSobre, type Tema } from "./temas";
@@ -224,6 +224,16 @@ export function datosDeWidgets(e: Estado, ahora: Date = new Date()) {
     mes: mesDelWidget(e, ahora),
     meses: mesesDelWidget(e, ahora),
     estadisticas: estadisticasDelWidget(e, ahora),
+    formulario: formularioDelWidget(e),
+  };
+}
+
+/** Opciones del cuadro "+" de los widgets: las índoles (etiquetas) y los colores, como en la app. */
+export function formularioDelWidget(e: Pick<Estado, "etiquetas">) {
+  return {
+    indoles: e.etiquetas.map((t) => ({ clave: t.nombre, nombre: t.nombreVisible, color: t.color })),
+    coloresEvento: COLORES_ETIQUETA,
+    coloresHabito: COLORES_LISTA,
   };
 }
 
@@ -347,9 +357,62 @@ export async function anclarWidget(tipo: string): Promise<boolean> {
 /** Lo que se escribió en el "+" de un widget sin abrir la app (cola de TareaRapida.java). */
 export interface NuevaDesdeWidget {
   id: string;
+  /** Las de la 1.10 no traen tipo: se deduce de "evento". */
+  tipo?: "tarea" | "evento" | "habito";
   titulo: string;
   fecha: string;
   evento: boolean;
+  prioridad?: Prioridad;
+  dificultad?: Prioridad;
+  indole?: string;
+  color?: string;
+  icono?: string;
+  frecuencia?: FrecuenciaHabito;
+}
+
+const NIVELES_VALIDOS: Prioridad[] = ["alta", "media", "baja", "ninguna"];
+const nivelValido = (v: unknown): Prioridad => (NIVELES_VALIDOS.includes(v as Prioridad) ? (v as Prioridad) : "ninguna");
+
+/** Frecuencia de un hábito escrito en el widget; si viene rara, diaria. */
+export function frecuenciaValida(f: unknown): FrecuenciaHabito {
+  const o = f as { tipo?: unknown; dias?: unknown; veces?: unknown } | null;
+  if (o?.tipo === "dias" && Array.isArray(o.dias)) {
+    const dias = [...new Set(o.dias.filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6))].sort();
+    if (dias.length > 0) return { tipo: "dias", dias };
+  }
+  if (o?.tipo === "semanal" && typeof o.veces === "number") return { tipo: "semanal", veces: Math.min(7, Math.max(1, Math.round(o.veces))) };
+  return { tipo: "diaria" };
+}
+
+/** Crea en Andamia una tarea, un evento o un hábito escrito en el widget; devuelve el id de la tarea creada. */
+async function crearDesdeWidget(n: NuevaDesdeWidget): Promise<string | null> {
+  const tienda = useTienda.getState();
+  const tipo = n.tipo ?? (n.evento ? "evento" : "tarea");
+  if (tipo === "habito") {
+    await tienda.crearHabito({
+      nombre: n.titulo,
+      icono: typeof n.icono === "string" && n.icono ? n.icono : "estrella",
+      color: typeof n.color === "string" && /^#[0-9a-f]{6}$/i.test(n.color) ? n.color : COLORES_LISTA[4],
+      frecuencia: frecuenciaValida(n.frecuencia),
+      metaDiaria: 1,
+      unidad: "",
+      inicio: n.fecha,
+      recordatorioHora: null,
+    });
+    return null;
+  }
+  const esEvento = tipo === "evento";
+  const tarea = await tienda.crearTarea({
+    titulo: n.titulo,
+    esEvento,
+    colorEvento: esEvento && typeof n.color === "string" && n.color ? n.color : null,
+    vence: n.fecha,
+    todoElDia: true,
+    prioridad: esEvento ? "ninguna" : nivelValido(n.prioridad),
+    dificultad: esEvento ? "ninguna" : nivelValido(n.dificultad),
+    etiquetas: typeof n.indole === "string" && n.indole ? [n.indole] : [],
+  });
+  return tarea?.id ?? null;
 }
 
 /** Lee la cola que manda el widget; descarta lo que no tenga forma de tarea. */
@@ -384,8 +447,8 @@ async function aplicarAhora(): Promise<void> {
   const real = new Map<string, string>();
   const { items } = await widget.rapidas();
   for (const n of leerRapidas(items)) {
-    const tarea = await useTienda.getState().crearTarea({ titulo: n.titulo, esEvento: Boolean(n.evento), vence: n.fecha, todoElDia: true });
-    if (tarea && n.id) real.set(n.id, tarea.id);
+    const id = await crearDesdeWidget(n);
+    if (id && n.id) real.set(n.id, id);
   }
   const { ids } = await widget.pendientes();
   for (const marcado of ids) {
