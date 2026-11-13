@@ -549,7 +549,7 @@ test("widget del escritorio: vista sola, sin menú, con barra para moverlo", asy
   await expect(page.getByTestId("dia-semana")).toHaveCount(7);
 });
 
-test("semana: los días vacíos o completos quedan angostos aunque se ajuste el ancho", async ({ page }) => {
+test("semana: los días con pendientes quedan igual de anchos y los demás angostos", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
   await crearEnSemana(page, "Tarea", "Tarea con espacio");
@@ -560,17 +560,16 @@ test("semana: los días vacíos o completos quedan angostos aunque se ajuste el 
   const vacio = hoy === 0 ? 1 : 0;
   expect(auto[hoy]).toBeGreaterThan(auto[vacio] * 2);
 
-  // Arrastrar un borde no ensancha los días sin pendientes: siguen angostos, y el día con tareas
-  // conserva todo el espacio. Doble clic vuelve a automático.
-  const borde = await page.getByTestId("borde-columna").first().boundingBox();
-  await page.mouse.move(borde!.x + 6, borde!.y + 100);
-  await page.mouse.down();
-  await page.mouse.move(borde!.x + 66, borde!.y + 100, { steps: 6 });
-  await page.mouse.up();
-  const manual = await anchos();
-  expect(manual[vacio]).toBe(auto[vacio]);
-  expect(Math.abs(manual[hoy] - auto[hoy])).toBeLessThan(4);
-  await page.getByTestId("borde-columna").first().dblclick();
+  // Al añadir una tarea a un día vacío, ese día crece y queda igual de ancho que el otro con pendientes.
+  await page.getByTestId("dia-semana").nth(vacio).getByRole("button", { name: /^Añadir el/ }).click();
+  await page.getByRole("menuitem", { name: "Tarea" }).click();
+  const campo = page.getByRole("dialog").getByRole("textbox", { name: "Añadir tarea" });
+  await campo.fill("Otra pendiente");
+  await campo.press("Enter");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect.poll(async () => { const w = await anchos(); return Math.abs(w[hoy] - w[vacio]) <= 1 && w[vacio] > auto[vacio] * 2; }).toBe(true);
+  await expect(page.getByTestId("borde-columna")).toHaveCount(0);
+  await page.getByTestId("dia-semana").nth(vacio).getByRole("checkbox", { name: "Completar: Otra pendiente" }).click();
   await expect.poll(anchos).toEqual(auto);
   // Un día con todas sus tareas hechas queda tan angosto como uno sin nada.
   await page.getByRole("checkbox", { name: "Completar: Tarea con espacio" }).click();
