@@ -2,9 +2,12 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { ExternalLink, GripHorizontal, SlidersHorizontal } from "lucide-react";
 import { hashDe, useRuta } from "../logica/ruta";
 import { ESCALA_MINIMA, escalaQueCabe, escalaWidget, WIDGETS } from "../logica/widgetEscritorio";
+import { leerEleccion, presetDe, temaEfectivo, variablesDe } from "../logica/temas";
 import {
+  claveAspecto,
   guardarAspecto,
   leerAspecto,
+  variablesLetra,
   MAX_ESQUINAS,
   MAX_TRANSPARENCIA,
   opacidades,
@@ -131,6 +134,26 @@ export function MarcoWidget({
     document.documentElement.classList.add("modo-widget");
     return () => document.documentElement.classList.remove("modo-widget");
   }, []);
+
+  // Lo que se cambie en el apartado Widgets de la app se ve al tiro en esta ventana.
+  useEffect(() => {
+    const alCambiar = (e: StorageEvent) => {
+      if (e.key === claveAspecto(id)) setAspecto(leerAspecto(id));
+    };
+    window.addEventListener("storage", alCambiar);
+    return () => window.removeEventListener("storage", alCambiar);
+  }, [id]);
+
+  // Tema propio del widget (o el de la app) y su tamaño de letra, solo en esta ventana.
+  const temaId = aspecto.temaId ?? "";
+  const letra = aspecto.letra ?? 100;
+  useEffect(() => {
+    const t = temaId ? presetDe(temaId) : temaEfectivo(leerEleccion());
+    const raiz = document.documentElement;
+    for (const [k, v] of Object.entries({ ...variablesDe(t), ...variablesLetra(letra) })) raiz.style.setProperty(k, v);
+    raiz.classList.toggle("dark", t.oscuro);
+    raiz.dataset.tema = t.id;
+  }, [temaId, letra]);
 
   const cambiar = (c: Partial<AspectoWidget>) => {
     const nuevo = { ...aspecto, ...c };

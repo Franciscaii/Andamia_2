@@ -9,9 +9,15 @@ export const MINIMO_MANUAL = 64;
 const CLAVE = "andamia-semana-anchos-v2";
 const SEMANAS_GUARDADAS = 12;
 
-/** Peso de cada columna en modo automático. */
-export function pesosAutomaticos(vacios: boolean[]): number[] {
-  return vacios.map((v) => (v ? PESO_VACIO : 1));
+/** Cuánto más ancho llega a ser un día cargado que uno con una sola cosa por hacer. */
+export const PESO_MAXIMO = 2;
+
+/**
+ * Peso de cada columna en modo automático. Con `cargas` (cosas por hacer de cada día),
+ * los días más cargados se llevan más ancho, hasta el doble.
+ */
+export function pesosAutomaticos(vacios: boolean[], cargas: number[] = []): number[] {
+  return vacios.map((v, i) => (v ? PESO_VACIO : Math.min(PESO_MAXIMO, 1 + 0.2 * Math.max(0, (cargas[i] ?? 1) - 1))));
 }
 
 /**
