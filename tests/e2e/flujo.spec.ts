@@ -153,7 +153,9 @@ test("búsqueda sin acentos, filtros y tema oscuro", async ({ page }) => {
   await entrada(page).fill("Comprar pan");
   await entrada(page).press("Enter");
 
-  await navegar(page, "Buscar");
+  // El buscador ya no está en el menú; su dirección sigue funcionando.
+  await expect(page.getByRole("navigation").getByRole("link", { name: /^Buscar/ })).toHaveCount(0);
+  await page.goto("/#/buscar");
   await page.getByLabel("Buscar tareas").fill("maria");
   await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
   await expect(page.locator("mark")).toHaveText("María");

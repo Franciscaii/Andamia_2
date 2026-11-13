@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, LayoutDashboard, Layers, ListTodo, Moon, Palette, Pencil, Plus, Search, Sun, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
+import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, LayoutDashboard, Layers, ListTodo, Moon, Palette, Pencil, Plus, Sun, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
 import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
@@ -176,7 +176,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
       </div>
 
       <nav aria-label="Navegación" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
-        <Fila href={hashDe({ tipo: "buscar" })} activa={seccion.tipo === "buscar"} icono={<Search size={17} />} nombre="Buscar" />
         {VISTAS_INTELIGENTES.filter((v) => VISTAS_EN_MENU.includes(v.id)).map((v) => (
           <Fila
             key={v.id}

@@ -258,14 +258,17 @@ final class Dibujos {
         int[] visibles = new int[n];
         for (int i = 0; i < n; i++) visibles[i] = elegido < 0 || elegido == i ? colores[i] : conAlfa(colores[i], 60);
 
-        // Arriba: anillo y etiquetas. Las ondas se quedan con el resto, si hay alto para ellas.
+        // Arriba: anillo y etiquetas, siempre del mismo alto (haya pocas o muchas etiquetas), para que
+        // el anillo y las ondas midan lo mismo en Día, Semana, Mes y Año. Las ondas ocupan el resto.
         JSONArray serie = r.optJSONArray("serie");
-        float filaAlto = 21 * d * Math.max(1f, TemaWidget.letra());
+        float filaNormal = 21 * d * Math.max(1f, TemaWidget.letra());
         boolean conOndas = serie != null && serie.length() > 0 && alto > 150 * d;
-        float altoArribaMax = conOndas ? Math.max(2 * filaAlto, (alto - 2 * m) * 0.42f) : alto - 2 * m;
-        int caben = Math.max(1, Math.min(n, (int) (altoArribaMax / filaAlto)));
-        float diametro = Math.min(Math.min(altoArribaMax, Math.max(52 * d, caben * filaAlto)), (ancho - 2 * m) * 0.3f);
-        float altoArriba = Math.max(diametro, caben * filaAlto);
+        float altoArriba = conOndas ? Math.min(Math.max(96 * d, (alto - 2 * m) * 0.36f), 150 * d) : alto - 2 * m;
+        // Si hay muchas etiquetas, sus filas se aprietan un poco para que entren todas sin agrandar el bloque.
+        float filaAlto = Math.min(filaNormal, Math.max(15 * d, altoArriba / n));
+        float aprieta = filaAlto / filaNormal;
+        int caben = Math.max(1, Math.min(n, (int) (altoArriba / filaAlto + 0.01f)));
+        float diametro = Math.min(altoArriba, (ancho - 2 * m) * 0.36f);
 
         float cx = m + diametro / 2f;
         float cy = m + altoArriba / 2f;
@@ -308,8 +311,8 @@ final class Dibujos {
         // Etiquetas: cada una es una píldora con su punto de color; a la derecha, cantidad y porcentaje.
         float lx = m + diametro + 10 * d;
         float ly = cy - caben * filaAlto / 2f;
-        TextPaint leyenda = texto(colorTexto, 11f * d, false);
-        TextPaint cifra = texto(colorTenue, 10.5f * d, false);
+        TextPaint leyenda = texto(colorTexto, 11f * d * Math.max(0.8f, aprieta), false);
+        TextPaint cifra = texto(colorTenue, 10.5f * d * Math.max(0.8f, aprieta), false);
         cifra.setTextAlign(Paint.Align.RIGHT);
         Paint punto = new Paint(Paint.ANTI_ALIAS_FLAG);
         Paint borde = new Paint(Paint.ANTI_ALIAS_FLAG);
