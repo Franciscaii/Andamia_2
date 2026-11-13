@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as EventoTeclado, type PointerEvent as EventoPuntero, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as EventoPuntero, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -16,7 +16,7 @@ import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
 import { hashDe, irA, type Seccion } from "../logica/ruta";
 import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
-import { guardarAnchos, leerAnchos, moverBorde, MINIMO_MANUAL, pesosAutomaticos } from "../logica/anchosSemana";
+import { pesosAutomaticos } from "../logica/anchosSemana";
 import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 import type { Prioridad, Subtarea, Tarea } from "../modelos/tipos";
 
@@ -612,14 +612,11 @@ function useDeslizar(alSoltar: (dx: number, dy: number) => void) {
 }
 
 /** Columna de un día en la vista de 7 días; también recibe tareas soltadas. */
-function ColumnaDia({ dia, esHoy, ahora, estilo, refColumna, angosta = false, children }: { dia: Date; esHoy: boolean; ahora: Date; estilo: CSSProperties; refColumna: (el: HTMLElement | null) => void; angosta?: boolean; children: ReactNode }) {
+function ColumnaDia({ dia, esHoy, ahora, estilo, angosta = false, children }: { dia: Date; esHoy: boolean; ahora: Date; estilo: CSSProperties; angosta?: boolean; children: ReactNode }) {
   const { setNodeRef, isOver } = useZonaDia(dia);
   return (
     <section
-      ref={(el) => {
-        setNodeRef(el);
-        refColumna(el);
-      }}
+      ref={setNodeRef}
       style={estilo}
       aria-label={tituloDelDia(dia, ahora)}
       data-testid="dia-semana"
@@ -628,52 +625,6 @@ function ColumnaDia({ dia, esHoy, ahora, estilo, refColumna, angosta = false, ch
     >
       {children}
     </section>
-  );
-}
-
-/** Borde entre dos columnas: se arrastra para cambiar el ancho; doble clic vuelve a automático. */
-function BordeColumna({ etiqueta, alMover, alSoltar, alRestablecer }: { etiqueta: string; alMover: (dx: number, inicio: boolean) => void; alSoltar: () => void; alRestablecer: () => void }) {
-  const inicio = useRef<number | null>(null);
-  const tecla = (e: EventoTeclado) => {
-    const paso = e.key === "ArrowLeft" ? -24 : e.key === "ArrowRight" ? 24 : 0;
-    if (!paso) return;
-    e.preventDefault();
-    alMover(paso, true);
-    alSoltar();
-  };
-  return (
-    <div
-      role="separator"
-      aria-orientation="vertical"
-      aria-label={etiqueta}
-      title="Arrastra para cambiar el ancho. Doble clic: ancho automático."
-      tabIndex={0}
-      data-testid="borde-columna"
-      className="group flex w-3 shrink-0 cursor-col-resize touch-none justify-center outline-none"
-      onPointerDown={(e: EventoPuntero) => {
-        e.preventDefault();
-        e.currentTarget.setPointerCapture(e.pointerId);
-        inicio.current = e.clientX;
-        alMover(0, true);
-      }}
-      onPointerMove={(e: EventoPuntero) => {
-        if (inicio.current !== null) alMover(e.clientX - inicio.current, false);
-      }}
-      onPointerUp={() => {
-        if (inicio.current === null) return;
-        inicio.current = null;
-        alSoltar();
-      }}
-      onLostPointerCapture={() => {
-        if (inicio.current === null) return;
-        inicio.current = null;
-        alSoltar();
-      }}
-      onDoubleClick={alRestablecer}
-      onKeyDown={tecla}
-    >
-      <span className="my-2 w-0.5 rounded-full bg-transparent transition-colors group-hover:bg-acento/60 group-focus-visible:bg-acento" />
-    </div>
   );
 }
 
@@ -710,46 +661,15 @@ function ResumenDiaAngosto({ dia, ahora, verEventos, verTareas, tareaAbierta, al
   );
 }
 
-/** Anchos de las 7 columnas: automáticos (los días vacíos se achican) o ajustados a mano. */
-function useAnchosSemana(lunes: string, vacios: boolean[]) {
-  const [manual, setManual] = useState<number[] | null>(() => leerAnchos(lunes));
-  const [semana, setSemana] = useState(lunes);
-  if (semana !== lunes) {
-    setSemana(lunes);
-    setManual(leerAnchos(lunes));
-  }
-  const columnas = useRef<(HTMLElement | null)[]>([]);
-  const base = useRef<number[]>([]);
-  const actual = useRef<number[] | null>(manual);
-  actual.current = manual;
-
-  const pesos = manual ?? pesosAutomaticos(vacios);
-  // Los días sin tareas por hacer (o con todas hechas) quedan siempre angostos, aunque los anchos
-  // se hayan ajustado a mano; los demás se reparten el resto por igual.
-  const estilo = (i: number): CSSProperties =>
-    vacios[i] ? { flex: `0 0 ${ANCHO_DIA_LIBRE}` } : manual ? { flex: `${pesos[i]} 1 0px`, minWidth: MINIMO_MANUAL } : { flex: `${pesos[i]} 1 0px`, minWidth: "10rem" };
-  const mover = (i: number) => (dx: number, inicio: boolean) => {
-    if (inicio || !base.current.length) base.current = columnas.current.map((c) => c?.getBoundingClientRect().width ?? MINIMO_MANUAL);
-    if (dx === 0) return;
-    const nuevos = moverBorde(base.current, i, dx);
-    actual.current = nuevos;
-    setManual(nuevos);
-  };
-  const soltar = () => {
-    base.current = [];
-    if (actual.current) guardarAnchos(lunes, actual.current);
-  };
-  const restablecer = () => {
-    actual.current = null;
-    base.current = [];
-    setManual(null);
-    guardarAnchos(lunes, null);
-  };
-  const refColumna = (i: number) => (el: HTMLElement | null) => {
-    columnas.current[i] = el;
-  };
+/**
+ * Anchos de las 7 columnas: los días sin tareas por hacer (vacíos o con todo hecho) quedan angostos
+ * y todos los demás se reparten el resto por igual. Se recalcula solo al completar o añadir tareas.
+ */
+function useAnchosSemana(vacios: boolean[]) {
+  const pesos = pesosAutomaticos(vacios);
+  const estilo = (i: number): CSSProperties => (vacios[i] ? { flex: `0 0 ${ANCHO_DIA_LIBRE}` } : { flex: `${pesos[i]} 1 0px`, minWidth: "10rem" });
   const angosta = (i: number) => vacios[i];
-  return { estilo, angosta, mover, soltar, restablecer, refColumna };
+  return { estilo, angosta };
 }
 
 
@@ -800,7 +720,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   // completos quedan lo más angostos posible. Con el filtro "Eventos", cuentan los eventos.
   const contenidos = dias.map((d) => contenidoDelDia(tareasTodas, listasTodas, d, ahora));
   const vacios = contenidos.map((c) => (verTareas ? !c.tareas.some((t) => t.estado === "pendiente") : !verEventos || c.eventos.length === 0));
-  const anchos = useAnchosSemana(claveDia(dias[0]), vacios);
+  const anchos = useAnchosSemana(vacios);
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
   const elegirDia = (d: Date) => setElegido(d);
@@ -932,15 +852,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               if (angosta) {
                 return (
                   <Fragment key={d.toISOString()}>
-                  {i > 0 && (
-                    <BordeColumna
-                      etiqueta={`Ancho entre ${nombreCortoDia(dias[i - 1])} y ${nombreCortoDia(d)}`}
-                      alMover={anchos.mover(i - 1)}
-                      alSoltar={anchos.soltar}
-                      alRestablecer={anchos.restablecer}
-                    />
-                  )}
-                  <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} refColumna={anchos.refColumna(i)} angosta>
+                  {i > 0 && <div aria-hidden className="w-3 shrink-0" />}
+                  <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} angosta>
                     <div className="mb-2 flex flex-col items-center gap-1">
                       <h2 className="flex flex-col items-center leading-tight">
                         <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
@@ -965,15 +878,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               }
               return (
                 <Fragment key={d.toISOString()}>
-                {i > 0 && (
-                  <BordeColumna
-                    etiqueta={`Ancho entre ${nombreCortoDia(dias[i - 1])} y ${nombreCortoDia(d)}`}
-                    alMover={anchos.mover(i - 1)}
-                    alSoltar={anchos.soltar}
-                    alRestablecer={anchos.restablecer}
-                  />
-                )}
-                <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} refColumna={anchos.refColumna(i)}>
+                {i > 0 && <div aria-hidden className="w-3 shrink-0" />}
+                <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)}>
                   <div className="mb-2 flex items-center gap-1 px-1">
                     <h2 className="flex min-w-0 flex-1 items-baseline gap-1.5">
                       <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
