@@ -5,8 +5,6 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.RemoteViews;
@@ -25,8 +23,8 @@ final class Widgets {
         WidgetSemana.redibujarTodos(contexto);
         redibujarLista(contexto, WidgetMatriz.class, "matriz");
         WidgetCalendario.redibujarTodos(contexto);
-        redibujarImagen(contexto, WidgetEstadisticaTareas.class, "tareas");
-        redibujarImagen(contexto, WidgetEstadisticaHabitos.class, "habitos");
+        EstadisticaWidget.redibujarTodos(contexto, "tareas");
+        EstadisticaWidget.redibujarTodos(contexto, "habitos");
     }
 
     static PendingIntent abrirApp(Context contexto, String direccion, int codigo) {
@@ -87,64 +85,10 @@ final class Widgets {
         gestor.updateAppWidget(idWidget, vista);
     }
 
-    // ---------- Widgets de imagen: Calendario y estadísticas ----------
+    // ---------- Widgets con imagen: Calendario y estadísticas ----------
 
-    static final String ACCION_ETIQUETA = "cl.andamia.app.ESTADISTICA_ETIQUETA";
-    static final String EXTRA_INDICE = "indice";
-    private static final int[] ZONAS = { R.id.est_zona_0, R.id.est_zona_1, R.id.est_zona_2, R.id.est_zona_3, R.id.est_zona_4, R.id.est_zona_5, R.id.est_zona_6, R.id.est_zona_7 };
-
-    /**
-     * Pone una zona tocable sobre cada fila de la leyenda (Android 12 o más nuevo, que deja
-     * mover vistas de un widget). Tocar una fila la destaca; tocarla otra vez la suelta.
-     */
-    private static void ponerZonas(Context contexto, RemoteViews vista, int idWidget, String tipo, float[] zonas, float escala) {
-        if (android.os.Build.VERSION.SDK_INT < 31) return;
-        Class<?> clase = "habitos".equals(tipo) ? WidgetEstadisticaHabitos.class : WidgetEstadisticaTareas.class;
-        int cuantas = (int) zonas[0];
-        for (int i = 0; i < ZONAS.length; i++) {
-            int id = ZONAS[i];
-            if (i >= cuantas) {
-                vista.setViewVisibility(id, android.view.View.GONE);
-                continue;
-            }
-            int k = 1 + 4 * i;
-            int dp = android.util.TypedValue.COMPLEX_UNIT_DIP;
-            vista.setViewLayoutMargin(id, RemoteViews.MARGIN_LEFT, zonas[k] / escala, dp);
-            vista.setViewLayoutMargin(id, RemoteViews.MARGIN_TOP, zonas[k + 1] / escala, dp);
-            vista.setViewLayoutWidth(id, zonas[k + 2] / escala, dp);
-            vista.setViewLayoutHeight(id, zonas[k + 3] / escala, dp);
-            vista.setViewVisibility(id, android.view.View.VISIBLE);
-            Intent intent = new Intent(contexto, clase);
-            intent.setAction(ACCION_ETIQUETA);
-            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, idWidget);
-            intent.putExtra(EXTRA_INDICE, i);
-            int codigo = 9000 + idWidget * 10 + i;
-            vista.setOnClickPendingIntent(id, PendingIntent.getBroadcast(contexto, codigo, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
-        }
-    }
-
-    /** Se tocó una fila de la leyenda: se destaca esa etiqueta (o se suelta si ya lo estaba). */
-    static boolean alTocarEtiqueta(Context contexto, Intent intent, String tipo) {
-        if (!ACCION_ETIQUETA.equals(intent.getAction())) return false;
-        int id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
-        if (id == AppWidgetManager.INVALID_APPWIDGET_ID) return true;
-        int indice = intent.getIntExtra(EXTRA_INDICE, -1);
-        DatosWidget.elegirEtiqueta(contexto, id, DatosWidget.etiquetaElegida(contexto, id) == indice ? -1 : indice);
-        dibujarImagen(contexto, AppWidgetManager.getInstance(contexto), id, tipo);
-        return true;
-    }
-
-    private static void redibujarImagen(Context contexto, Class<?> clase, String tipo) {
-        AppWidgetManager gestor = AppWidgetManager.getInstance(contexto);
-        for (int id : gestor.getAppWidgetIds(new ComponentName(contexto, clase))) dibujarImagen(contexto, gestor, id, tipo);
-    }
-
-    /** Tamaño del widget en píxeles, acotado para no pasar el límite de memoria de los widgets. */
-    private static int[] tamano(Context contexto, AppWidgetManager gestor, int idWidget) {
-        return tamano(contexto, gestor, idWidget, 0);
-    }
-
-    /** Igual, descontando arriba una franja de controles (dp) que no es parte de la imagen. */
+    /** Tamaño en píxeles de la imagen de un widget, acotado para no pasar el límite de memoria,
+     *  descontando arriba una franja de controles (dp) que no es parte de la imagen. */
     static int[] tamano(Context contexto, AppWidgetManager gestor, int idWidget, int altoControlesDp) {
         float densidad = contexto.getResources().getDisplayMetrics().density;
         Bundle opciones = gestor.getAppWidgetOptions(idWidget);
@@ -159,35 +103,5 @@ final class Widgets {
         }
         float escala = Math.min(densidad, 900f / Math.max(anchoDp, altoDp));
         return new int[] { Math.max(1, Math.round(anchoDp * escala)), Math.max(1, Math.round(altoDp * escala)), Math.round(escala * 100) };
-    }
-
-    static void dibujarImagen(Context contexto, AppWidgetManager gestor, int idWidget, String tipo) {
-        TemaWidget.usar(contexto, idWidget);
-        int[] t = tamano(contexto, gestor, idWidget);
-        float escala = t[2] / 100f;
-        JSONObject datos = datos(contexto);
-        int acento = acento(contexto, datos);
-        Bitmap imagen;
-        float[] zonas = new float[1 + 4 * ZONAS.length];
-        String direccion;
-        int codigo;
-        if ("calendario".equals(tipo)) {
-            imagen = Dibujos.calendario(contexto, datos == null ? null : datos.optJSONObject("mes"), t[0], t[1], escala, acento, "todos", true);
-            direccion = "andamia://calendario";
-            codigo = 40;
-        } else {
-            JSONObject est = datos == null ? null : datos.optJSONObject("estadisticas");
-            boolean habitos = "habitos".equals(tipo);
-            imagen = Dibujos.estadisticas(contexto, est == null ? null : est.optJSONObject(habitos ? "habitos" : "tareas"), habitos, t[0], t[1], escala, acento,
-                    DatosWidget.etiquetaElegida(contexto, idWidget), zonas);
-            direccion = habitos ? "andamia://estadisticas/habitos" : "andamia://estadisticas/tareas";
-            codigo = habitos ? 60 : 50;
-        }
-        RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_imagen);
-        vista.setImageViewBitmap(R.id.imagen_vista, imagen);
-        vista.setOnClickPendingIntent(R.id.imagen_vista, abrirApp(contexto, direccion, codigo));
-        if (!"calendario".equals(tipo)) ponerZonas(contexto, vista, idWidget, tipo, zonas, escala);
-        TemaWidget.fondo(contexto, gestor, idWidget, vista);
-        gestor.updateAppWidget(idWidget, vista);
     }
 }

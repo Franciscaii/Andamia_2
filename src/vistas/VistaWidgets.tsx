@@ -113,6 +113,7 @@ function TarjetaWidget({
             <p className="mt-1.5 text-xs text-tenue">{presetDe(config.temaId).nombre}</p>
           </div>
           <Deslizador etiqueta="Transparencia" valor={config.transparencia} max={MAX_TRANSPARENCIA} porcentaje={config.transparencia} alCambiar={(v) => cambiar({ ...config, transparencia: v })} />
+          <Deslizador etiqueta="Transparencia de tarjetas" valor={config.tarjetas ?? 0} max={MAX_TRANSPARENCIA} porcentaje={config.tarjetas ?? 0} alCambiar={(v) => cambiar({ ...config, tarjetas: v })} />
           <Deslizador
             etiqueta="Esquinas"
             valor={config.esquinas}

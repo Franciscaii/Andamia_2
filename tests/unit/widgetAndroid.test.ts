@@ -86,6 +86,16 @@ describe("datos de los widgets Semana, Matriz, Calendario y estadísticas", () =
     expect(datos.estadisticas.tareas.serie).toHaveLength(7);
     expect(datos.estadisticas.habitos.total).toBe(0);
   });
+
+  it("manda los hechos sueltos para que el widget arme día, semana, mes o año", () => {
+    const { grupos, hechos } = datos.estadisticas.tareas;
+    expect(hechos.length).toBeGreaterThan(0);
+    for (const h of hechos) {
+      expect(h).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}\|\d+$/);
+      expect(Number(h.split("|")[1])).toBeLessThan(grupos.length);
+    }
+    expect(grupos.some((g) => g.nombre === "Universidad")).toBe(true);
+  });
 });
 
 describe("tema y aspecto de los widgets de Android", () => {

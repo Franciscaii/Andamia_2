@@ -4,7 +4,7 @@ import { addDays, addMonths, endOfMonth, format, isSameDay, isSameMonth, parseIS
 import { es } from "date-fns/locale";
 import { useTienda } from "../datos/tienda";
 import { COLORES_ETIQUETA, COLORES_LISTA, type Etiqueta, type FrecuenciaHabito, type Habito, type Lista, type Prioridad, type RegistroHabito, type Tarea } from "../modelos/tipos";
-import { gruposDeEtiquetas, gruposDeHabitos, hechosDeHabitos, hechosDeTareas, resumir, tituloPeriodo, type Resumen } from "./estadisticas";
+import { gruposDeEtiquetas, gruposDeHabitos, hechosDeHabitos, hechosDeTareas, resumir, SIN_ETIQUETA, tituloPeriodo, type Grupo, type Hecho, type Resumen } from "./estadisticas";
 import { CUADRANTES, repartirEnCuadrantes } from "./matriz";
 import { leerEleccion, presetDe, TEMA_INICIAL, TEMAS, temaEfectivo, textoSobre, type Tema } from "./temas";
 import type { AspectoWidget } from "./aspectoWidget";
@@ -161,7 +161,33 @@ export function mesesDelWidget(e: Estado, ahora: Date) {
   return Array.from({ length: MESES_ANTES_WIDGET + MESES_DESPUES_WIDGET + 1 }, (_, i) => mesDelWidget(e, ahora, addMonths(ahora, i - MESES_ANTES_WIDGET)));
 }
 
-function resumenParaWidget(r: Resumen, titulo: string, periodo: string) {
+/** Desde cuándo se mandan los hechos sueltos al widget: el año pasado completo y lo que va de este. */
+const ANIOS_ATRAS_WIDGET = 1;
+
+/**
+ * Lo que el widget de estadísticas necesita para armar por su cuenta cualquier período (día,
+ * semana, mes o año, con sus flechas): los grupos y cada hecho como "AAAA-MM-DDTHH|grupo".
+ */
+function crudoParaWidget(hechos: Hecho[], grupos: Grupo[], ahora: Date) {
+  const desde = new Date(ahora.getFullYear() - ANIOS_ATRAS_WIDGET, 0, 1);
+  const lista: Grupo[] = [...grupos];
+  const posicion = new Map(lista.map((g, i) => [g.clave, i]));
+  const sueltos: string[] = [];
+  for (const h of hechos) {
+    if (!(h.momento >= desde)) continue;
+    let i = posicion.get(h.grupo);
+    if (i === undefined) {
+      i = lista.length;
+      lista.push(h.grupo === "" ? SIN_ETIQUETA : { clave: h.grupo, nombre: h.grupo, color: SIN_ETIQUETA.color });
+      posicion.set(h.grupo, i);
+    }
+    sueltos.push(`${format(h.momento, "yyyy-MM-dd'T'HH")}|${i}`);
+  }
+  return { grupos: lista.map((g) => ({ nombre: g.nombre, color: g.color })), hechos: sueltos };
+}
+
+function resumenParaWidget(hechos: Hecho[], grupos: Grupo[], ahora: Date, titulo: string, periodo: string) {
+  const r: Resumen = resumir(hechos, grupos, "semana", ahora);
   const filas = r.filas.slice(0, 8);
   return {
     titulo,
@@ -169,6 +195,7 @@ function resumenParaWidget(r: Resumen, titulo: string, periodo: string) {
     total: r.total,
     filas: filas.map((f) => ({ nombre: f.nombre, color: f.color, cantidad: f.cantidad, porcentaje: f.porcentaje })),
     serie: r.serie.map((s) => ({ etiqueta: s.etiqueta, valores: filas.map((f) => s.valores[f.clave] ?? 0) })),
+    ...crudoParaWidget(hechos, grupos, ahora),
   };
 }
 
@@ -176,8 +203,8 @@ function resumenParaWidget(r: Resumen, titulo: string, periodo: string) {
 export function estadisticasDelWidget(e: Estado, ahora: Date) {
   const periodo = tituloPeriodo("semana", ahora, ahora);
   return {
-    tareas: resumenParaWidget(resumir(hechosDeTareas(e.tareas), gruposDeEtiquetas(e.etiquetas), "semana", ahora), "Tareas completadas", periodo),
-    habitos: resumenParaWidget(resumir(hechosDeHabitos(e.habitos, e.registros), gruposDeHabitos(e.habitos), "semana", ahora), "Hábitos cumplidos", periodo),
+    tareas: resumenParaWidget(hechosDeTareas(e.tareas), gruposDeEtiquetas(e.etiquetas), ahora, "Tareas completadas", periodo),
+    habitos: resumenParaWidget(hechosDeHabitos(e.habitos, e.registros), gruposDeHabitos(e.habitos), ahora, "Hábitos cumplidos", periodo),
   };
 }
 
@@ -274,7 +301,7 @@ export interface ConfigWidget extends AspectoWidget {
 
 export const LETRA_MIN = 80;
 export const LETRA_MAX = 150;
-export const CONFIG_INICIAL: ConfigWidget = { temaId: TEMA_INICIAL, transparencia: 0, esquinas: 20, letra: 100 };
+export const CONFIG_INICIAL: ConfigWidget = { temaId: TEMA_INICIAL, transparencia: 0, esquinas: 20, letra: 100, tarjetas: 0 };
 
 export interface WidgetPuesto {
   id: number;
@@ -291,6 +318,7 @@ export function leerConfig(json: string): ConfigWidget {
         transparencia: typeof c.transparencia === "number" ? c.transparencia : CONFIG_INICIAL.transparencia,
         esquinas: typeof c.esquinas === "number" ? c.esquinas : CONFIG_INICIAL.esquinas,
         letra: typeof c.letra === "number" ? Math.min(LETRA_MAX, Math.max(LETRA_MIN, Math.round(c.letra))) : CONFIG_INICIAL.letra,
+        tarjetas: typeof c.tarjetas === "number" ? Math.min(90, Math.max(0, Math.round(c.tarjetas))) : 0,
       };
     }
   } catch {

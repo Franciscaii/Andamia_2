@@ -220,43 +220,36 @@ final class Dibujos {
     // ---------- Estadísticas ----------
 
     /**
-     * Estadística de la semana: anillo por etiqueta (o hábito) con el total al centro, leyenda
-     * y ondas por día. Si hay una etiqueta elegida (tocada en el widget), las demás se atenúan
-     * como en la app. En "zonas" deja dónde quedó cada fila de la leyenda, para poder tocarlas:
-     * zonas[0] = cantidad, y luego x, y, ancho y alto de cada una, en píxeles de la imagen.
+     * Tarjeta de un widget de estadísticas: arriba a la izquierda un anillo chico con el total al
+     * centro y, a su lado, cada etiqueta (o hábito) como píldora con su cantidad y porcentaje;
+     * abajo, ocupando el resto, las ondas en el tiempo. Si hay una etiqueta elegida (tocada en
+     * el widget), las demás se atenúan como en la app. En "zonas" deja dónde quedó cada etiqueta,
+     * para poder tocarlas: zonas[0] = cantidad, y luego x, y, ancho y alto de cada una, en píxeles.
      */
-    static Bitmap estadisticas(Context c, JSONObject r, boolean habitos, int ancho, int alto, float d, int acento, int elegido, float[] zonas) {
+    static Bitmap estadisticas(Context c, JSONObject r, boolean habitos, int ancho, int alto, float d, int acento, int elegido, float[] zonas, String vacio) {
         Bitmap imagen = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888);
         Canvas lienzo = new Canvas(imagen);
         int colorTexto = color(c, R.color.widget_texto);
         int colorTenue = color(c, R.color.widget_texto_tenue);
         int colorLinea = color(c, R.color.widget_barra_fondo);
-        float m = 14 * d;
         if (zonas != null) zonas[0] = 0;
 
-        String nombre = habitos ? "Hábitos cumplidos" : "Tareas completadas";
-        if (r == null) {
-            mensaje(lienzo, "Abre Andamia para ver tus estadísticas", ancho, alto, texto(colorTenue, 13 * d, false));
-            return imagen;
-        }
-        // Cabecera: título y periodo, con una píldora del color del tema.
-        float y = m + 15 * d;
-        Paint pildora = new Paint(Paint.ANTI_ALIAS_FLAG);
-        pildora.setColor(acento);
-        lienzo.drawRoundRect(new RectF(m, y - 12 * d, m + 4 * d, y + 3 * d), 2 * d, 2 * d, pildora);
-        escribir(lienzo, nombre, m + 10 * d, y, ancho - 2 * m - 10 * d, texto(colorTexto, 16 * d, true));
-        y += 16 * d;
-        escribir(lienzo, "Esta semana · " + r.optString("periodo"), m + 10 * d, y, ancho - 2 * m - 10 * d, texto(colorTenue, 11 * d, false));
-        y += 8 * d;
+        // La tarjeta, con el color suave del tema y la transparencia de tarjetas del widget.
+        Paint tarjeta = new Paint(Paint.ANTI_ALIAS_FLAG);
+        tarjeta.setColor(color(c, R.color.widget_evento_suave));
+        float radioTarjeta = Math.min(16 * d, Math.min(ancho, alto) / 2f);
+        lienzo.drawRoundRect(new RectF(0, 0, ancho, alto), radioTarjeta, radioTarjeta, tarjeta);
 
-        int total = r.optInt("total");
-        JSONArray filas = r.optJSONArray("filas");
+        int total = r == null ? 0 : r.optInt("total");
+        JSONArray filas = r == null ? null : r.optJSONArray("filas");
         if (total == 0 || filas == null || filas.length() == 0) {
-            TextPaint p = texto(colorTenue, 13 * d, false);
+            TextPaint p = texto(colorTenue, 12.5f * d, false);
             p.setTextAlign(Paint.Align.CENTER);
-            lienzo.drawText(habitos ? "Aún no cumples hábitos esta semana." : "Aún no completas tareas esta semana.", ancho / 2f, (y + alto) / 2f, p);
+            CharSequence corto = TextUtils.ellipsize(vacio, p, ancho - 16 * d, TextUtils.TruncateAt.END);
+            lienzo.drawText(corto, 0, corto.length(), ancho / 2f, alto / 2f + p.getTextSize() * 0.35f, p);
             return imagen;
         }
+        float m = 10 * d;
         int n = filas.length();
         if (elegido >= n) elegido = -1;
         int[] colores = new int[n];
@@ -265,20 +258,21 @@ final class Dibujos {
         int[] visibles = new int[n];
         for (int i = 0; i < n; i++) visibles[i] = elegido < 0 || elegido == i ? colores[i] : conAlfa(colores[i], 60);
 
-        // Ondas por día solo si hay alto para ellas.
+        // Arriba: anillo y etiquetas. Las ondas se quedan con el resto, si hay alto para ellas.
         JSONArray serie = r.optJSONArray("serie");
-        boolean conOndas = serie != null && serie.length() > 0 && (alto - y) > 190 * d;
-        float altoOndas = conOndas ? Math.min(110 * d, (alto - y) * 0.42f) : 0;
+        float filaAlto = 21 * d * Math.max(1f, TemaWidget.letra());
+        boolean conOndas = serie != null && serie.length() > 0 && alto > 150 * d;
+        float altoArribaMax = conOndas ? Math.max(2 * filaAlto, (alto - 2 * m) * 0.42f) : alto - 2 * m;
+        int caben = Math.max(1, Math.min(n, (int) (altoArribaMax / filaAlto)));
+        float diametro = Math.min(Math.min(altoArribaMax, Math.max(52 * d, caben * filaAlto)), (ancho - 2 * m) * 0.3f);
+        float altoArriba = Math.max(diametro, caben * filaAlto);
 
-        // Anillo con un riel suave detrás, puntas redondeadas y el total (o lo elegido) al centro.
-        float zona = alto - y - m - (conOndas ? altoOndas + 10 * d : 0);
-        float diametro = Math.min(zona - 8 * d, (ancho - 2 * m) * 0.44f);
         float cx = m + diametro / 2f;
-        float cy = y + 6 * d + zona / 2f;
+        float cy = m + altoArriba / 2f;
         RectF caja = new RectF(cx - diametro / 2f, cy - diametro / 2f, cx + diametro / 2f, cy + diametro / 2f);
         Paint arco = new Paint(Paint.ANTI_ALIAS_FLAG);
         arco.setStyle(Paint.Style.STROKE);
-        float grosor = Math.max(7 * d, diametro * 0.15f);
+        float grosor = Math.max(5 * d, diametro * 0.14f);
         arco.setStrokeWidth(grosor);
         caja.inset(grosor / 2f, grosor / 2f);
         arco.setColor(colorLinea);
@@ -297,48 +291,64 @@ final class Dibujos {
             inicio += barrido;
         }
         JSONObject fe = elegido >= 0 ? filas.optJSONObject(elegido) : null;
-        TextPaint grande = texto(fe != null ? colores[elegido] : colorTexto, Math.max(14 * d, diametro * 0.22f), true);
+        float tamGrande = Math.max(11 * d, diametro * 0.26f);
+        TextPaint grande = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        grande.setColor(fe != null ? colores[elegido] : colorTexto);
+        grande.setTextSize(tamGrande);
+        grande.setTypeface(Typeface.DEFAULT_BOLD);
         grande.setTextAlign(Paint.Align.CENTER);
-        lienzo.drawText(String.valueOf(fe != null ? fe.optInt("cantidad") : total), cx, cy + grande.getTextSize() * 0.2f, grande);
-        TextPaint bajo = texto(colorTenue, Math.max(8 * d, diametro * 0.085f), false);
+        lienzo.drawText(String.valueOf(fe != null ? fe.optInt("cantidad") : total), cx, cy + tamGrande * 0.12f, grande);
+        TextPaint bajo = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        bajo.setColor(colorTenue);
+        bajo.setTextSize(Math.max(7 * d, diametro * 0.13f));
         bajo.setTextAlign(Paint.Align.CENTER);
         String rotulo = fe != null ? fe.optInt("porcentaje") + "%" : (habitos ? "hechos" : "tareas");
-        lienzo.drawText(rotulo, cx, cy + grande.getTextSize() * 0.2f + bajo.getTextSize() * 1.3f, bajo);
+        lienzo.drawText(rotulo, cx, cy + tamGrande * 0.12f + bajo.getTextSize() * 1.15f, bajo);
 
-        // Leyenda: cada fila es una píldora; la elegida se resalta y las demás se atenúan.
-        float lx = m + diametro + 12 * d;
-        float anchoLeyenda = ancho - m - lx;
-        float filaAlto = 21 * d;
-        int caben = Math.max(1, Math.min(n, (int) (zona / filaAlto)));
+        // Etiquetas: cada una es una píldora con su punto de color; a la derecha, cantidad y porcentaje.
+        float lx = m + diametro + 10 * d;
         float ly = cy - caben * filaAlto / 2f;
-        TextPaint leyenda = texto(colorTexto, 11.5f * d, false);
-        TextPaint cifra = texto(colorTenue, 11 * d, false);
+        TextPaint leyenda = texto(colorTexto, 11f * d, false);
+        TextPaint cifra = texto(colorTenue, 10.5f * d, false);
         cifra.setTextAlign(Paint.Align.RIGHT);
         Paint punto = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint borde = new Paint(Paint.ANTI_ALIAS_FLAG);
+        borde.setStyle(Paint.Style.STROKE);
+        borde.setStrokeWidth(Math.max(1, d));
         Paint resalte = new Paint(Paint.ANTI_ALIAS_FLAG);
+        float anchoCifras = 0;
+        String[] datos = new String[caben];
         for (int i = 0; i < caben; i++) {
             JSONObject f = filas.optJSONObject(i);
-            RectF fila = new RectF(lx - 4 * d, ly + 1.5f * d, ancho - m + 4 * d, ly + filaAlto - 1.5f * d);
-            if (elegido == i) {
-                resalte.setColor(conAlfa(colores[i], 46));
-                lienzo.drawRoundRect(fila, fila.height() / 2f, fila.height() / 2f, resalte);
-            }
-            float base = ly + filaAlto / 2f + 4 * d;
+            datos[i] = f.optInt("cantidad") + " · " + f.optInt("porcentaje") + "%";
+            anchoCifras = Math.max(anchoCifras, cifra.measureText(datos[i]));
+        }
+        float anchoPildoraMax = ancho - m - lx - anchoCifras - 8 * d;
+        for (int i = 0; i < caben; i++) {
+            JSONObject f = filas.optJSONObject(i);
             boolean apagada = elegido >= 0 && elegido != i;
-            punto.setColor(visibles[i]);
-            lienzo.drawCircle(lx + 5 * d, ly + filaAlto / 2f, 4.5f * d, punto);
-            String dato = f.optInt("cantidad") + " · " + f.optInt("porcentaje") + "%";
-            float anchoDato = cifra.measureText(dato);
             leyenda.setColor(apagada ? conAlfa(colorTexto, 90) : colorTexto);
             leyenda.setFakeBoldText(elegido == i);
             cifra.setColor(apagada ? conAlfa(colorTenue, 90) : colorTenue);
-            escribir(lienzo, f.optString("nombre"), lx + 14 * d, base, anchoLeyenda - 20 * d - anchoDato, leyenda);
-            lienzo.drawText(dato, ancho - m, base, cifra);
+            String nombre = f.optString("nombre");
+            float anchoNombre = Math.max(0, Math.min(leyenda.measureText(nombre), anchoPildoraMax - 24 * d));
+            RectF pildora = new RectF(lx, ly + 2 * d, lx + anchoNombre + 24 * d, ly + filaAlto - 2 * d);
+            if (elegido == i) {
+                resalte.setColor(conAlfa(colores[i], 50));
+                lienzo.drawRoundRect(pildora, pildora.height() / 2f, pildora.height() / 2f, resalte);
+            }
+            borde.setColor(conAlfa(visibles[i], apagada ? 60 : 170));
+            lienzo.drawRoundRect(pildora, pildora.height() / 2f, pildora.height() / 2f, borde);
+            punto.setColor(visibles[i]);
+            lienzo.drawCircle(lx + 9 * d, ly + filaAlto / 2f, 3.5f * d, punto);
+            float base = ly + filaAlto / 2f + leyenda.getTextSize() * 0.35f;
+            escribir(lienzo, nombre, lx + 17 * d, base, anchoNombre + d, leyenda);
+            lienzo.drawText(datos[i], ancho - m, base, cifra);
             if (zonas != null && 1 + 4 * (i + 1) <= zonas.length) {
                 int k = 1 + 4 * i;
-                zonas[k] = fila.left;
+                zonas[k] = lx;
                 zonas[k + 1] = ly;
-                zonas[k + 2] = fila.width();
+                zonas[k + 2] = ancho - m - lx;
                 zonas[k + 3] = filaAlto;
                 zonas[0] = i + 1;
             }
@@ -347,9 +357,11 @@ final class Dibujos {
 
         if (!conOndas) return imagen;
 
-        // Ondas suaves superpuestas por día, como el gráfico "En el tiempo" de la app.
-        float base = alto - m - 12 * d;
-        float tope = base - altoOndas + 14 * d;
+        // Ondas suaves superpuestas en el tiempo, como el gráfico "En el tiempo" de la app, con sus ejes.
+        TextPaint dia = texto(colorTenue, 9f * d, false);
+        float base = alto - m - dia.getTextSize() * 1.25f;
+        float tope = m + altoArriba + 12 * d;
+        if (base - tope < 24 * d) return imagen;
         int dias = serie.length();
         int maximo = 1;
         int[] sumas = new int[n];
@@ -360,19 +372,15 @@ final class Dibujos {
                 sumas[k] += v.optInt(k);
             }
         }
-        // Líneas guía suaves y la base.
-        Paint guia = new Paint(Paint.ANTI_ALIAS_FLAG);
-        guia.setColor(conAlfa(colorLinea, 140));
-        guia.setStrokeWidth(Math.max(1, d * 0.8f));
-        for (int g = 1; g <= 2; g++) {
-            float gy = base - (base - tope) * g / 2f;
-            lienzo.drawLine(m, gy, ancho - m, gy, guia);
-        }
-        Paint lineaBase = new Paint();
-        lineaBase.setColor(colorLinea);
-        lineaBase.setStrokeWidth(Math.max(1, d));
-        lienzo.drawLine(m, base, ancho - m, base, lineaBase);
-        float paso = dias > 1 ? (ancho - 2 * m) / (dias - 1) : 0;
+        float izq = m + 2 * d, der = ancho - m;
+        Paint eje = new Paint(Paint.ANTI_ALIAS_FLAG);
+        eje.setColor(conAlfa(colorTenue, 150));
+        eje.setStrokeWidth(Math.max(1, d));
+        eje.setStrokeCap(Paint.Cap.ROUND);
+        lienzo.drawLine(izq, tope - 4 * d, izq, base, eje);
+        lienzo.drawLine(izq, base, der, base, eje);
+        float x0 = izq + 3 * d;
+        float paso = dias > 1 ? (der - x0) / (dias - 1) : 0;
         // Los grupos más grandes van detrás; la etiqueta elegida, siempre delante.
         Integer[] orden = new Integer[n];
         for (int k = 0; k < n; k++) orden[k] = k;
@@ -385,6 +393,8 @@ final class Dibujos {
         trazo.setStrokeWidth(2 * d);
         trazo.setStrokeJoin(Paint.Join.ROUND);
         trazo.setStrokeCap(Paint.Cap.ROUND);
+        lienzo.save();
+        lienzo.clipRect(izq, 0, ancho, base);
         for (int o = 0; o < n; o++) {
             int k = orden[o];
             if (sumas[k] == 0) continue;
@@ -394,7 +404,7 @@ final class Dibujos {
             for (int i = 0; i < dias; i++) {
                 JSONArray v = serie.optJSONObject(i).optJSONArray("valores");
                 int valor = v == null ? 0 : v.optInt(k);
-                xs[i] = dias > 1 ? m + paso * i : ancho / 2f;
+                xs[i] = dias > 1 ? x0 + paso * i : (x0 + der) / 2f;
                 ys[i] = base - (base - tope) * valor / maximo;
             }
             Path linea = curvaSuave(xs, ys);
@@ -402,16 +412,20 @@ final class Dibujos {
             relleno.lineTo(xs[dias - 1], base);
             relleno.lineTo(xs[0], base);
             relleno.close();
-            area.setShader(new LinearGradient(0, tope, 0, base, conAlfa(colores[k], apagada ? 40 : 190), conAlfa(colores[k], apagada ? 5 : 20), Shader.TileMode.CLAMP));
+            area.setShader(new LinearGradient(0, tope, 0, base, conAlfa(colores[k], apagada ? 40 : 190), conAlfa(colores[k], apagada ? 5 : 30), Shader.TileMode.CLAMP));
             lienzo.drawPath(relleno, area);
             trazo.setColor(apagada ? conAlfa(colores[k], 70) : colores[k]);
             lienzo.drawPath(linea, trazo);
         }
-        TextPaint dia = texto(colorTenue, 9.5f * d, false);
-        for (int i = 0; i < dias; i++) {
-            float bx = dias > 1 ? m + paso * i : ancho / 2f;
+        lienzo.restore();
+        // Rótulos del eje: todos si caben; si no, uno cada tantos.
+        float anchoRotulo = 0;
+        for (int i = 0; i < dias; i++) anchoRotulo = Math.max(anchoRotulo, dia.measureText(serie.optJSONObject(i).optString("etiqueta")));
+        int cada = Math.max(1, (int) Math.ceil(dias * (anchoRotulo + 5 * d) / Math.max(1, der - x0)));
+        for (int i = 0; i < dias; i += cada) {
+            float bx = dias > 1 ? x0 + paso * i : (x0 + der) / 2f;
             dia.setTextAlign(i == 0 && dias > 1 ? Paint.Align.LEFT : i == dias - 1 && dias > 1 ? Paint.Align.RIGHT : Paint.Align.CENTER);
-            lienzo.drawText(serie.optJSONObject(i).optString("etiqueta"), bx, base + 11 * d, dia);
+            lienzo.drawText(serie.optJSONObject(i).optString("etiqueta"), bx, base + dia.getTextSize() * 1.15f, dia);
         }
         return imagen;
     }

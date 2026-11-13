@@ -30,6 +30,8 @@ final class TemaWidget {
         int fondo, texto, tenue, suave, acento, sobreAcento;
         /** 0 = fondo opaco, 90 = casi invisible. */
         int transparencia = 0;
+        /** Transparencia de las tarjetas (0 = opacas, 90 = casi invisibles), aparte de la del fondo. */
+        int tarjetas = 0;
         /** Radio de las esquinas, en dp. */
         int esquinas = 20;
         /** Tamaño de la letra, en porcentaje del normal (80 a 150). */
@@ -98,6 +100,7 @@ final class TemaWidget {
                 propia.suave = p.suave; propia.acento = p.acento; propia.sobreAcento = p.sobreAcento;
                 leerColores(propia, o.optJSONObject("tema"));
                 propia.transparencia = Math.max(0, Math.min(90, o.optInt("transparencia", 0)));
+                propia.tarjetas = Math.max(0, Math.min(90, o.optInt("tarjetas", 0)));
                 propia.esquinas = Math.max(0, Math.min(48, o.optInt("esquinas", 20)));
                 propia.letra = Math.max(80, Math.min(150, o.optInt("letra", 100)));
                 p = propia;
@@ -131,12 +134,18 @@ final class TemaWidget {
     static Integer color(Context c, int recurso) {
         Paleta p = actual.get();
         if (p == null) p = defecto(c);
+        if (recurso == R.color.widget_evento_suave) {
+            // Fondo de tarjetas, eventos y filtros: con la transparencia de tarjetas de este widget.
+            int base = p.hay ? p.suave : c.getColor(recurso);
+            if (p.tarjetas <= 0) return p.hay ? base : null;
+            return Color.argb(Math.round(Color.alpha(base) * (1 - p.tarjetas / 100f)), Color.red(base), Color.green(base), Color.blue(base));
+        }
         if (!p.hay) return null;
         if (recurso == R.color.widget_texto) return p.texto;
         if (recurso == R.color.widget_texto_tenue) return p.tenue;
         if (recurso == R.color.widget_acento) return p.acento;
         if (recurso == R.color.widget_boton_texto) return p.sobreAcento;
-        if (recurso == R.color.widget_barra_fondo || recurso == R.color.widget_evento_suave) return p.suave;
+        if (recurso == R.color.widget_barra_fondo) return p.suave;
         if (recurso == R.color.widget_fondo) return p.fondo;
         return null;
     }
