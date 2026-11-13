@@ -3,7 +3,7 @@ import { CalendarDays, CalendarRange, ChartArea, ChartPie, ChevronDown, Grid2x2,
 import { puenteEscritorio, useWidgetsAbiertos } from "../logica/puenteEscritorio";
 import { WIDGETS, type TipoWidget } from "../logica/widgetEscritorio";
 import { esAppNativa } from "../logica/plataforma";
-import { guardarAspecto, leerAspecto, LETRA_MAX_ESCRITORIO, LETRA_MIN_ESCRITORIO, MAX_ESQUINAS, MAX_TRANSPARENCIA, type AspectoWidget } from "../logica/aspectoWidget";
+import { guardarAspecto, leerAspecto, transparenciaTarjetas, LETRA_MAX_ESCRITORIO, LETRA_MIN_ESCRITORIO, MAX_ESQUINAS, MAX_TRANSPARENCIA, type AspectoWidget } from "../logica/aspectoWidget";
 import { leerEleccion, presetDe, TEMAS, temaEfectivo } from "../logica/temas";
 import { anclarWidget, CONFIG_INICIAL, LETRA_MAX, LETRA_MIN, configurarTipoWidget, puedeAnclarWidget, widgetsPorTipo, type ConfigWidget } from "../logica/widgetAndroid";
 
@@ -240,6 +240,7 @@ function AjustesWidgetEscritorio({ id, nombre }: { id: string; nombre: string })
     <div className="mx-3 mb-3 space-y-4 rounded-xl border border-borde p-3">
       <ElegirTema nombre={nombre} valor={a.temaId ?? ""} comoApp alElegir={(temaId) => cambiar({ temaId })} />
       <Deslizador etiqueta="Transparencia" valor={a.transparencia} max={MAX_TRANSPARENCIA} porcentaje={a.transparencia} alCambiar={(v) => cambiar({ transparencia: v })} />
+      <Deslizador etiqueta="Transparencia de tarjetas" valor={transparenciaTarjetas(a)} max={MAX_TRANSPARENCIA} porcentaje={transparenciaTarjetas(a)} alCambiar={(v) => cambiar({ tarjetas: v })} />
       <Deslizador etiqueta="Esquinas" valor={a.esquinas} max={MAX_ESQUINAS} porcentaje={Math.round((a.esquinas / MAX_ESQUINAS) * 100)} alCambiar={(v) => cambiar({ esquinas: v })} />
       <Deslizador etiqueta="Tamaño de letra" valor={letra} min={LETRA_MIN_ESCRITORIO} max={LETRA_MAX_ESCRITORIO} porcentaje={letra} alCambiar={(v) => cambiar({ letra: v })} />
     </div>
