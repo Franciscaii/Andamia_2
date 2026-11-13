@@ -11,6 +11,7 @@ import {
   MAX_ESQUINAS,
   MAX_TRANSPARENCIA,
   opacidades,
+  transparenciaTarjetas,
   type AspectoWidget,
 } from "../logica/aspectoWidget";
 
@@ -230,9 +231,10 @@ export function MarcoWidget({
   const o = opacidades(aspecto);
   const estilo = {
     borderRadius: aspecto.esquinas,
-    "--panel": `color-mix(in srgb, var(--panel-solido) ${Math.round(
-      o.tarjetas * 100
-    )}%, transparent)`,
+    "--panel": `color-mix(in srgb, var(--panel-solido) ${Math.round(o.tarjetas * 100)}%, transparent)`,
+    // Las columnas de cada día (y demás fondos suaves) siguen la misma transparencia que las tarjetas.
+    "--suave": `color-mix(in srgb, var(--app-suave) ${Math.round(o.tarjetas * 100)}%, transparent)`,
+    "--acento-suave": `color-mix(in srgb, var(--app-acento-suave) ${Math.round(o.tarjetas * 100)}%, transparent)`,
   } as CSSProperties;
 
   return (
@@ -297,6 +299,13 @@ export function MarcoWidget({
               max={MAX_TRANSPARENCIA}
               unidad="%"
               alCambiar={(v) => cambiar({ transparencia: v })}
+            />
+            <Deslizador
+              etiqueta="Tarjetas"
+              valor={transparenciaTarjetas(aspecto)}
+              max={MAX_TRANSPARENCIA}
+              unidad="%"
+              alCambiar={(v) => cambiar({ tarjetas: v })}
             />
             <Deslizador
               etiqueta="Esquinas"

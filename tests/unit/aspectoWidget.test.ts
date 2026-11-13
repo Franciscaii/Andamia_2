@@ -26,5 +26,9 @@ describe("aspecto de los widgets del escritorio", () => {
     const o = opacidades({ transparencia: 80, esquinas: 0 });
     expect(o.fondo).toBeCloseTo(0.2);
     expect(o.tarjetas).toBeCloseTo(0.4);
+    // Con su propio ajuste, las tarjetas no dependen del fondo.
+    expect(opacidades({ transparencia: 80, esquinas: 0, tarjetas: 10 }).tarjetas).toBeCloseTo(0.9);
+    guardarAspecto("semana", { transparencia: 0, esquinas: 0, tarjetas: 50 });
+    expect(leerAspecto("semana").tarjetas).toBe(50);
   });
 });

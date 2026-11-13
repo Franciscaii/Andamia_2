@@ -8,6 +8,8 @@ import { TEMAS } from "./temas";
 export interface AspectoWidget {
   /** 0 = fondo opaco, 90 = casi invisible. El texto siempre queda nítido. */
   transparencia: number;
+  /** Transparencia de las tarjetas y columnas (0 a 90). Sin elegir: algo menos que la del fondo. */
+  tarjetas?: number;
   /** Radio de las esquinas, en píxeles. */
   esquinas: number;
   /** Tema propio del widget; vacío = el mismo de la app. */
@@ -33,6 +35,7 @@ export function leerAspecto(id: string): AspectoWidget {
     if (g && typeof g === "object") {
       return {
         transparencia: entre(g.transparencia, 0, MAX_TRANSPARENCIA, ASPECTO_INICIAL.transparencia),
+        tarjetas: typeof g.tarjetas === "number" ? entre(g.tarjetas, 0, MAX_TRANSPARENCIA, 0) : undefined,
         esquinas: entre(g.esquinas, 0, MAX_ESQUINAS, ASPECTO_INICIAL.esquinas),
         temaId: typeof g.temaId === "string" && TEMAS.some((t) => t.id === g.temaId) ? g.temaId : "",
         letra: entre(g.letra, LETRA_MIN_ESCRITORIO, LETRA_MAX_ESCRITORIO, 100),
@@ -52,10 +55,14 @@ export function guardarAspecto(id: string, a: AspectoWidget) {
   }
 }
 
-/** Opacidad del fondo y de las tarjetas: las tarjetas se aclaran menos, para que se sigan leyendo. */
+/** Transparencia de las tarjetas: la elegida o, si no se ha elegido, tres cuartos de la del fondo. */
+export function transparenciaTarjetas(a: AspectoWidget): number {
+  return a.tarjetas ?? Math.round(a.transparencia * 0.75);
+}
+
+/** Opacidad del fondo y de las tarjetas (cada una con su propio ajuste). */
 export function opacidades(a: AspectoWidget): { fondo: number; tarjetas: number } {
-  const t = a.transparencia / 100;
-  return { fondo: 1 - t, tarjetas: 1 - t * 0.75 };
+  return { fondo: 1 - a.transparencia / 100, tarjetas: 1 - (a.tarjetas ?? a.transparencia * 0.75) / 100 };
 }
 
 /** Tamaños de texto de la app (Tailwind), para agrandarlos o achicarlos solo en un widget. */

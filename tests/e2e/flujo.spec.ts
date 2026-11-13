@@ -650,6 +650,9 @@ test("widget Semana del escritorio: 7 días, transparencia y esquinas", async ({
   await ajustes.getByLabel("Esquinas").fill("20");
   await expect(page.getByTestId("fondo-widget")).toHaveCSS("opacity", "0.4");
   await expect(page.getByTestId("marco-widget")).toHaveCSS("border-radius", "20px");
+  // Las tarjetas y columnas tienen su propia transparencia.
+  await ajustes.getByLabel("Tarjetas").fill("80");
+  await expect.poll(() => page.getByTestId("dia-semana").first().evaluate((e) => getComputedStyle(e).getPropertyValue("--suave"))).toContain("20%");
   // Se recuerda al volver a abrir el widget.
   await page.reload();
   await expect(page.getByTestId("fondo-widget")).toHaveCSS("opacity", "0.4");
