@@ -549,7 +549,7 @@ test("widget del escritorio: vista sola, sin menú, con barra para moverlo", asy
   await expect(page.getByTestId("dia-semana")).toHaveCount(7);
 });
 
-test("semana: los días vacíos se achican y el ancho se ajusta a mano", async ({ page }) => {
+test("semana: los días vacíos o completos quedan angostos aunque se ajuste el ancho", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
   await crearEnSemana(page, "Tarea", "Tarea con espacio");
@@ -560,18 +560,16 @@ test("semana: los días vacíos se achican y el ancho se ajusta a mano", async (
   const vacio = hoy === 0 ? 1 : 0;
   expect(auto[hoy]).toBeGreaterThan(auto[vacio] * 2);
 
-  // Arrastrar el borde derecho de la primera columna.
+  // Arrastrar un borde no ensancha los días sin pendientes: siguen angostos, y el día con tareas
+  // conserva todo el espacio. Doble clic vuelve a automático.
   const borde = await page.getByTestId("borde-columna").first().boundingBox();
   await page.mouse.move(borde!.x + 6, borde!.y + 100);
   await page.mouse.down();
   await page.mouse.move(borde!.x + 66, borde!.y + 100, { steps: 6 });
   await page.mouse.up();
   const manual = await anchos();
-  expect(Math.abs(manual[0] - auto[0] - 60)).toBeLessThan(12);
-  // Se recuerda, y doble clic vuelve a automático.
-  await page.reload();
-  await expect(page.getByTestId("dia-semana")).toHaveCount(7);
-  await expect.poll(async () => Math.abs((await anchos())[0] - manual[0])).toBeLessThan(4);
+  expect(manual[vacio]).toBe(auto[vacio]);
+  expect(Math.abs(manual[hoy] - auto[hoy])).toBeLessThan(4);
   await page.getByTestId("borde-columna").first().dblclick();
   await expect.poll(anchos).toEqual(auto);
   // Un día con todas sus tareas hechas queda tan angosto como uno sin nada.

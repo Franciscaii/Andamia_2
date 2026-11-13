@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { ASPECTO_INICIAL, guardarAspecto, leerAspecto, opacidades } from "../../src/logica/aspectoWidget";
+import { ASPECTO_INICIAL, guardarAspecto, leerAspecto, opacidades, variablesLetra } from "../../src/logica/aspectoWidget";
 
 describe("aspecto de los widgets del escritorio", () => {
   beforeEach(() => {
@@ -10,8 +10,15 @@ describe("aspecto de los widgets del escritorio", () => {
   it("recuerda cada widget por separado y acota los valores", () => {
     expect(leerAspecto("semana")).toEqual(ASPECTO_INICIAL);
     guardarAspecto("semana", { transparencia: 150, esquinas: -3 });
-    expect(leerAspecto("semana")).toEqual({ transparencia: 90, esquinas: 0 });
+    expect(leerAspecto("semana")).toEqual({ transparencia: 90, esquinas: 0, temaId: "", letra: 100 });
     expect(leerAspecto("matriz")).toEqual(ASPECTO_INICIAL);
+  });
+
+  it("guarda tema y tamaño de letra válidos", () => {
+    guardarAspecto("semana", { transparencia: 10, esquinas: 8, temaId: "no-existe", letra: 400 });
+    expect(leerAspecto("semana")).toMatchObject({ temaId: "", letra: 150 });
+    expect(variablesLetra(100)["--text-base"]).toBe("1rem");
+    expect(variablesLetra(150)["--text-base"]).toBe("1.5rem");
   });
 
   it("las tarjetas quedan más opacas que el fondo", () => {

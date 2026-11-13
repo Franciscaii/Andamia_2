@@ -3,8 +3,8 @@ import { CalendarDays, CalendarRange, ChartArea, ChartPie, ChevronDown, Grid2x2,
 import { puenteEscritorio, useWidgetsAbiertos } from "../logica/puenteEscritorio";
 import { WIDGETS, type TipoWidget } from "../logica/widgetEscritorio";
 import { esAppNativa } from "../logica/plataforma";
-import { MAX_TRANSPARENCIA } from "../logica/aspectoWidget";
-import { presetDe, TEMAS } from "../logica/temas";
+import { guardarAspecto, leerAspecto, LETRA_MAX_ESCRITORIO, LETRA_MIN_ESCRITORIO, MAX_ESQUINAS, MAX_TRANSPARENCIA, type AspectoWidget } from "../logica/aspectoWidget";
+import { leerEleccion, presetDe, TEMAS, temaEfectivo } from "../logica/temas";
 import { anclarWidget, CONFIG_INICIAL, LETRA_MAX, LETRA_MIN, configurarTipoWidget, puedeAnclarWidget, widgetsPorTipo, type ConfigWidget } from "../logica/widgetAndroid";
 
 const DETALLE: Record<TipoWidget, { icono: LucideIcon; texto: string }> = {
@@ -191,41 +191,107 @@ export function VistaWidgets() {
   return <WidgetsEscritorio />;
 }
 
+/** Círculos de tema; con `comoApp`, el primero deja el widget con el tema de la app. */
+function ElegirTema({ nombre, valor, comoApp, alElegir }: { nombre: string; valor: string; comoApp?: boolean; alElegir: (id: string) => void }) {
+  const app = temaEfectivo(leerEleccion());
+  const opciones = [...(comoApp ? [{ id: "", nombre: "Como la app", panel: app.panel, acento: app.acento }] : []), ...TEMAS];
+  return (
+    <div>
+      <p className="text-sm">Tema</p>
+      <div role="radiogroup" aria-label={`Tema de ${nombre}`} className="mt-2 flex flex-wrap gap-2.5">
+        {opciones.map((tema) => {
+          const elegido = valor === tema.id;
+          return (
+            <button
+              key={tema.id || "app"}
+              type="button"
+              role="radio"
+              aria-checked={elegido}
+              aria-label={tema.nombre}
+              title={tema.nombre}
+              onClick={() => alElegir(tema.id)}
+              className={`h-8 w-8 rounded-full border border-black/10 ${elegido ? "ring-2 ring-acento ring-offset-2 ring-offset-[var(--panel)]" : ""} ${tema.id ? "" : "outline-2 outline-dashed outline-offset-1 outline-borde"}`}
+              style={{ background: `linear-gradient(135deg, ${tema.panel} 50%, ${tema.acento} 50%)` }}
+            />
+          );
+        })}
+      </div>
+      <p className="mt-1.5 text-xs text-tenue">{valor ? presetDe(valor).nombre : "Como la app"}</p>
+    </div>
+  );
+}
+
+/** Tema, transparencia, esquinas y letra de un widget del PC; se ven al tiro en su ventana. */
+function AjustesWidgetEscritorio({ id, nombre }: { id: string; nombre: string }) {
+  const [a, setA] = useState<AspectoWidget>(() => leerAspecto(id));
+  // Si se cambia desde la esquinita del widget, también se ve aquí.
+  useEffect(() => {
+    const alCambiar = () => setA(leerAspecto(id));
+    window.addEventListener("storage", alCambiar);
+    return () => window.removeEventListener("storage", alCambiar);
+  }, [id]);
+  const cambiar = (c: Partial<AspectoWidget>) => {
+    const nuevo = { ...a, ...c };
+    setA(nuevo);
+    guardarAspecto(id, nuevo);
+  };
+  const letra = a.letra ?? 100;
+  return (
+    <div className="mx-3 mb-3 space-y-4 rounded-xl border border-borde p-3">
+      <ElegirTema nombre={nombre} valor={a.temaId ?? ""} comoApp alElegir={(temaId) => cambiar({ temaId })} />
+      <Deslizador etiqueta="Transparencia" valor={a.transparencia} max={MAX_TRANSPARENCIA} porcentaje={a.transparencia} alCambiar={(v) => cambiar({ transparencia: v })} />
+      <Deslizador etiqueta="Esquinas" valor={a.esquinas} max={MAX_ESQUINAS} porcentaje={Math.round((a.esquinas / MAX_ESQUINAS) * 100)} alCambiar={(v) => cambiar({ esquinas: v })} />
+      <Deslizador etiqueta="Tamaño de letra" valor={letra} min={LETRA_MIN_ESCRITORIO} max={LETRA_MAX_ESCRITORIO} porcentaje={letra} alCambiar={(v) => cambiar({ letra: v })} />
+    </div>
+  );
+}
+
+function TarjetaWidgetEscritorio({ w, puesto, alCambiarPuesto }: { w: (typeof WIDGETS)[number]; puesto: boolean; alCambiarPuesto: () => void }) {
+  const [abierta, setAbierta] = useState(false);
+  const { icono: Icono, texto } = DETALLE[w.id];
+  return (
+    <li data-testid="widget-disponible" className="rounded-2xl border border-borde bg-panel shadow-sm">
+      <div className="flex items-center gap-3 p-4">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-acento">
+          <Icono size={20} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">{w.nombre}</p>
+          <p className="text-xs text-tenue">{texto}</p>
+        </div>
+        <button
+          type="button"
+          aria-label={`${puesto ? "Quitar del escritorio" : "Añadir al escritorio"}: ${w.nombre}`}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${puesto ? "border border-borde text-tenue hover:text-texto" : "bg-acento text-sobre-acento hover:opacity-90"}`}
+          onClick={alCambiarPuesto}
+        >
+          {puesto ? "Quitar" : "Añadir"}
+        </button>
+        <button type="button" aria-expanded={abierta} aria-label={`Ajustes de ${w.nombre}`} className="shrink-0 rounded p-1 text-tenue hover:bg-suave" onClick={() => setAbierta(!abierta)}>
+          <ChevronDown size={18} className={`transition-transform ${abierta ? "rotate-180" : ""}`} />
+        </button>
+      </div>
+      {abierta && <AjustesWidgetEscritorio id={w.id} nombre={w.nombre} />}
+    </li>
+  );
+}
+
 function WidgetsEscritorio() {
   const abiertos = useWidgetsAbiertos();
   const puente = puenteEscritorio();
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-8">
       <h1 className="text-xl font-semibold">Widgets</h1>
-      <p className="mt-1 text-sm text-tenue">Ponlos en el escritorio de Windows. Quedan detrás de las ventanas y vuelven al iniciar.</p>
+      <p className="mt-1 text-sm text-tenue">Ponlos en el escritorio de Windows. Quedan detrás de las ventanas y vuelven al iniciar. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
       {!puente ? (
         <p className="mt-6 flex items-center gap-2 rounded-lg border border-borde bg-panel p-4 text-sm text-tenue">
           <Monitor size={18} /> Los widgets están disponibles en la app de Andamia para Windows.
         </p>
       ) : (
-        <ul className="mt-5 grid gap-3 sm:grid-cols-2" aria-label="Widgets del escritorio">
+        <ul className="mt-5 grid items-start gap-3 sm:grid-cols-2" aria-label="Widgets del escritorio">
           {WIDGETS.map((w) => {
-            const { icono: Icono, texto } = DETALLE[w.id];
             const puesto = abiertos.includes(w.id);
-            return (
-              <li key={w.id} data-testid="widget-disponible" className="flex items-center gap-3 rounded-xl border border-borde bg-panel p-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-acento">
-                  <Icono size={20} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold">{w.nombre}</p>
-                  <p className="text-xs text-tenue">{texto}</p>
-                </div>
-                <button
-                  type="button"
-                  aria-label={`${puesto ? "Quitar del escritorio" : "Añadir al escritorio"}: ${w.nombre}`}
-                  className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium ${puesto ? "border border-borde text-tenue hover:text-texto" : "bg-acento text-sobre-acento hover:opacity-90"}`}
-                  onClick={() => (puesto ? puente.cerrarWidget(w.id) : puente.abrirWidget(w.id))}
-                >
-                  {puesto ? "Quitar del escritorio" : "Añadir al escritorio"}
-                </button>
-              </li>
-            );
+            return <TarjetaWidgetEscritorio key={w.id} w={w} puesto={puesto} alCambiarPuesto={() => (puesto ? puente.cerrarWidget(w.id) : puente.abrirWidget(w.id))} />;
           })}
         </ul>
       )}

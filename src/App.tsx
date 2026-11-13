@@ -23,6 +23,7 @@ import { VistaMatriz } from "./vistas/VistaMatriz";
 import { VistaEstadisticas } from "./vistas/VistaEstadisticas";
 import { VistaSemana } from "./vistas/VistaSemana";
 import { VistaTareas } from "./vistas/VistaTareas";
+import { sincronizarVentanas } from "./datos/entreVentanas";
 
 function MotorEnfoque() {
   // Espera a que los datos carguen para no perder la sesión al registrarla.
@@ -94,6 +95,8 @@ export default function App() {
     // Primero se sabe quién usa la app; así no se ven por un instante datos de otra sesión.
     void iniciarCuenta()
       .then(cargar)
+      // La app del PC y sus widgets (u otras pestañas) se avisan cuando cambian los datos.
+      .then(sincronizarVentanas)
       .then(() => {
         // Sin Firebase, las etiquetas iniciales se agregan una vez en este equipo.
         // Con Firebase se agregan al entrar a la cuenta (ver sincronizarAjustes); así

@@ -26,3 +26,9 @@ describe("anchos de la semana", () => {
     expect(leerAnchos("2026-11-09")).toBeNull();
   });
 });
+
+describe("anchos por carga del día", () => {
+  it("el día con más pendientes se lleva más ancho, hasta el doble", () => {
+    expect(pesosAutomaticos([false, false, false, true], [1, 3, 20, 0])).toEqual([1, 1.4, 2, PESO_VACIO]);
+  });
+});
