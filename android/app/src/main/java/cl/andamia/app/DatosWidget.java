@@ -78,6 +78,24 @@ final class DatosWidget {
         return prefs(c).getInt("etiqueta_" + idWidget, -1);
     }
 
+    /** Período de un widget de estadísticas: "dia", "semana", "mes" o "anio". */
+    static void elegirPeriodo(Context c, int idWidget, String periodo) {
+        prefs(c).edit().putString("periodo_" + idWidget, periodo).apply();
+    }
+
+    static String periodo(Context c, int idWidget) {
+        return prefs(c).getString("periodo_" + idWidget, "semana");
+    }
+
+    /** Cuánto se movió con las flechas un widget de estadísticas: "pasos|día en que se movió". */
+    static void guardarPasoEstadistica(Context c, int idWidget, String paso) {
+        prefs(c).edit().putString("paso_est_" + idWidget, paso).apply();
+    }
+
+    static String pasoEstadistica(Context c, int idWidget) {
+        return prefs(c).getString("paso_est_" + idWidget, "");
+    }
+
     static synchronized void marcarCompletada(Context c, String id) {
         Set<String> ids = new HashSet<>(prefs(c).getStringSet(CLAVE_COMPLETADAS, new HashSet<>()));
         ids.add(id);

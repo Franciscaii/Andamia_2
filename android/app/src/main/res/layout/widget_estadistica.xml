@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widgets de estadísticas del celular: título, períodos Día / Semana / Mes / Año, "‹ período ›"
+  y una tarjeta dibujada como imagen (anillo, etiquetas y ondas; ver Dibujos.estadisticas).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Fondo con el tema, la transparencia y las esquinas de este widget (lo dibuja TemaWidget). -->
+    <ImageView
+        android:id="@+id/fondo_widget"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_fondo" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="12dp">
+
+        <TextView
+            android:id="@+id/est_titulo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="Mis tareas completadas"
+            android:textColor="@color/widget_texto"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/est_periodos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/widget_filtros"
+            android:orientation="horizontal"
+            android:padding="2dp">
+
+            <TextView
+                android:id="@+id/est_p_dia"
+                android:layout_width="0dp"
+                android:layout_height="26dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="Día"
+                android:textColor="@color/widget_texto"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/est_p_semana"
+                android:layout_width="0dp"
+                android:layout_height="26dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="Semana"
+                android:textColor="@color/widget_texto"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/est_p_mes"
+                android:layout_width="0dp"
+                android:layout_height="26dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="Mes"
+                android:textColor="@color/widget_texto"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/est_p_anio"
+                android:layout_width="0dp"
+                android:layout_height="26dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="Año"
+                android:textColor="@color/widget_texto"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/est_atras"
+                android:layout_width="36dp"
+                android:layout_height="30dp"
+                android:contentDescription="Período anterior"
+                android:gravity="center"
+                android:text="‹"
+                android:textColor="@color/widget_texto"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/est_periodo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text=""
+                android:textColor="@color/widget_texto"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/est_adelante"
+                android:layout_width="36dp"
+                android:layout_height="30dp"
+                android:contentDescription="Período siguiente"
+                android:gravity="center"
+                android:text="›"
+                android:textColor="@color/widget_texto"
+                android:textSize="24sp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/est_imagen"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Abrir las estadísticas en Andamia"
+                android:scaleType="fitXY" />
+
+            <!-- Zonas invisibles sobre cada etiqueta de la leyenda, para destacarla al tocarla. -->
+
+            <FrameLayout
+                android:id="@+id/est_zona_0"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:layout_gravity="top|start"
+                android:contentDescription="Destacar esta etiqueta"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/est_zona_1"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:layout_gravity="top|start"
+                android:contentDescription="Destacar esta etiqueta"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/est_zona_2"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:layout_gravity="top|start"
+                android:contentDescription="Destacar esta etiqueta"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/est_zona_3"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:layout_gravity="top|start"
+                android:contentDescription="Destacar esta etiqueta"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/est_zona_4"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:layout_gravity="top|start"
+                android:contentDescription="Destacar esta etiqueta"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/est_zona_5"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:layout_gravity="top|start"
+                android:contentDescription="Destacar esta etiqueta"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/est_zona_6"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:layout_gravity="top|start"
+                android:contentDescription="Destacar esta etiqueta"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:id="@+id/est_zona_7"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:layout_gravity="top|start"
+                android:contentDescription="Destacar esta etiqueta"
+                android:visibility="gone" />
+
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>
