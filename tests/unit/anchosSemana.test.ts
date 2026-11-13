@@ -27,8 +27,8 @@ describe("anchos de la semana", () => {
   });
 });
 
-describe("anchos por carga del día", () => {
-  it("el día con más pendientes se lleva más ancho, hasta el doble", () => {
-    expect(pesosAutomaticos([false, false, false, true], [1, 3, 20, 0])).toEqual([1, 1.4, 2, PESO_VACIO]);
+describe("anchos de los días con pendientes", () => {
+  it("todos los días con pendientes quedan igual de anchos", () => {
+    expect(pesosAutomaticos([false, false, false, true])).toEqual([1, 1, 1, PESO_VACIO]);
   });
 });

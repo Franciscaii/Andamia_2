@@ -711,7 +711,7 @@ function ResumenDiaAngosto({ dia, ahora, verEventos, verTareas, tareaAbierta, al
 }
 
 /** Anchos de las 7 columnas: automáticos (los días vacíos se achican) o ajustados a mano. */
-function useAnchosSemana(lunes: string, vacios: boolean[], cargas: number[] = []) {
+function useAnchosSemana(lunes: string, vacios: boolean[]) {
   const [manual, setManual] = useState<number[] | null>(() => leerAnchos(lunes));
   const [semana, setSemana] = useState(lunes);
   if (semana !== lunes) {
@@ -723,9 +723,9 @@ function useAnchosSemana(lunes: string, vacios: boolean[], cargas: number[] = []
   const actual = useRef<number[] | null>(manual);
   actual.current = manual;
 
-  const pesos = manual ?? pesosAutomaticos(vacios, cargas);
+  const pesos = manual ?? pesosAutomaticos(vacios);
   // Los días sin tareas por hacer (o con todas hechas) quedan siempre angostos, aunque los anchos
-  // se hayan ajustado a mano; los demás se reparten el resto, más ancho el que tiene más pendientes.
+  // se hayan ajustado a mano; los demás se reparten el resto por igual.
   const estilo = (i: number): CSSProperties =>
     vacios[i] ? { flex: `0 0 ${ANCHO_DIA_LIBRE}` } : manual ? { flex: `${pesos[i]} 1 0px`, minWidth: MINIMO_MANUAL } : { flex: `${pesos[i]} 1 0px`, minWidth: "10rem" };
   const mover = (i: number) => (dx: number, inicio: boolean) => {
@@ -799,9 +799,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   // Solo los días con tareas por hacer se llevan el ancho; los que no tienen nada o ya están
   // completos quedan lo más angostos posible. Con el filtro "Eventos", cuentan los eventos.
   const contenidos = dias.map((d) => contenidoDelDia(tareasTodas, listasTodas, d, ahora));
-  const cargas = contenidos.map((c) => (verTareas ? c.tareas.filter((t) => t.estado === "pendiente").length : 0) + (verEventos ? c.eventos.length : 0));
   const vacios = contenidos.map((c) => (verTareas ? !c.tareas.some((t) => t.estado === "pendiente") : !verEventos || c.eventos.length === 0));
-  const anchos = useAnchosSemana(claveDia(dias[0]), vacios, cargas);
+  const anchos = useAnchosSemana(claveDia(dias[0]), vacios);
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
   const elegirDia = (d: Date) => setElegido(d);
