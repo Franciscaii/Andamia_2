@@ -54,6 +54,70 @@ final class Dibujos {
         lienzo.drawText(corto, 0, corto.length(), x, y, p);
     }
 
+    // ---------- Interruptor de un hábito ----------
+
+    /** Aclara un color mezclándolo con blanco (0 = igual, 1 = blanco). */
+    private static int aclarar(int color, float cuanto) {
+        return Color.rgb(
+                Math.round(Color.red(color) + (255 - Color.red(color)) * cuanto),
+                Math.round(Color.green(color) + (255 - Color.green(color)) * cuanto),
+                Math.round(Color.blue(color) + (255 - Color.blue(color)) * cuanto));
+    }
+
+    /**
+     * Interruptor de 46×28 dp. Hecho: riel con el color del hábito (un degradado suave) y la perilla
+     * blanca con su ✓ a la derecha. Sin marcar: riel apagado con borde fino y la perilla a la izquierda.
+     */
+    static Bitmap interruptor(float d, boolean hecho, int color, int tenue) {
+        int ancho = Math.round(46 * d);
+        int alto = Math.round(28 * d);
+        Bitmap imagen = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888);
+        Canvas lienzo = new Canvas(imagen);
+        float margen = 3 * d;
+        RectF riel = new RectF(margen, margen, ancho - margen, alto - margen);
+        float radio = riel.height() / 2f;
+
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        if (hecho) {
+            p.setShader(new LinearGradient(riel.left, riel.top, riel.right, riel.bottom, aclarar(color, 0.28f), color, Shader.TileMode.CLAMP));
+            lienzo.drawRoundRect(riel, radio, radio, p);
+            p.setShader(null);
+        } else {
+            p.setColor(conAlfa(tenue, 40));
+            lienzo.drawRoundRect(riel, radio, radio, p);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(1.2f * d);
+            p.setColor(conAlfa(tenue, 120));
+            RectF borde = new RectF(riel);
+            borde.inset(0.6f * d, 0.6f * d);
+            lienzo.drawRoundRect(borde, radio, radio, p);
+            p.setStyle(Paint.Style.FILL);
+        }
+
+        // Perilla blanca con una sombra suave debajo.
+        float r = radio - 2.4f * d;
+        float cx = hecho ? riel.right - radio : riel.left + radio;
+        float cy = riel.centerY();
+        p.setColor(Color.WHITE);
+        p.setShadowLayer(2.4f * d, 0, 1.1f * d, Color.argb(hecho ? 90 : 60, 0, 0, 0));
+        lienzo.drawCircle(cx, cy, r, p);
+        p.clearShadowLayer();
+
+        // El ✓, trazado con puntas redondas: del color del hábito al estar hecho, gris tenue si no.
+        Paint tick = new Paint(Paint.ANTI_ALIAS_FLAG);
+        tick.setStyle(Paint.Style.STROKE);
+        tick.setStrokeWidth(1.9f * d);
+        tick.setStrokeCap(Paint.Cap.ROUND);
+        tick.setStrokeJoin(Paint.Join.ROUND);
+        tick.setColor(hecho ? color : Color.argb(70, 110, 116, 128));
+        Path trazo = new Path();
+        trazo.moveTo(cx - r * 0.42f, cy + r * 0.02f);
+        trazo.lineTo(cx - r * 0.10f, cy + r * 0.34f);
+        trazo.lineTo(cx + r * 0.44f, cy - r * 0.30f);
+        lienzo.drawPath(trazo, tick);
+        return imagen;
+    }
+
     private static void mensaje(Canvas lienzo, String s, int ancho, int alto, TextPaint p) {
         p.setTextAlign(Paint.Align.CENTER);
         lienzo.drawText(s, ancho / 2f, alto / 2f, p);

@@ -289,15 +289,14 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             // Color desconocido: queda el acento.
         }
         int tenue = color(contexto, R.color.widget_texto_tenue);
+        vista.setTextColor(R.id.habito_punto, propio);
         vista.setTextViewText(R.id.habito_titulo, f.titulo);
         vista.setTextColor(R.id.habito_titulo, color(contexto, R.color.widget_texto));
         TemaWidget.tenirFondo(vista, R.id.habito_fila, color(contexto, R.color.widget_evento_suave));
         // Interruptor: hecho = riel del color del hábito y la perilla con su ✓ a la derecha; sin marcar = riel apagado y perilla a la izquierda.
-        vista.setViewVisibility(R.id.habito_perilla_izq, f.hecha ? View.GONE : View.VISIBLE);
-        vista.setViewVisibility(R.id.habito_perilla_der, f.hecha ? View.VISIBLE : View.GONE);
-        vista.setTextColor(R.id.habito_perilla_izq, Color.argb(120, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
-        vista.setTextColor(R.id.habito_perilla_der, propio);
-        TemaWidget.tenirFondo(vista, R.id.habito_marca, f.hecha ? propio : Color.argb(70, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
+        float densidad = contexto.getResources().getDisplayMetrics().density;
+        vista.setImageViewBitmap(R.id.habito_marca, Dibujos.interruptor(densidad, f.hecha, propio, tenue));
+        if (!f.marcable) vista.setInt(R.id.habito_marca, "setImageAlpha", 110);
         if (f.marcable) {
             Intent marcar = new Intent();
             marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")));
