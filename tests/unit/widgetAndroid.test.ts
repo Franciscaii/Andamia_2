@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { habitosDelDia } from "../../src/logica/habitos";
-import { datosDelWidget, datosDeWidgets, leerHabitosMarcados } from "../../src/logica/widgetAndroid";
+import { datosDelWidget, datosDeWidgets, leerHabitosMarcados, mesDelWidget } from "../../src/logica/widgetAndroid";
 import type { Habito, Lista, RegistroHabito, Tarea } from "../../src/modelos/tipos";
 
 const base: Tarea = {
@@ -122,7 +122,7 @@ describe("tema y aspecto de los widgets de Android", () => {
 describe("meses del widget Calendario", () => {
   it("manda 9 meses (2 antes y 6 después), con el actual marcado", async () => {
     const { mesesDelWidget } = await import("../../src/logica/widgetAndroid");
-    const meses = mesesDelWidget({ tareas: [], listas: [], etiquetas: [], habitos: [], marcas: [] } as never, new Date(2026, 10, 11));
+    const meses = mesesDelWidget({ tareas: [], listas: [], etiquetas: [], habitos: [], registros: [] } as never, new Date(2026, 10, 11));
     expect(meses).toHaveLength(9);
     expect(meses[2].actual).toBe(true);
     expect(meses[2].corto).toBe("Nov");
@@ -206,6 +206,15 @@ describe("hábitos en el widget Semana", () => {
   it("habitosDelDia deja marcar hoy y antes, no después", () => {
     expect(habitosDelDia(habitos, registros, new Date(2026, 10, 10), ahora).map((h) => [h.habito.id, h.estado, h.marcable])).toEqual([["h1", null, true]]);
     expect(habitosDelDia(habitos, registros, new Date(2026, 10, 13), ahora).every((h) => !h.marcable)).toBe(true);
+  });
+
+  it("el mes manda sus hábitos una vez y cada día dice cuáles le tocan y si están hechos", () => {
+    const mes = mesDelWidget({ tareas: [], listas, etiquetas: [], habitos, registros } as never, ahora);
+    expect(mes.habitos).toEqual([{ titulo: "Clase", color: "#3f74b5" }, { titulo: "Leer", color: "#3f74b5" }]);
+    const dia = (fecha: string) => mes.celdas.find((c) => c.fecha === fecha)!.habitos;
+    expect(dia("2026-11-09")).toEqual([]);
+    expect(dia("2026-11-11")).toEqual([3]); // Leer (posición 1), hecho
+    expect(dia("2026-11-12")).toEqual([0, 2]); // Clase y Leer, sin marcar
   });
 
   it("lee las marcas hechas en el widget y descarta lo que no entiende", () => {

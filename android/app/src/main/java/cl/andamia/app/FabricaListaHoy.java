@@ -282,7 +282,6 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     private RemoteViews filaHabito(Fila f) {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_habito);
         TemaWidget.letra(vista, R.id.habito_titulo, 14);
-        TemaWidget.letra(vista, R.id.habito_marca, 13);
         int propio = color(contexto, R.color.widget_acento);
         try {
             if (!f.color.isEmpty()) propio = Color.parseColor(f.color);
@@ -293,10 +292,12 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setTextViewText(R.id.habito_titulo, f.titulo);
         vista.setTextColor(R.id.habito_titulo, color(contexto, R.color.widget_texto));
         TemaWidget.tenirFondo(vista, R.id.habito_fila, color(contexto, R.color.widget_evento_suave));
-        // Hecho: píldora llena con el color del hábito y su ✓. Sin marcar: píldora apagada con un círculo.
-        vista.setTextViewText(R.id.habito_marca, f.hecha ? "✓" : "○");
-        vista.setTextColor(R.id.habito_marca, f.hecha ? Color.WHITE : tenue);
-        TemaWidget.tenirFondo(vista, R.id.habito_marca, f.hecha ? propio : Color.argb(46, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
+        // Interruptor: hecho = riel del color del hábito y la perilla con su ✓ a la derecha; sin marcar = riel apagado y perilla a la izquierda.
+        vista.setViewVisibility(R.id.habito_perilla_izq, f.hecha ? View.GONE : View.VISIBLE);
+        vista.setViewVisibility(R.id.habito_perilla_der, f.hecha ? View.VISIBLE : View.GONE);
+        vista.setTextColor(R.id.habito_perilla_izq, Color.argb(120, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
+        vista.setTextColor(R.id.habito_perilla_der, propio);
+        TemaWidget.tenirFondo(vista, R.id.habito_marca, f.hecha ? propio : Color.argb(70, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
         if (f.marcable) {
             Intent marcar = new Intent();
             marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")));

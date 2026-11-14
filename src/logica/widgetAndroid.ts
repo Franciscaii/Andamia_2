@@ -131,6 +131,9 @@ export function mesDelWidget(e: Estado, ahora: Date, base: Date = ahora) {
   const inicio = startOfWeek(startOfMonth(base), { weekStartsOn: 1 });
   const fin = endOfMonth(base);
   const celdas = [];
+  // Los hábitos del mes van una vez, y cada día dice cuáles le tocan: posición * 2 + (1 si está hecho).
+  const activos = e.habitos.filter((h) => !h.archivado).sort((a, b) => a.orden - b.orden);
+  const posicion = new Map(activos.map((h, i) => [h.id, i]));
   for (let dia = inicio; dia <= fin || celdas.length % 7 !== 0; dia = addDays(dia, 1)) {
     const c = contenidoDelDia(e.tareas, e.listas, dia, ahora);
     const entradas = [
@@ -145,6 +148,7 @@ export function mesDelWidget(e: Estado, ahora: Date, base: Date = ahora) {
       entradas: entradas.slice(0, MAX_POR_CELDA),
       total: entradas.length,
       eventos: c.eventos.length,
+      habitos: habitosDelDia(activos, e.registros, dia, ahora).map((h) => posicion.get(h.habito.id)! * 2 + (h.estado === "hecho" ? 1 : 0)),
     });
   }
   const mes = format(base, "MMMM yyyy", { locale: es });
@@ -154,6 +158,7 @@ export function mesDelWidget(e: Estado, ahora: Date, base: Date = ahora) {
     // Como en la app: "Nov", y el año solo si no es el actual.
     corto: corto.charAt(0).toUpperCase() + corto.slice(1) + (base.getFullYear() !== ahora.getFullYear() ? ` ${base.getFullYear()}` : ""),
     actual: isSameMonth(base, ahora),
+    habitos: activos.map((h) => ({ titulo: h.nombre, color: h.color })),
     celdas,
   };
 }

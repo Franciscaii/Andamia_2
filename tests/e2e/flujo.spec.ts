@@ -118,7 +118,7 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
   await expect(page.getByRole("dialog", { name: "Nuevo hábito" })).toBeVisible();
 });
 
-test("semana: los hábitos del día se marcan con su ✓ y tienen su propio filtro", async ({ page }) => {
+test("semana: los hábitos del día se marcan con su interruptor y tienen su propio filtro", async ({ page }) => {
   await page.goto("/#/habitos");
   await page.getByRole("button", { name: "Nuevo hábito" }).click();
   await page.getByLabel("Nombre del hábito").fill("Estirar");
@@ -126,7 +126,7 @@ test("semana: los hábitos del día se marcan con su ✓ y tienen su propio filt
   await expect(page.getByTestId("habito")).toHaveCount(1);
 
   await page.goto("/#/semana");
-  const marca = page.getByRole("checkbox", { name: "Hábito Estirar" }).first();
+  const marca = page.getByRole("switch", { name: "Hábito Estirar" }).first();
   await expect(marca).toHaveAttribute("aria-checked", "false");
   await marca.click();
   await expect(marca).toHaveAttribute("aria-checked", "true");
@@ -145,6 +145,16 @@ test("semana: los hábitos del día se marcan con su ✓ y tienen su propio filt
   await expect(marca).toHaveAttribute("aria-checked", "true");
   await marca.click();
   await expect(marca).toHaveAttribute("aria-checked", "false");
+
+  // En el Calendario, "Hábitos" muestra solo los hábitos de cada día y también se marcan ahí.
+  await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
+  const hoy = page.locator(`[data-zona="dia:${hoyEnSantiago()}"]`);
+  await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Hábitos" }).click();
+  const chip = hoy.getByRole("checkbox", { name: "Hábito Estirar" });
+  await chip.click();
+  await expect(chip).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Tareas" }).click();
+  await expect(page.getByTestId("chip-habito")).toHaveCount(0);
 });
 
 test("detalle, papelera y restaurar", async ({ page }) => {

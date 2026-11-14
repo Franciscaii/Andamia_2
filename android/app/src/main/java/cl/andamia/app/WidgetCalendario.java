@@ -19,15 +19,15 @@ import org.json.JSONObject;
 
 /**
  * Widget "Calendario" del celular, como la vista Calendario de la app: arriba "‹ Nov ›" para
- * cambiar de mes, los filtros Tareas / Eventos / Todos y el "+"; abajo el mes dibujado como
+ * cambiar de mes, los filtros Hábitos / Tareas / Eventos / Todos y el "+"; abajo el mes dibujado como
  * imagen. Vuelve al mes actual cuando cambia el mes.
  */
 public class WidgetCalendario extends AppWidgetProvider {
     private static final String ACCION = "cl.andamia.app.WIDGET_CALENDARIO";
     private static final String EXTRA_MES = "cl.andamia.app.MES";
     private static final String EXTRA_FILTRO = "cl.andamia.app.FILTRO";
-    private static final String[] FILTROS = { "tareas", "eventos", "todos" };
-    private static final int[] BOTONES_FILTRO = { R.id.cal_f_tareas, R.id.cal_f_eventos, R.id.cal_f_todos };
+    private static final String[] FILTROS = { "habitos", "tareas", "eventos", "todos" };
+    private static final int[] BOTONES_FILTRO = { R.id.cal_f_habitos, R.id.cal_f_tareas, R.id.cal_f_eventos, R.id.cal_f_todos };
     /** Alto aproximado de la fila de arriba (dp), para dibujar el mes con su proporción real. */
     private static final int ALTO_CABECERA_DP = 66;
 
@@ -99,6 +99,7 @@ public class WidgetCalendario extends AppWidgetProvider {
         TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_calendario);
         TemaWidget.letra(vista, R.id.cal_mes, 19);
+        TemaWidget.letra(vista, R.id.cal_f_habitos, 12);
         TemaWidget.letra(vista, R.id.cal_f_tareas, 12);
         TemaWidget.letra(vista, R.id.cal_f_eventos, 12);
         TemaWidget.letra(vista, R.id.cal_f_todos, 12);
