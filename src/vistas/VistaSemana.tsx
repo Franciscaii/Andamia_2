@@ -15,6 +15,7 @@ import { ordenEntre } from "../logica/vistas";
 import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
 import { hashDe, irA, type Seccion } from "../logica/ruta";
+import { habitosDelDia } from "../logica/habitos";
 import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
 import { pesosAutomaticos } from "../logica/anchosSemana";
 import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
@@ -28,6 +29,7 @@ const NOMBRE_NIVEL: Record<Prioridad, string> = { alta: "Alta", media: "Media", 
 export const FILTROS: { id: FiltroSemana; nombre: string }[] = [
   { id: "tareas", nombre: "Tareas" },
   { id: "eventos", nombre: "Eventos" },
+  { id: "habitos", nombre: "Hábitos" },
   { id: "todos", nombre: "Todos" },
 ];
 
@@ -429,8 +431,46 @@ function leerAlcance(): Alcance {
   }
 }
 
-/** Eventos y la tarjeta de tareas (pendientes ordenables y completadas) de un día. */
-function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compacto }: { dia: Date; ahora: Date; verEventos: boolean; verTareas: boolean; tareaAbierta: string | null; compacto: boolean }) {
+/** Los hábitos que tocan un día: el nombre y una píldora con ✓ para marcarlo como hecho (o quitar la marca). */
+function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha?: boolean }) {
+  const habitos = useTienda((s) => s.habitos);
+  const registros = useTienda((s) => s.registros);
+  const registrarHabito = useTienda((s) => s.registrarHabito);
+  const delDia = habitosDelDia(habitos, registros, dia, ahora);
+  if (!delDia.length) return null;
+  const fecha = claveDia(dia);
+  return (
+    <ul aria-label="Hábitos" className={estrecha ? "space-y-1" : "mb-3 space-y-1"}>
+      {delDia.map(({ habito: h, estado, marcable }) => {
+        const hecho = estado === "hecho";
+        return (
+          <li key={h.id} data-testid="habito-semana" className={`flex items-center rounded-lg bg-panel ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-3 py-1.5"}`}>
+            <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : "flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
+              {h.nombre}
+            </span>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={hecho}
+              aria-label={`Hábito ${h.nombre}`}
+              disabled={!marcable}
+              title={marcable ? (hecho ? "Quitar la marca" : "Marcar como hecho") : "Todavía no llega este día"}
+              style={hecho ? { background: h.color, borderColor: h.color } : { borderColor: h.color }}
+              className={`flex h-6 shrink-0 items-center justify-center rounded-full border ${estrecha ? "w-9" : "w-11"} ${marcable ? "" : "opacity-40"}`}
+              onClick={() => void registrarHabito(h.id, fecha, hecho ? null : { estado: "hecho", valor: h.metaDiaria })}
+            >
+              <Check size={14} strokeWidth={3} style={{ color: hecho ? "#fff" : h.color }} />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Eventos, hábitos y la tarjeta de tareas (pendientes ordenables y completadas) de un día. */
+function ContenidoDia({ dia, ahora, verEventos, verTareas, verHabitos, tareaAbierta, compacto }: { dia: Date; ahora: Date; verEventos: boolean; verTareas: boolean; verHabitos: boolean; tareaAbierta: string | null; compacto: boolean }) {
+  const hayHabitos = useTienda((s) => verHabitos && habitosDelDia(s.habitos, s.registros, dia, ahora).length > 0);
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
   const contenido = contenidoDelDia(tareas, listas, dia, ahora);
@@ -438,7 +478,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compact
   const hechas = contenido.tareas.filter((t) => t.estado === "completada");
   const esHoy = isSameDay(dia, ahora);
 
-  if (compacto && (!verEventos || contenido.eventos.length === 0) && (!verTareas || contenido.tareas.length === 0)) {
+  if (compacto && !hayHabitos && (!verEventos || contenido.eventos.length === 0) && (!verTareas || contenido.tareas.length === 0)) {
     return <p className="px-1 py-1 text-sm text-tenue">Nada este día.</p>;
   }
 
@@ -451,7 +491,9 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, tareaAbierta, compact
           ))}
         </ul>
       )}
-      {!compacto && !verTareas && contenido.eventos.length === 0 && <p className="mt-8 text-center text-sm text-tenue">No hay eventos este día. Toca + para añadir.</p>}
+      {verHabitos && <HabitosDia dia={dia} ahora={ahora} />}
+      {!compacto && !verTareas && verEventos && !hayHabitos && contenido.eventos.length === 0 && <p className="mt-8 text-center text-sm text-tenue">No hay eventos este día. Toca + para añadir.</p>}
+      {!compacto && !verTareas && !verEventos && !hayHabitos && <p className="mt-8 text-center text-sm text-tenue">No hay hábitos para este día. Toca + para añadir.</p>}
 
       {verTareas && (!compacto || contenido.tareas.length > 0) && (
         <div data-testid="tarjeta-tareas" className="overflow-hidden rounded-xl border border-borde bg-panel">
@@ -632,7 +674,7 @@ function ColumnaDia({ dia, esHoy, ahora, estilo, angosta = false, children }: { 
 const ANCHO_DIA_LIBRE = "65px";
 
 /** Contenido de un día angosto: sus eventos (cortos) y, si tiene tareas, un "✓ hechas/total" que abre el día. */
-function ResumenDiaAngosto({ dia, ahora, verEventos, verTareas, tareaAbierta, alAbrir }: { dia: Date; ahora: Date; verEventos: boolean; verTareas: boolean; tareaAbierta: string | null; alAbrir: () => void }) {
+function ResumenDiaAngosto({ dia, ahora, verEventos, verTareas, verHabitos, tareaAbierta, alAbrir }: { dia: Date; ahora: Date; verEventos: boolean; verTareas: boolean; verHabitos: boolean; tareaAbierta: string | null; alAbrir: () => void }) {
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
   const contenido = contenidoDelDia(tareas, listas, dia, ahora);
@@ -646,6 +688,7 @@ function ResumenDiaAngosto({ dia, ahora, verEventos, verTareas, tareaAbierta, al
           ))}
         </ul>
       )}
+      {verHabitos && <HabitosDia dia={dia} ahora={ahora} estrecha />}
       {verTareas && total > 0 && (
         <button
           type="button"
@@ -709,8 +752,9 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   };
 
   const dias = diasDeSemana(elegido);
-  const verEventos = filtro !== "tareas";
-  const verTareas = filtro !== "eventos";
+  const verEventos = filtro === "eventos" || filtro === "todos";
+  const verTareas = filtro === "tareas" || filtro === "todos";
+  const verHabitos = filtro === "habitos" || filtro === "todos";
   const mesCorto = format(elegido, "MMM", { locale: es }).replace(".", "");
   const mes = (mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1)) + (elegido.getFullYear() !== ahora.getFullYear() ? ` ${elegido.getFullYear()}` : "");
 
@@ -719,7 +763,16 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   // Solo los días con tareas por hacer se llevan el ancho; los que no tienen nada o ya están
   // completos quedan lo más angostos posible. Con el filtro "Eventos", cuentan los eventos.
   const contenidos = dias.map((d) => contenidoDelDia(tareasTodas, listasTodas, d, ahora));
-  const vacios = contenidos.map((c) => (verTareas ? !c.tareas.some((t) => t.estado === "pendiente") : !verEventos || c.eventos.length === 0));
+  const habitosTodos = useTienda((s) => s.habitos);
+  const registrosTodos = useTienda((s) => s.registros);
+  // Con el filtro "Hábitos", cuentan los hábitos que faltan por marcar.
+  const vacios = contenidos.map((c, i) =>
+    verTareas
+      ? !c.tareas.some((t) => t.estado === "pendiente")
+      : verEventos
+        ? c.eventos.length === 0
+        : !habitosDelDia(habitosTodos, registrosTodos, dias[i], ahora).some((h) => h.estado !== "hecho"),
+  );
   const anchos = useAnchosSemana(vacios);
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
@@ -837,7 +890,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       {alcance === "dia" ? (
         <div data-widget-desplazable className={`min-h-0 flex-1 overflow-y-auto px-4 sm:px-6 ${EN_WIDGET ? "pb-3" : "pb-8"}`}>
           <div>
-            <ContenidoDia dia={elegido} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto={false} />
+            <ContenidoDia dia={elegido} ahora={ahora} verEventos={verEventos} verTareas={verTareas} verHabitos={verHabitos} tareaAbierta={tareaAbierta} compacto={false} />
           </div>
         </div>
       ) : (
@@ -866,6 +919,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                       ahora={ahora}
                       verEventos={verEventos}
                       verTareas={verTareas}
+                      verHabitos={verHabitos}
                       tareaAbierta={tareaAbierta}
                       alAbrir={() => {
                         setElegido(d);
@@ -894,7 +948,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                       alElegir={(tipo) => nuevoEn(tipo, d)}
                     />
                   </div>
-                  <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} tareaAbierta={tareaAbierta} compacto />
+                  <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} verHabitos={verHabitos} tareaAbierta={tareaAbierta} compacto />
                 </ColumnaDia>
                 </Fragment>
               );

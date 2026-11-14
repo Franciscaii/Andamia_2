@@ -14,6 +14,7 @@ import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -22,6 +23,7 @@ import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.text.SimpleDateFormat;
@@ -46,6 +48,8 @@ public class NuevaRapidaActivity extends Activity {
     /** Íconos de hábito de la app (IconoHabito.tsx), dibujados con un emoji parecido. */
     private static final String[] ICONOS = { "estrella", "agua", "libro", "pesas", "pasos", "bici", "sueno", "fruta", "ensalada", "mente", "pastilla", "musica", "escritura", "hoja", "sol", "corazon" };
     private static final String[] EMOJIS = { "⭐", "💧", "📖", "🏋️", "👣", "🚲", "🛏️", "🍎", "🥗", "🧠", "💊", "🎵", "✏️", "🍃", "☀️", "❤️" };
+    /** Marca del círculo "otro color" de los hábitos. */
+    private static final String PERSONALIZADO = "*";
     private static final String[] COLORES_HABITO = { "#c2553d", "#d48a2c", "#b7a42e", "#4f8a4c", "#2f8f83", "#3f74b5", "#7a5fb0", "#b65583" };
     private static final String MORADO_EVENTO = "#9b5cd6";
     private static final String[] DIAS = { "L", "M", "M", "J", "V", "S", "D" };
@@ -100,8 +104,9 @@ public class NuevaRapidaActivity extends Activity {
         tarjeta.setPadding(px(16), px(14), px(16), px(12));
         tarjeta.setBackground(redondo(fondo, 0, 20));
         tarjeta.setElevation(px(8));
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.TOP);
-        lp.setMargins(px(12), px(48), px(12), px(12));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL);
+        // Al medio de la pantalla, no pegada arriba.
+        lp.setMargins(px(12), px(24), px(12), px(24));
         raiz.addView(tarjeta, lp);
         setContentView(raiz);
         mostrarMenu();
@@ -112,7 +117,7 @@ public class NuevaRapidaActivity extends Activity {
     private void mostrarMenu() {
         tarjeta.removeAllViews();
         tarjeta.addView(titulo("¿Qué quieres añadir?"));
-        tarjeta.addView(opcion("☑️", "Tarea", () -> mostrarFormulario("tarea")));
+        tarjeta.addView(opcion("✅", "Tarea", () -> mostrarFormulario("tarea")));
         tarjeta.addView(opcion("📅", "Evento", () -> mostrarFormulario("evento")));
         tarjeta.addView(opcion("🔥", "Hábito", () -> mostrarFormulario("habito")));
     }
@@ -306,7 +311,7 @@ public class NuevaRapidaActivity extends Activity {
         JSONArray lista = formulario == null ? null : formulario.optJSONArray("coloresEvento");
         for (int i = 0; lista != null && i < lista.length(); i++) colores.add(lista.optString(i));
         if (lista == null) for (String c : COLORES_HABITO) colores.add(c);
-        return circulos(colores, true);
+        return circulos(colores, true, null, null);
     }
 
     private View coloresHabito() {
@@ -315,11 +320,45 @@ public class NuevaRapidaActivity extends Activity {
         for (int i = 0; lista != null && i < lista.length(); i++) colores.add(lista.optString(i));
         if (colores.isEmpty()) for (String c : COLORES_HABITO) colores.add(c);
         if (!colores.contains(colorHabito)) colorHabito = colores.get(0);
-        return circulos(colores, false);
+        // Además de los colores fijos, uno a elección: el último círculo abre una barra de tonos.
+        final List<String> fijos = new ArrayList<>(colores);
+        colores.add(PERSONALIZADO);
+        LinearLayout zona = new LinearLayout(this);
+        zona.setOrientation(LinearLayout.VERTICAL);
+        final SeekBar tonos = new SeekBar(this);
+        tonos.setMax(360);
+        tonos.setProgress(200);
+        tonos.setVisibility(View.GONE);
+        final View fila = circulos(colores, false, fijos, () -> tonos.setVisibility(View.VISIBLE));
+        tonos.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar barra, int tono, boolean delUsuario) {
+                if (!delUsuario) return;
+                colorHabito = String.format(Locale.US, "#%06x", 0xFFFFFF & Color.HSVToColor(new float[] { tono, 0.62f, 0.8f }));
+                repintarCirculos(fila, fijos);
+            }
+            @Override public void onStartTrackingTouch(SeekBar barra) {}
+            @Override public void onStopTrackingTouch(SeekBar barra) {}
+        });
+        zona.addView(fila, ancho());
+        LinearLayout.LayoutParams lt = ancho();
+        lt.topMargin = px(6);
+        zona.addView(tonos, lt);
+        return zona;
+    }
+
+    /** Vuelve a pintar los círculos de una fila (están dentro de su desplazamiento horizontal). */
+    private void repintarCirculos(View fila, List<String> fijos) {
+        if (!(fila instanceof ViewGroup)) return;
+        ViewGroup g = (ViewGroup) fila;
+        for (int i = 0; i < g.getChildCount(); i++) {
+            View v = g.getChildAt(i);
+            if (v instanceof TextView && v.getTag() instanceof String) pintarCirculo((TextView) v, false, fijos);
+            else repintarCirculos(v, fijos);
+        }
     }
 
     /** Círculos de color; en eventos el primero es el morado por defecto (sin color propio). */
-    private View circulos(List<String> colores, boolean deEvento) {
+    private View circulos(List<String> colores, boolean deEvento, List<String> fijos, Runnable alPersonalizar) {
         LinearLayout f = new LinearLayout(this);
         List<TextView> todos = new ArrayList<>();
         for (String c : colores) {
@@ -331,26 +370,36 @@ public class NuevaRapidaActivity extends Activity {
             punto.setTag(valor == null ? "" : valor);
             todos.add(punto);
             punto.setOnClickListener(v -> {
-                if (deEvento) colorEvento = valor;
+                if (PERSONALIZADO.equals(valor)) {
+                    // Parte de un tono propio y muestra la barra para cambiarlo.
+                    if (fijos != null && fijos.contains(colorHabito)) colorHabito = "#3d94cc";
+                    if (alPersonalizar != null) alPersonalizar.run();
+                } else if (deEvento) colorEvento = valor;
                 else colorHabito = valor;
-                for (TextView o : todos) pintarCirculo(o, deEvento);
+                for (TextView o : todos) pintarCirculo(o, deEvento, fijos);
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(px(30), px(30));
             lp.rightMargin = px(8);
             f.addView(punto, lp);
         }
-        for (TextView o : todos) pintarCirculo(o, deEvento);
+        for (TextView o : todos) pintarCirculo(o, deEvento, fijos);
         return desplazarHorizontal(f);
     }
 
-    private void pintarCirculo(TextView punto, boolean deEvento) {
+    private void pintarCirculo(TextView punto, boolean deEvento, List<String> fijos) {
         String valor = (String) punto.getTag();
         String elegido = deEvento ? (colorEvento == null ? "" : colorEvento) : colorHabito;
-        boolean es = valor.equals(elegido);
-        int color = colorSeguro(valor.isEmpty() ? MORADO_EVENTO : valor, acento);
+        boolean propio = PERSONALIZADO.equals(valor);
+        boolean es = propio ? fijos != null && !fijos.contains(colorHabito) : valor.equals(elegido);
         GradientDrawable g = new GradientDrawable();
         g.setShape(GradientDrawable.OVAL);
-        g.setColor(color);
+        if (propio && !es) {
+            // Sin elegir: un arcoíris, para que se entienda que es "otro color".
+            g.setGradientType(GradientDrawable.SWEEP_GRADIENT);
+            g.setColors(new int[] { 0xFFE5484D, 0xFFF5D90A, 0xFF30A46C, 0xFF00A2C7, 0xFF3E63DD, 0xFFD6409F, 0xFFE5484D });
+        } else {
+            g.setColor(colorSeguro(propio ? colorHabito : valor.isEmpty() ? MORADO_EVENTO : valor, acento));
+        }
         if (es) g.setStroke(px(2.5f), texto);
         punto.setBackground(g);
         punto.setText(es ? "✓" : "");

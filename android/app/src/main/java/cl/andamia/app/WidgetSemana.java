@@ -19,7 +19,7 @@ import org.json.JSONObject;
 
 /**
  * Widget "Semana" del celular, como la vista Día de la app: arriba el mes con flechas para
- * cambiar de semana, los filtros Tareas / Eventos / Todos y el "+"; luego la tira de 7 días
+ * cambiar de semana, los filtros Tareas / Eventos / Hábitos / Todos y el "+"; luego la tira de 7 días
  * (el elegido en un círculo y un punto en los días con algo); abajo, los eventos y las tarjetas
  * "Tareas hoy" y "Completadas" del día elegido. Parte en hoy y vuelve a hoy al día siguiente.
  */
@@ -43,8 +43,8 @@ public class WidgetSemana extends AppWidgetProvider {
         R.id.semana_pto_0, R.id.semana_pto_1, R.id.semana_pto_2, R.id.semana_pto_3,
         R.id.semana_pto_4, R.id.semana_pto_5, R.id.semana_pto_6,
     };
-    private static final String[] FILTROS = { "tareas", "eventos", "todos" };
-    private static final int[] BOTONES_FILTRO = { R.id.semana_f_tareas, R.id.semana_f_eventos, R.id.semana_f_todos };
+    private static final String[] FILTROS = { "tareas", "eventos", "habitos", "todos" };
+    private static final int[] BOTONES_FILTRO = { R.id.semana_f_tareas, R.id.semana_f_eventos, R.id.semana_f_habitos, R.id.semana_f_todos };
 
     @Override
     public void onUpdate(Context contexto, AppWidgetManager gestor, int[] ids) {
@@ -129,8 +129,12 @@ public class WidgetSemana extends AppWidgetProvider {
         JSONArray tareas = d.optJSONArray("tareas");
         boolean hayEventos = eventos != null && eventos.length() > 0;
         boolean hayTareas = tareas != null && tareas.length() > 0;
+        JSONArray habitos = d.optJSONArray("habitos");
+        boolean hayHabitos = habitos != null && habitos.length() > 0;
         if ("tareas".equals(filtro)) return hayTareas;
         if ("eventos".equals(filtro)) return hayEventos;
+        if ("habitos".equals(filtro)) return hayHabitos;
+        // Los hábitos son de todos los días: no cuentan para el punto de "este día tiene algo".
         return hayEventos || hayTareas;
     }
 
@@ -144,6 +148,7 @@ public class WidgetSemana extends AppWidgetProvider {
         TemaWidget.letra(vista, R.id.semana_mes, 16);
         TemaWidget.letra(vista, R.id.semana_f_tareas, 12);
         TemaWidget.letra(vista, R.id.semana_f_eventos, 12);
+        TemaWidget.letra(vista, R.id.semana_f_habitos, 12);
         TemaWidget.letra(vista, R.id.semana_f_todos, 12);
         TemaWidget.letra(vista, R.id.semana_vacio, 14);
         int[] nombres = { R.id.semana_nom_0, R.id.semana_nom_1, R.id.semana_nom_2, R.id.semana_nom_3, R.id.semana_nom_4, R.id.semana_nom_5, R.id.semana_nom_6 };

@@ -118,6 +118,35 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
   await expect(page.getByRole("dialog", { name: "Nuevo hábito" })).toBeVisible();
 });
 
+test("semana: los hábitos del día se marcan con su ✓ y tienen su propio filtro", async ({ page }) => {
+  await page.goto("/#/habitos");
+  await page.getByRole("button", { name: "Nuevo hábito" }).click();
+  await page.getByLabel("Nombre del hábito").fill("Estirar");
+  await page.getByRole("button", { name: "Crear hábito" }).click();
+  await expect(page.getByTestId("habito")).toHaveCount(1);
+
+  await page.goto("/#/semana");
+  const marca = page.getByRole("checkbox", { name: "Hábito Estirar" }).first();
+  await expect(marca).toHaveAttribute("aria-checked", "false");
+  await marca.click();
+  await expect(marca).toHaveAttribute("aria-checked", "true");
+
+  // Con "Hábitos" solo quedan los hábitos; con "Tareas" no se ven.
+  const mostrar = page.getByRole("group", { name: "Mostrar" });
+  await mostrar.getByRole("button", { name: "Hábitos" }).click();
+  await expect(page.getByTestId("habito-semana").first()).toBeVisible();
+  await expect(page.getByTestId("tarjeta-tareas")).toHaveCount(0);
+  await mostrar.getByRole("button", { name: "Tareas" }).click();
+  await expect(page.getByTestId("habito-semana")).toHaveCount(0);
+
+  // La marca queda guardada y se puede quitar.
+  await page.reload();
+  await mostrar.getByRole("button", { name: "Todos" }).click();
+  await expect(marca).toHaveAttribute("aria-checked", "true");
+  await marca.click();
+  await expect(marca).toHaveAttribute("aria-checked", "false");
+});
+
 test("detalle, papelera y restaurar", async ({ page }) => {
   await page.goto("/#/tareas/bandeja");
   await entrada(page).fill("Revisar contrato !alta");

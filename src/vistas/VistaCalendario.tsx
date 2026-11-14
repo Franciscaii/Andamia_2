@@ -274,7 +274,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
             </button>
           </div>
           <div role="group" aria-label="Mostrar" className="ml-auto flex min-w-0 gap-0.5 rounded-md bg-suave p-0.5">
-            {FILTROS.map((f) => (
+            {FILTROS.filter((f) => f.id !== "habitos").map((f) => (
               <button
                 key={f.id}
                 type="button"

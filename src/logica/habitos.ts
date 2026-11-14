@@ -170,3 +170,23 @@ export function avisosDeHabitos(habitos: Habito[], registros: RegistroHabito[], 
   }
   return avisos;
 }
+
+/** Un hábito en un día de la Semana: si ya está hecho y si se puede marcar (hoy o antes). */
+export interface HabitoDelDia {
+  habito: Habito;
+  estado: EstadoHabito | null;
+  marcable: boolean;
+}
+
+/**
+ * Los hábitos activos que tocan un día (ya empezados y programados ese día), en su orden.
+ * Los de días futuros se muestran, pero todavía no se pueden marcar.
+ */
+export function habitosDelDia(habitos: Habito[], registros: RegistroHabito[], dia: Date, hoy: Date): HabitoDelDia[] {
+  const fecha = clave(dia);
+  const estados = new Map(registros.filter((r) => r.fecha === fecha).map((r) => [r.habitoId, r.estado]));
+  return habitos
+    .filter((h) => !h.archivado && h.inicio <= fecha && esProgramado(h.frecuencia, dia))
+    .sort((a, b) => a.orden - b.orden)
+    .map((h) => ({ habito: h, estado: estados.get(h.id) ?? null, marcable: fecha <= clave(hoy) }));
+}

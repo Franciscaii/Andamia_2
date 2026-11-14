@@ -382,7 +382,8 @@ final class Dibujos {
         eje.setStrokeCap(Paint.Cap.ROUND);
         lienzo.drawLine(izq, tope - 4 * d, izq, base, eje);
         lienzo.drawLine(izq, base, der, base, eje);
-        float x0 = izq + 3 * d;
+        // Las ondas parten pegadas al eje, sin espacio entre medio.
+        float x0 = izq;
         float paso = dias > 1 ? (der - x0) / (dias - 1) : 0;
         // Los grupos más grandes van detrás; la etiqueta elegida, siempre delante.
         Integer[] orden = new Integer[n];

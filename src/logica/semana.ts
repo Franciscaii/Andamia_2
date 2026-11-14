@@ -4,7 +4,7 @@ import type { Lista, Prioridad, Tarea } from "../modelos/tipos";
 import { fechaDeTarea } from "./fechas";
 import { estaActiva } from "./vistas";
 
-export type FiltroSemana = "tareas" | "eventos" | "todos";
+export type FiltroSemana = "tareas" | "eventos" | "habitos" | "todos";
 
 export const esEvento = (t: Tarea) => t.esEvento === true;
 export const dificultadDe = (t: Tarea): Prioridad => t.dificultad ?? "ninguna";

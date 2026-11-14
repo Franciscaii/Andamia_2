@@ -30,6 +30,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     private static final int TIPO_TAREA = 2;
     private static final int TIPO_SECCION = 3;
     private static final int TIPO_ESPACIO = 4;
+    private static final int TIPO_HABITO = 5;
 
     /** Lugar de una fila dentro de su tarjeta (solo en el widget Semana). */
     private static final int SIN_TARJETA = 0, ARRIBA = 1, MEDIO = 2, ABAJO = 3, SOLA = 4;
@@ -46,6 +47,9 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         String etiqueta = "";
         String colorEtiqueta = "";
         String color = "";
+        /** Hábito: el día (AAAA-MM-DD) y si se puede marcar (hoy o antes). */
+        String fecha = "";
+        boolean marcable;
         /** Tarjeta a la que pertenece (0 = ninguna) y su lugar en ella. */
         int grupo;
         int tarjeta;
@@ -80,8 +84,9 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             String hoy = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
             boolean deOtroDia = !hoy.equals(datos.optString("fecha"));
             String filtro = semana ? DatosWidget.filtro(contexto, idWidget) : "todos";
-            boolean conEventos = !"tareas".equals(filtro);
-            boolean conTareas = !"eventos".equals(filtro);
+            boolean conEventos = "todos".equals(filtro) || "eventos".equals(filtro);
+            boolean conTareas = "todos".equals(filtro) || "tareas".equals(filtro);
+            boolean conHabitos = semana && ("todos".equals(filtro) || "habitos".equals(filtro));
             if (semana) {
                 // Widget "Semana": solo el día elegido, con sus propios eventos y tareas.
                 datos = WidgetSemana.dia(contexto, idWidget, datos);
@@ -102,6 +107,25 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                     f.titulo = e.optString("titulo");
                     f.detalle = e.optString("hora");
                     f.color = e.optString("color");
+                    filas.add(f);
+                }
+            }
+
+            // Hábitos del día, después de los eventos: cada uno con su píldora para marcarlo.
+            JSONArray habitos = conHabitos ? datos.optJSONArray("habitos") : null;
+            if (habitos != null) {
+                JSONObject marcas = DatosWidget.habitosMarcados(contexto);
+                for (int i = 0; i < habitos.length(); i++) {
+                    JSONObject h = habitos.getJSONObject(i);
+                    Fila f = new Fila();
+                    f.tipo = TIPO_HABITO;
+                    f.id = h.optString("id");
+                    if (f.id.isEmpty()) continue;
+                    f.titulo = h.optString("nombre");
+                    f.color = h.optString("color");
+                    f.fecha = fechaDia;
+                    f.marcable = h.optBoolean("marcable");
+                    f.hecha = marcas.optBoolean(f.id + "|" + fechaDia, h.optBoolean("hecho"));
                     filas.add(f);
                 }
             }
@@ -202,7 +226,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     @Override public void onDestroy() { filas.clear(); }
     @Override public int getCount() { return filas.size(); }
     @Override public RemoteViews getLoadingView() { return null; }
-    @Override public int getViewTypeCount() { return 5; }
+    @Override public int getViewTypeCount() { return 6; }
     @Override public long getItemId(int posicion) { return posicion; }
     @Override public boolean hasStableIds() { return false; }
 
@@ -251,6 +275,34 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         Intent abrir = new Intent();
         abrir.setData(Uri.parse("andamia://tarea/" + Uri.encode(f.id)));
         vista.setOnClickFillInIntent(R.id.evento_fila, abrir);
+        return vista;
+    }
+
+    /** Un hábito del día: su nombre y la píldora que lo marca hecho (o lo desmarca) sin abrir la app. */
+    private RemoteViews filaHabito(Fila f) {
+        RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_habito);
+        TemaWidget.letra(vista, R.id.habito_titulo, 14);
+        TemaWidget.letra(vista, R.id.habito_marca, 13);
+        int propio = color(contexto, R.color.widget_acento);
+        try {
+            if (!f.color.isEmpty()) propio = Color.parseColor(f.color);
+        } catch (IllegalArgumentException e) {
+            // Color desconocido: queda el acento.
+        }
+        int tenue = color(contexto, R.color.widget_texto_tenue);
+        vista.setTextViewText(R.id.habito_titulo, f.titulo);
+        vista.setTextColor(R.id.habito_titulo, color(contexto, R.color.widget_texto));
+        TemaWidget.tenirFondo(vista, R.id.habito_fila, color(contexto, R.color.widget_evento_suave));
+        // Hecho: píldora llena con el color del hábito y su ✓. Sin marcar: píldora apagada con un círculo.
+        vista.setTextViewText(R.id.habito_marca, f.hecha ? "✓" : "○");
+        vista.setTextColor(R.id.habito_marca, f.hecha ? Color.WHITE : tenue);
+        TemaWidget.tenirFondo(vista, R.id.habito_marca, f.hecha ? propio : Color.argb(46, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
+        if (f.marcable) {
+            Intent marcar = new Intent();
+            marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")));
+            vista.setOnClickFillInIntent(R.id.habito_marca, marcar);
+        }
+        vista.setOnClickFillInIntent(R.id.habito_fila, abrirDia());
         return vista;
     }
 
@@ -342,6 +394,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         Fila f = filas.get(posicion);
         switch (f.tipo) {
             case TIPO_EVENTO: return filaEvento(contexto, f);
+            case TIPO_HABITO: return filaHabito(f);
             case TIPO_ESPACIO: {
                 RemoteViews espacio = new RemoteViews(contexto.getPackageName(), R.layout.widget_espacio);
                 espacio.setOnClickFillInIntent(R.id.espacio_fila, abrirDia());
