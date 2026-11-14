@@ -82,6 +82,9 @@ final class Dibujos {
         if (conTitulo) escribir(lienzo, mes.optString("titulo"), m, y, ancho - 2 * m, titulo);
         boolean soloTareas = "tareas".equals(filtro);
         boolean soloEventos = "eventos".equals(filtro);
+        boolean soloHabitos = "habitos".equals(filtro);
+        boolean conHabitos = soloHabitos || "todos".equals(filtro);
+        JSONArray habitosMes = mes.optJSONArray("habitos");
 
         // Nombres de los días, en mayúsculas y grandes como el calendario del celular (sin domingo rojo).
         String[] dias = { "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM" };
@@ -151,13 +154,32 @@ final class Dibujos {
             int eventos = celda.optInt("eventos", 0);
             if (soloTareas) total -= eventos;
             if (soloEventos) total = eventos;
+            if (soloHabitos) total = 0;
             JSONArray entradas = new JSONArray();
-            for (int k = 0; todas != null && k < todas.length(); k++) {
+            for (int k = 0; !soloHabitos && todas != null && k < todas.length(); k++) {
                 JSONObject e = todas.optJSONObject(k);
                 if (e == null) continue;
                 boolean esEvento = e.optBoolean("evento");
                 if ((soloTareas && esEvento) || (soloEventos && !esEvento)) continue;
                 entradas.put(e);
+            }
+            // Los hábitos del día, después de eventos y tareas (con "Hábitos" o "Todos").
+            JSONArray delDia = conHabitos && habitosMes != null ? celda.optJSONArray("habitos") : null;
+            for (int k = 0; delDia != null && k < delDia.length(); k++) {
+                int codigo = delDia.optInt(k, -1);
+                JSONObject h = codigo < 0 ? null : habitosMes.optJSONObject(codigo / 2);
+                if (h == null) continue;
+                try {
+                    JSONObject e = new JSONObject();
+                    e.put("titulo", h.optString("titulo"));
+                    e.put("color", h.optString("color"));
+                    e.put("habito", true);
+                    e.put("hecha", codigo % 2 == 1);
+                    entradas.put(e);
+                    total++;
+                } catch (org.json.JSONException ex) {
+                    // Sin este hábito.
+                }
             }
             if (total <= 0 || entradas.length() == 0) continue;
 
@@ -182,7 +204,8 @@ final class Dibujos {
                 if (e == null) continue;
                 boolean esEvento = e.optBoolean("evento");
                 boolean hecha = e.optBoolean("hecha");
-                int ce = esEvento ? colorSeguro(e.optString("color"), colorEvento) : FabricaListaHoy.colorNivel(c, e.optInt("nivel"));
+                boolean esHabito = e.optBoolean("habito");
+                int ce = esEvento ? colorSeguro(e.optString("color"), colorEvento) : esHabito ? colorSeguro(e.optString("color"), acento) : FabricaListaHoy.colorNivel(c, e.optInt("nivel"));
                 if (hecha) ce = colorTenue;
                 float alto0 = lineas * altoLinea;
                 if (esEvento) {

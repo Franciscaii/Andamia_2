@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, 
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { addMonths, addWeeks, format, isSameDay, isSameMonth, parseISO, startOfDay, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { estiloEvento } from "../componentes/CamposTarea";
 import { colisionPunteroOTeclado } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
@@ -11,6 +11,7 @@ import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../component
 import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes, diasDeSemana, entradasDelDia, entradasEnRango, venceEnDia, venceEnHora, type EntradaCalendario } from "../logica/calendario";
 import { interpretarEntrada } from "../logica/entradaRapida";
+import { habitosDelDia, type HabitoDelDia } from "../logica/habitos";
 import { hashDe, irA, type ModoCalendario } from "../logica/ruta";
 import type { FiltroSemana } from "../logica/semana";
 import { DialogoHabito } from "./VistaHabitos";
@@ -20,6 +21,9 @@ import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 
 /** En el widget Calendario del PC: el mes entero cabe en la ventana, sin barra para desplazar. */
 const EN_WIDGET = WIDGET_ACTUAL?.id === "calendario";
+
+/** Filtros del mes, en el orden que pidió Francisca. */
+const FILTROS_MES = (["habitos", "tareas", "eventos", "todos"] as const).map((id) => FILTROS.find((f) => f.id === id)!);
 
 const NOMBRES_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const HORAS = Array.from({ length: 24 }, (_, i) => i);
@@ -107,6 +111,35 @@ function ChipMes({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: Pr
   );
 }
 
+/** Un hábito en un día del mes: su casilla redonda (del color del hábito) y el nombre. */
+function ChipHabitoMes({ dato, fecha }: { dato: HabitoDelDia; fecha: string }) {
+  const registrarHabito = useTienda((s) => s.registrarHabito);
+  const { habito: h, marcable } = dato;
+  const hecho = dato.estado === "hecho";
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={hecho}
+      aria-label={`Hábito ${h.nombre}`}
+      data-testid="chip-habito"
+      data-entrada
+      disabled={!marcable}
+      title={marcable ? h.nombre : `${h.nombre} (todavía no llega este día)`}
+      onClick={(e) => {
+        e.stopPropagation();
+        void registrarHabito(h.id, fecha, hecho ? null : { estado: "hecho", valor: h.metaDiaria });
+      }}
+      className={`flex w-full min-w-0 items-center gap-1 overflow-hidden rounded px-0.5 py-0.5 text-left text-[11px] leading-tight sm:text-xs ${marcable ? "hover:bg-suave" : "opacity-60"}`}
+    >
+      <span style={{ borderColor: h.color, background: hecho ? h.color : undefined }} className="flex h-3 w-3 shrink-0 items-center justify-center rounded-full border-[1.5px]">
+        {hecho && <Check size={8} strokeWidth={4} className="text-white" />}
+      </span>
+      <span className={`truncate ${hecho ? "text-tenue line-through" : ""}`}>{h.nombre}</span>
+    </button>
+  );
+}
+
 function Chip({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: PropsChip) {
   const movible = !esOcurrencia && tarea.estado === "pendiente";
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: idArrastre ?? PREFIJO_TAREA + tarea.id, disabled: !movible });
@@ -183,6 +216,8 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
   const actualizarTarea = useTienda((s) => s.actualizarTarea);
+  const habitos = useTienda((s) => s.habitos);
+  const registros = useTienda((s) => s.registros);
   const [fecha, setFecha] = useState(() => new Date());
   const [creacion, setCreacion] = useState<Creacion | null>(null);
   const [activa, setActiva] = useState<Tarea | null>(null);
@@ -218,7 +253,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
 
   const dias = useMemo(() => (modo === "mes" ? diasDeMes(fecha) : diasDeSemana(fecha)), [modo, fecha]);
   const entradas = useMemo(() => {
-    const filtradas = visibles.filter((t) => (filtro === "todos" ? true : filtro === "eventos" ? t.esEvento === true : t.esEvento !== true));
+    const filtradas = visibles.filter((t) => (filtro === "todos" ? true : filtro === "habitos" ? false : filtro === "eventos" ? t.esEvento === true : t.esEvento !== true));
     return entradasEnRango(filtradas, dias[0], dias[dias.length - 1]);
   }, [visibles, dias, filtro]);
 
@@ -274,7 +309,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
             </button>
           </div>
           <div role="group" aria-label="Mostrar" className="ml-auto flex min-w-0 gap-0.5 rounded-md bg-suave p-0.5">
-            {FILTROS.filter((f) => f.id !== "habitos").map((f) => (
+            {FILTROS_MES.map((f) => (
               <button
                 key={f.id}
                 type="button"
@@ -343,8 +378,11 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                   // Eventos primero, como en la Semana.
                   delDia.sort((a, b) => Number(b.tarea.esEvento === true) - Number(a.tarea.esEvento === true));
                   // Tantas como quepan en el recuadro; si sobran, "n más" al final, sin salirse del día.
-                  const visibles = entradasQueCaben(altoCelda, delDia.length);
-                  const resto = delDia.length - visibles;
+                  // Los hábitos del día van después de eventos y tareas (con "Hábitos" o "Todos").
+                  const habitosDia = delMes && (filtro === "habitos" || filtro === "todos") ? habitosDelDia(habitos, registros, dia, hoy) : [];
+                  const total = delDia.length + habitosDia.length;
+                  const visibles = entradasQueCaben(altoCelda, total);
+                  const resto = total - visibles;
                   const ultimaFila = i >= dias.length - 7;
                   return (
                     <Zona
@@ -360,6 +398,9 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                           <div className="min-h-0 space-y-0.5 overflow-hidden">
                             {delDia.slice(0, visibles).map((e) => (
                               <ChipMes key={e.clave} tarea={e.tarea} fecha={e.fecha} esOcurrencia={e.esOcurrencia} idArrastre={e.esOcurrencia ? `ocurrencia:${e.clave}` : undefined} alAbrir={() => abrir(e.tarea.id)} />
+                            ))}
+                            {habitosDia.slice(0, Math.max(0, visibles - delDia.length)).map((h) => (
+                              <ChipHabitoMes key={h.habito.id} dato={h} fecha={claveDia(dia)} />
                             ))}
                             {resto > 0 && (
                               <a

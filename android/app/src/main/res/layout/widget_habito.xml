@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Un hábito del día en el widget Semana: su nombre y, a la derecha, la píldora para marcarlo hecho. -->
+<!-- Un hábito del día en el widget Semana: su nombre y, a la derecha, el interruptor para marcarlo hecho. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/habito_fila"
     android:layout_width="match_parent"
@@ -23,19 +23,41 @@
         android:textSize="14sp"
         android:textStyle="bold" />
 
-    <TextView
+    <!-- Interruptor: la perilla con el ✓ está a la izquierda sin marcar y a la derecha cuando está hecho. -->
+    <FrameLayout
         android:id="@+id/habito_marca"
-        android:layout_width="wrap_content"
-        android:layout_height="26dp"
+        android:layout_width="52dp"
+        android:layout_height="28dp"
         android:layout_marginStart="8dp"
-        android:background="@drawable/widget_filtro_elegido"
+        android:background="@drawable/widget_interruptor"
         android:contentDescription="Marcar el hábito"
-        android:gravity="center"
-        android:minWidth="64dp"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        android:text="✓"
-        android:textColor="@color/widget_boton_texto"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+        android:padding="3dp">
+
+        <TextView
+            android:id="@+id/habito_perilla_izq"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="start|center_vertical"
+            android:background="@drawable/widget_perilla"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="✓"
+            android:textColor="@color/widget_texto_tenue"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/habito_perilla_der"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="end|center_vertical"
+            android:background="@drawable/widget_perilla"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="✓"
+            android:textColor="@color/widget_acento"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </FrameLayout>
 </LinearLayout>

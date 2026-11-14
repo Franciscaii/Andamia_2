@@ -431,7 +431,7 @@ function leerAlcance(): Alcance {
   }
 }
 
-/** Los hábitos que tocan un día: el nombre y una píldora con ✓ para marcarlo como hecho (o quitar la marca). */
+/** Los hábitos que tocan un día: el nombre y un interruptor cuya perilla con ✓ se desliza a la derecha al marcarlo hecho. */
 function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha?: boolean }) {
   const habitos = useTienda((s) => s.habitos);
   const registros = useTienda((s) => s.registros);
@@ -450,16 +450,18 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
             </span>
             <button
               type="button"
-              role="checkbox"
+              role="switch"
               aria-checked={hecho}
               aria-label={`Hábito ${h.nombre}`}
               disabled={!marcable}
               title={marcable ? (hecho ? "Quitar la marca" : "Marcar como hecho") : "Todavía no llega este día"}
-              style={hecho ? { background: h.color, borderColor: h.color } : { borderColor: h.color }}
-              className={`flex h-6 shrink-0 items-center justify-center rounded-full border ${estrecha ? "w-9" : "w-11"} ${marcable ? "" : "opacity-40"}`}
+              style={{ background: hecho ? h.color : undefined }}
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${hecho ? "" : "bg-suave"} ${marcable ? "" : "opacity-40"}`}
               onClick={() => void registrarHabito(h.id, fecha, hecho ? null : { estado: "hecho", valor: h.metaDiaria })}
             >
-              <Check size={14} strokeWidth={3} style={{ color: hecho ? "#fff" : h.color }} />
+              <span className={`absolute top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow transition-[left] duration-200 ${hecho ? "left-[22px]" : "left-0.5"}`}>
+                <Check size={12} strokeWidth={3.5} style={{ color: hecho ? h.color : "#b9bec7" }} />
+              </span>
             </button>
           </li>
         );
