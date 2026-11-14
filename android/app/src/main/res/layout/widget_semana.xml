@@ -76,8 +76,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="26dp"
                 android:gravity="center"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
                 android:text="Tareas"
                 android:textColor="@color/widget_texto"
                 android:textSize="12sp" />
@@ -87,9 +87,20 @@
                 android:layout_width="wrap_content"
                 android:layout_height="26dp"
                 android:gravity="center"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
                 android:text="Eventos"
+                android:textColor="@color/widget_texto"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/semana_f_habitos"
+                android:layout_width="wrap_content"
+                android:layout_height="26dp"
+                android:gravity="center"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:text="Hábitos"
                 android:textColor="@color/widget_texto"
                 android:textSize="12sp" />
 
@@ -98,8 +109,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="26dp"
                 android:gravity="center"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
                 android:text="Todos"
                 android:textColor="@color/widget_texto"
                 android:textSize="12sp" />
@@ -108,9 +119,9 @@
 
         <TextView
             android:id="@+id/semana_nueva"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:layout_marginStart="8dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
             android:background="@drawable/widget_boton"
             android:contentDescription="Nueva tarea"
             android:gravity="center"

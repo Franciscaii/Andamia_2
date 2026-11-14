@@ -96,6 +96,34 @@ final class DatosWidget {
         return prefs(c).getString("paso_est_" + idWidget, "");
     }
 
+    /**
+     * Hábitos marcados (o desmarcados) desde el widget Semana, hasta que la app los anote:
+     * un JSON {"idHabito|AAAA-MM-DD": true o false}.
+     */
+    static synchronized org.json.JSONObject habitosMarcados(Context c) {
+        try {
+            return new org.json.JSONObject(prefs(c).getString("habitos_marcados", "{}"));
+        } catch (Exception e) {
+            return new org.json.JSONObject();
+        }
+    }
+
+    static synchronized void marcarHabito(Context c, String id, String fecha, boolean hecho) {
+        org.json.JSONObject o = habitosMarcados(c);
+        try {
+            o.put(id + "|" + fecha, hecho);
+        } catch (Exception e) {
+            return;
+        }
+        prefs(c).edit().putString("habitos_marcados", o.toString()).commit();
+    }
+
+    static synchronized String tomarHabitosMarcados(Context c) {
+        String s = habitosMarcados(c).toString();
+        prefs(c).edit().remove("habitos_marcados").commit();
+        return s;
+    }
+
     static synchronized void marcarCompletada(Context c, String id) {
         Set<String> ids = new HashSet<>(prefs(c).getStringSet(CLAVE_COMPLETADAS, new HashSet<>()));
         ids.add(id);

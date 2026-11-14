@@ -5,6 +5,7 @@ import { es } from "date-fns/locale";
 import { useTienda } from "../datos/tienda";
 import { COLORES_ETIQUETA, COLORES_LISTA, type Etiqueta, type FrecuenciaHabito, type Habito, type Lista, type Prioridad, type RegistroHabito, type Tarea } from "../modelos/tipos";
 import { gruposDeEtiquetas, gruposDeHabitos, hechosDeHabitos, hechosDeTareas, resumir, SIN_ETIQUETA, tituloPeriodo, type Grupo, type Hecho, type Resumen } from "./estadisticas";
+import { habitosDelDia } from "./habitos";
 import { CUADRANTES, repartirEnCuadrantes } from "./matriz";
 import { leerEleccion, presetDe, TEMA_INICIAL, TEMAS, temaEfectivo, textoSobre, type Tema } from "./temas";
 import type { AspectoWidget } from "./aspectoWidget";
@@ -18,6 +19,8 @@ interface PluginWidget {
   pendientes(): Promise<{ ids: string[] }>;
   /** Tareas y eventos escritos en el "+" de los widgets, como JSON (ver TareaRapida.java). */
   rapidas(): Promise<{ items: string }>;
+  /** Hábitos marcados en el widget Semana, como JSON {"idHabito|AAAA-MM-DD": hecho}. */
+  habitosMarcados(): Promise<{ marcas: string }>;
   addListener(evento: "rapida", alAvisar: () => void): Promise<PluginListenerHandle>;
   puedeAnclar(): Promise<{ puede: boolean }>;
   listar(): Promise<{ widgets: { id: number; tipo: string; config: string }[]; tipos?: Record<string, string> }>;
@@ -107,6 +110,8 @@ export function diasDeSemanaWidget(e: Estado, ahora: Date) {
       titulo: tituloDelDia(dia, ahora),
       eventos: c.eventos.slice(0, MAX_TAREAS).map(evento),
       tareas: [...pendientes, ...hechas].slice(0, MAX_TAREAS).map(tarea),
+      /** Hábitos de ese día, con su píldora para marcarlos desde el widget. */
+      habitos: habitosDelDia(e.habitos, e.registros, dia, ahora).map((h) => ({ id: h.habito.id, nombre: h.habito.nombre, color: h.habito.color, hecho: h.estado === "hecho", marcable: h.marcable })),
     };
   });
 }
@@ -491,8 +496,42 @@ async function aplicarAhora(): Promise<void> {
       await useTienda.getState().completarTarea(id, true);
     }
   }
+  await aplicarHabitosMarcados();
   ultimoEnviado = "";
   programarEnvio();
+}
+
+/** Lee las marcas de hábitos hechas en el widget: {"idHabito|AAAA-MM-DD": hecho}. */
+export function leerHabitosMarcados(json: string): { habitoId: string; fecha: string; hecho: boolean }[] {
+  try {
+    const o = JSON.parse(json);
+    if (!o || typeof o !== "object") return [];
+    return Object.entries(o).flatMap(([clave, hecho]) => {
+      const corte = clave.lastIndexOf("|");
+      const fecha = clave.slice(corte + 1);
+      return corte > 0 && /^\d{4}-\d{2}-\d{2}$/.test(fecha) && typeof hecho === "boolean" ? [{ habitoId: clave.slice(0, corte), fecha, hecho }] : [];
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function aplicarHabitosMarcados(): Promise<void> {
+  let marcas = "";
+  try {
+    marcas = (await widget.habitosMarcados()).marcas;
+  } catch {
+    // App de Android anterior, sin hábitos en el widget.
+    return;
+  }
+  for (const m of leerHabitosMarcados(marcas)) {
+    const { habitos, registros, registrarHabito } = useTienda.getState();
+    const h = habitos.find((x) => x.id === m.habitoId);
+    if (!h) continue;
+    const yaHecho = registros.find((r) => r.id === `${h.id}|${m.fecha}`)?.estado === "hecho";
+    if (m.hecho && !yaHecho) await registrarHabito(h.id, m.fecha, { estado: "hecho", valor: h.metaDiaria });
+    else if (!m.hecho && yaHecho) await registrarHabito(h.id, m.fecha, null);
+  }
 }
 
 function enfocarEntradaRapida(intentos = 0): void {

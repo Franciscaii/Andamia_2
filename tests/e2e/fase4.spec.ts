@@ -201,6 +201,8 @@ test.describe("hábitos", () => {
 
     const fila = page.getByTestId("habito").filter({ hasText: "Leer" });
     await expect(fila.getByTestId("racha-fila")).toContainText("0 días");
+    // Los días se marcan al desplegar la tarjeta.
+    await fila.getByRole("button", { name: "Desplegar Leer" }).click();
 
     // Los días anteriores al inicio no se pueden marcar.
     await expect(fila.getByRole("button", { name: /^Leer, viernes 30 de octubre/ })).toBeDisabled();
@@ -223,7 +225,7 @@ test.describe("hábitos", () => {
     await hoy.click();
 
     // Historial con rachas, cumplimiento y calendario.
-    await fila.getByRole("button", { name: /^Leer/ }).first().click();
+    await fila.getByRole("button", { name: "Historial" }).click();
     const historial = page.getByRole("region", { name: "Historial de Leer" });
     await expect(historial.getByTestId("racha-actual")).toHaveText("3 días");
     await expect(historial.getByTestId("racha-maxima")).toHaveText("3 días");
@@ -237,12 +239,27 @@ test.describe("hábitos", () => {
     await page.reload();
     await expect(page.getByTestId("habito").filter({ hasText: "Leer" }).getByTestId("racha-fila")).toContainText("4 días");
 
-    // Archivar lo oculta y conserva su historial.
-    await page.getByTestId("habito").filter({ hasText: "Leer" }).getByRole("button", { name: /^Leer/ }).first().click();
-    await page.getByRole("region", { name: "Historial de Leer" }).getByRole("button", { name: "Archivar" }).click();
+    // Apagar "Activo" lo deja en la lista, sin poder marcarlo, y conserva su historial.
+    const leer = page.getByTestId("habito").filter({ hasText: "Leer" });
+    await leer.getByRole("switch", { name: "Activo: Leer" }).click();
+    await expect(leer.getByRole("switch", { name: "Activo: Leer" })).toHaveAttribute("aria-checked", "false");
+    await expect(leer.getByTestId("racha-fila")).toContainText("4 días");
+    await leer.getByRole("button", { name: "Desplegar Leer" }).click();
+    await expect(leer.getByRole("button", { name: /^Leer, miércoles 4 de noviembre/ })).toBeDisabled();
+
+    // Desplegado se cambian el color (también uno a elección) y la frecuencia, y queda guardado.
+    await leer.getByLabel("Otro color").fill("#12ab34");
+    await leer.getByRole("button", { name: "Veces por semana" }).click();
+    await expect(leer).toContainText("3 veces por semana");
+    await page.reload();
+    await expect(page.getByTestId("habito").filter({ hasText: "Leer" })).toContainText("3 veces por semana");
+    await page.getByTestId("habito").filter({ hasText: "Leer" }).getByRole("button", { name: "Desplegar Leer" }).click();
+    await expect(page.getByLabel("Otro color")).toHaveValue("#12ab34");
+
+    // El basurero lo borra, con confirmación.
+    await page.getByRole("button", { name: "Borrar Leer" }).click();
+    await page.getByRole("button", { name: "Borrar para siempre" }).click();
     await expect(page.getByTestId("habito")).toHaveCount(0);
-    await page.getByRole("button", { name: "Archivados (1)" }).click();
-    await expect(page.getByTestId("habito").filter({ hasText: "Leer" }).getByTestId("racha-fila")).toContainText("4 días");
   });
 
   test("objetivo por día con cantidad y varias veces por semana", async ({ page }) => {
@@ -254,6 +271,7 @@ test.describe("hábitos", () => {
     });
     const agua = page.getByTestId("habito").filter({ hasText: "Agua" });
     await expect(agua).toContainText("8 vasos");
+    await agua.getByRole("button", { name: "Desplegar Agua" }).click();
     const hoy = agua.getByRole("button", { name: /^Agua, miércoles 4 de noviembre/ });
 
     await hoy.click();
@@ -274,6 +292,7 @@ test.describe("hábitos", () => {
     });
     const correr = page.getByTestId("habito").filter({ hasText: "Correr" });
     await expect(correr).toContainText("1 vez por semana");
+    await correr.getByRole("button", { name: "Desplegar Correr" }).click();
     await correr.getByRole("button", { name: /^Correr, miércoles 4 de noviembre/ }).click();
     await expect(correr.getByTestId("racha-fila")).toContainText("1 sem.");
   });
@@ -288,6 +307,7 @@ test.describe("hábitos", () => {
     });
     const fila = page.getByTestId("habito").filter({ hasText: "Clase" });
     await expect(fila).toContainText("lun, vie");
+    await fila.getByRole("button", { name: "Desplegar Clase" }).click();
     await expect(fila.getByRole("button", { name: /^Clase, miércoles 4 de noviembre/ })).toBeDisabled();
     // Hoy no está programado: no avisa.
     await expect(page.getByTestId("aviso")).toHaveCount(0);
@@ -312,6 +332,7 @@ test.describe("móvil", () => {
     await page.getByRole("button", { name: "Nuevo hábito" }).click();
     await page.getByLabel("Nombre del hábito").fill("Leer");
     await page.getByRole("button", { name: "Crear hábito" }).click();
+    await page.getByRole("button", { name: "Desplegar Leer" }).click();
     await page.getByTestId("habito").getByRole("button", { name: /^Leer, miércoles/ }).click();
     await expect(page.getByTestId("racha-fila")).toContainText("1 día");
 

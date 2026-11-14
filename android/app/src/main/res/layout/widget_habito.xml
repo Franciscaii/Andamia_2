@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Un hábito del día en el widget Semana: su nombre y, a la derecha, la píldora para marcarlo hecho. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/habito_fila"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="4dp"
+    android:background="@drawable/widget_evento"
+    android:gravity="center_vertical"
+    android:minHeight="36dp"
+    android:orientation="horizontal"
+    android:paddingStart="10dp"
+    android:paddingEnd="6dp">
+
+    <TextView
+        android:id="@+id/habito_titulo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/widget_texto"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/habito_marca"
+        android:layout_width="wrap_content"
+        android:layout_height="26dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/widget_filtro_elegido"
+        android:contentDescription="Marcar el hábito"
+        android:gravity="center"
+        android:minWidth="64dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:text="✓"
+        android:textColor="@color/widget_boton_texto"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+</LinearLayout>

@@ -178,6 +178,14 @@ public class WidgetPlugin extends Plugin {
     }
 
     /** Devuelve (y olvida) las tareas marcadas como hechas desde el widget. */
+    /** Hábitos marcados desde el widget Semana que la app aún no anota (y los olvida). */
+    @PluginMethod
+    public void habitosMarcados(PluginCall call) {
+        JSObject respuesta = new JSObject();
+        respuesta.put("marcas", DatosWidget.tomarHabitosMarcados(getContext()));
+        call.resolve(respuesta);
+    }
+
     @PluginMethod
     public void pendientes(PluginCall call) {
         Set<String> ids = DatosWidget.tomarCompletadas(getContext());

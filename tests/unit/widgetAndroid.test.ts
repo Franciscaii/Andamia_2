@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { datosDelWidget, datosDeWidgets } from "../../src/logica/widgetAndroid";
-import type { Lista, Tarea } from "../../src/modelos/tipos";
+import { habitosDelDia } from "../../src/logica/habitos";
+import { datosDelWidget, datosDeWidgets, leerHabitosMarcados } from "../../src/logica/widgetAndroid";
+import type { Habito, Lista, RegistroHabito, Tarea } from "../../src/modelos/tipos";
 
 const base: Tarea = {
   id: "t1", listaId: "bandeja", titulo: "Pagar luz", descripcion: "", estado: "pendiente", prioridad: "alta",
@@ -182,5 +183,37 @@ describe("tamaño de letra y temas nuevos", () => {
     const ids = TEMAS.map((t) => t.id);
     for (const id of ["oceano", "rosa", "arena", "cielo", "grafito", "medianoche", "cereza"]) expect(ids).toContain(id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("hábitos en el widget Semana", () => {
+  const ahora = new Date(2026, 10, 11, 10, 0); // miércoles
+  const habito = { id: "h1", nombre: "Leer", icono: "libro", color: "#3f74b5", frecuencia: { tipo: "diaria" }, metaDiaria: 1, unidad: "", inicio: "2026-11-10", recordatorioHora: null, avisosEnviados: [], archivado: false, orden: 1 };
+  const habitos = [habito, { ...habito, id: "h2", nombre: "Apagado", archivado: true, orden: 2 }, { ...habito, id: "h3", nombre: "Clase", frecuencia: { tipo: "dias", dias: [3] }, orden: 0 }] as Habito[];
+  const registros = [{ id: "h1|2026-11-11", habitoId: "h1", fecha: "2026-11-11", estado: "hecho", valor: 1 }] as RegistroHabito[];
+
+  it("cada día trae sus hábitos activos y programados, con lo hecho y si se puede marcar", () => {
+    const dias = datosDeWidgets({ tareas: [], listas, etiquetas: [], habitos, registros }, ahora).semanaDias;
+    const dia = (fecha: string) => dias.find((d) => d.fecha === fecha)!;
+    expect(dia("2026-11-09").habitos).toEqual([]); // antes de empezar
+    expect(dia("2026-11-11").habitos).toEqual([{ id: "h1", nombre: "Leer", color: "#3f74b5", hecho: true, marcable: true }]);
+    expect(dia("2026-11-12").habitos).toEqual([
+      { id: "h3", nombre: "Clase", color: "#3f74b5", hecho: false, marcable: false },
+      { id: "h1", nombre: "Leer", color: "#3f74b5", hecho: false, marcable: false },
+    ]);
+  });
+
+  it("habitosDelDia deja marcar hoy y antes, no después", () => {
+    expect(habitosDelDia(habitos, registros, new Date(2026, 10, 10), ahora).map((h) => [h.habito.id, h.estado, h.marcable])).toEqual([["h1", null, true]]);
+    expect(habitosDelDia(habitos, registros, new Date(2026, 10, 13), ahora).every((h) => !h.marcable)).toBe(true);
+  });
+
+  it("lee las marcas hechas en el widget y descarta lo que no entiende", () => {
+    expect(leerHabitosMarcados('{"h1|2026-11-11":true,"a|b|2026-11-10":false,"malo":true,"h2|ayer":true,"h3|2026-11-09":"si"}')).toEqual([
+      { habitoId: "h1", fecha: "2026-11-11", hecho: true },
+      { habitoId: "a|b", fecha: "2026-11-10", hecho: false },
+    ]);
+    expect(leerHabitosMarcados("")).toEqual([]);
+    expect(leerHabitosMarcados("[]")).toEqual([]);
   });
 });
