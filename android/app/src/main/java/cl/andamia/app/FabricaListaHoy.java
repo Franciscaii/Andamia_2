@@ -289,7 +289,6 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             // Color desconocido: queda el acento.
         }
         int tenue = color(contexto, R.color.widget_texto_tenue);
-        vista.setTextColor(R.id.habito_punto, propio);
         vista.setTextViewText(R.id.habito_titulo, f.titulo);
         vista.setTextColor(R.id.habito_titulo, color(contexto, R.color.widget_texto));
         TemaWidget.tenirFondo(vista, R.id.habito_fila, color(contexto, R.color.widget_evento_suave));
@@ -303,8 +302,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         TemaWidget.tenirFondo(vista, R.id.habito_marca, f.hecha ? propio : Color.argb(f.marcable ? 60 : 30, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
         if (f.marcable) {
             Intent marcar = new Intent();
-            marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")
-                    + "?n=" + Uri.encode(f.titulo) + "&c=" + Uri.encode(f.color) + "&w=" + idWidget));
+            marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")));
             vista.setOnClickFillInIntent(R.id.habito_marca, marcar);
         }
         vista.setOnClickFillInIntent(R.id.habito_fila, abrirDia());

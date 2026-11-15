@@ -54,7 +54,8 @@ interface Estado {
   moverTareaAColumna: (ids: string[], idMovida: string, columnaId: string) => Promise<void>;
   guardarSesion: (sesion: SesionEnfoque) => Promise<void>;
   borrarSesion: (id: string) => Promise<void>;
-  crearHabito: (datos: repo.DatosHabito) => Promise<void>;
+  /** Devuelve el id del hábito creado (o null si no se pudo). */
+  crearHabito: (datos: repo.DatosHabito) => Promise<string | null>;
   actualizarHabito: (id: string, cambios: Partial<Omit<Habito, "id">>) => Promise<void>;
   borrarHabito: (id: string) => Promise<void>;
   registrarHabito: (habitoId: string, fecha: string, datos: { estado: EstadoHabito; valor: number } | null) => Promise<void>;
@@ -299,6 +300,7 @@ export const useTienda = create<Estado>((set, get) => {
     crearHabito: async (datos) => {
       const h = await guardar(() => repo.crearHabito(datos));
       if (h) set((s) => ({ habitos: [...s.habitos, h] }));
+      return h?.id ?? null;
     },
 
     actualizarHabito: async (id, cambios) => {

@@ -448,7 +448,6 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
         const hecho = estado === "hecho";
         return (
           <li key={h.id} data-testid="habito-semana" className={`flex items-center rounded-lg bg-panel ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-3 py-1.5"}`}>
-            {!estrecha && <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: h.color }} />}
             <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-sm" : "min-w-[40%] flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
             </span>

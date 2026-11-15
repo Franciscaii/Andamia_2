@@ -427,12 +427,12 @@ export function frecuenciaValida(f: unknown): FrecuenciaHabito {
   return { tipo: "diaria" };
 }
 
-/** Crea en Andamia una tarea, un evento o un hábito escrito en el widget; devuelve el id de la tarea creada. */
+/** Crea en Andamia una tarea, un evento o un hábito escrito en el widget; devuelve el id de lo creado. */
 async function crearDesdeWidget(n: NuevaDesdeWidget): Promise<string | null> {
   const tienda = useTienda.getState();
   const tipo = n.tipo ?? (n.evento ? "evento" : "tarea");
   if (tipo === "habito") {
-    await tienda.crearHabito({
+    return tienda.crearHabito({
       nombre: n.titulo,
       icono: typeof n.icono === "string" && n.icono ? n.icono : "estrella",
       color: typeof n.color === "string" && /^#[0-9a-f]{6}$/i.test(n.color) ? n.color : COLORES_LISTA[4],
@@ -442,7 +442,6 @@ async function crearDesdeWidget(n: NuevaDesdeWidget): Promise<string | null> {
       inicio: n.fecha,
       recordatorioHora: null,
     });
-    return null;
   }
   const esEvento = tipo === "evento";
   const tarea = await tienda.crearTarea({
@@ -501,7 +500,7 @@ async function aplicarAhora(): Promise<void> {
       await useTienda.getState().completarTarea(id, true);
     }
   }
-  await aplicarHabitosMarcados();
+  await aplicarHabitosMarcados(real);
   ultimoEnviado = "";
   programarEnvio();
 }
@@ -521,7 +520,8 @@ export function leerHabitosMarcados(json: string): { habitoId: string; fecha: st
   }
 }
 
-async function aplicarHabitosMarcados(): Promise<void> {
+/** `real` traduce el id provisorio de un hábito recién creado en el widget (y ya marcado ahí) a su id en Andamia. */
+async function aplicarHabitosMarcados(real: Map<string, string>): Promise<void> {
   let marcas = "";
   try {
     marcas = (await widget.habitosMarcados()).marcas;
@@ -531,7 +531,8 @@ async function aplicarHabitosMarcados(): Promise<void> {
   }
   for (const m of leerHabitosMarcados(marcas)) {
     const { habitos, registros, registrarHabito } = useTienda.getState();
-    const h = habitos.find((x) => x.id === m.habitoId);
+    const id = real.get(m.habitoId) ?? m.habitoId;
+    const h = habitos.find((x) => x.id === id);
     if (!h) continue;
     const yaHecho = registros.find((r) => r.id === `${h.id}|${m.fecha}`)?.estado === "hecho";
     if (m.hecho && !yaHecho) await registrarHabito(h.id, m.fecha, { estado: "hecho", valor: h.metaDiaria });

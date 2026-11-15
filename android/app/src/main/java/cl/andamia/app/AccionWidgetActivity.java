@@ -7,7 +7,7 @@ import android.os.Bundle;
 
 /**
  * Recibe los toques en las filas del widget. "Completar" se anota y el widget se redibuja sin abrir
- * la app; el interruptor de un hábito abre la ventanita para arrastrarlo; "abrir" lleva a la tarea
+ * la app; el interruptor de un hábito lo marca igual, directo desde el widget; "abrir" lleva a la tarea
  * dentro de Andamia.
  */
 public class AccionWidgetActivity extends Activity {
@@ -22,11 +22,14 @@ public class AccionWidgetActivity extends Activity {
                 Widgets.redibujarTodo(this);
             }
         } else if (datos != null && "habito".equals(datos.getHost())) {
-            // andamia://habito/ID/AAAA-MM-DD/1|0: abre la ventanita con el interruptor para arrastrarlo
-            // (dentro de un widget Android solo deja tocar, no arrastrar).
-            Intent deslizar = new Intent(Intent.ACTION_VIEW, datos, this, DeslizarHabitoActivity.class);
-            deslizar.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            startActivity(deslizar);
+            // andamia://habito/ID/AAAA-MM-DD/1 (hecho) o /0 (sin marcar): se anota y el widget se redibuja,
+            // sin abrir nada (dentro de un widget Android solo deja tocar, no arrastrar).
+            java.util.List<String> partes = datos.getPathSegments();
+            if (partes.size() == 3) {
+                DatosWidget.marcarHabito(this, partes.get(0), partes.get(1), "1".equals(partes.get(2)));
+                Widgets.redibujarTodo(this);
+                WidgetPlugin.avisarRapida();
+            }
         } else if (datos != null) {
             Intent abrir = new Intent(Intent.ACTION_VIEW, datos, this, MainActivity.class);
             abrir.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
