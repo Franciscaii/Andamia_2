@@ -166,22 +166,28 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   await mostrar.getByRole("button", { name: "Tareas" }).click();
   await expect(page.getByTestId("habito-semana")).toHaveCount(0);
 
-  // La marca queda guardada y se puede quitar.
+  // La marca queda guardada.
   await page.reload();
   await mostrar.getByRole("button", { name: "Todos" }).click();
   await expect(marca).toHaveAttribute("aria-checked", "true");
-  await deslizarHabito(page, marca, 0.03);
-  await expect(marca).toHaveAttribute("aria-checked", "false");
 
-  // En el Calendario, "Hábitos" muestra solo los hábitos de cada día y también se marcan ahí.
+  // En el Calendario, "Hábitos" muestra solo los hábitos cumplidos, como barritas de su color.
   await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
   const hoy = page.locator(`[data-zona="dia:${hoyEnSantiago()}"]`);
   await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Hábitos" }).click();
-  const chip = hoy.getByRole("checkbox", { name: "Hábito Estirar" });
-  await chip.click();
-  await expect(chip).toHaveAttribute("aria-checked", "true");
+  await expect(hoy.getByTestId("barra-habito")).toHaveText("Estirar");
+  await expect(page.getByTestId("barra-habito")).toHaveCount(1);
   await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Tareas" }).click();
-  await expect(page.getByTestId("chip-habito")).toHaveCount(0);
+  await expect(page.getByTestId("barra-habito")).toHaveCount(0);
+
+  // Al quitar la marca en Semana, deja de salir en el mes.
+  await page.getByRole("navigation").getByRole("link", { name: "Semana" }).click();
+  await deslizarHabito(page, marca, 0.03);
+  await expect(marca).toHaveAttribute("aria-checked", "false");
+  await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
+  await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Hábitos" }).click();
+  await expect(hoy).toBeVisible();
+  await expect(page.getByTestId("barra-habito")).toHaveCount(0);
 });
 
 test("detalle, papelera y restaurar", async ({ page }) => {
