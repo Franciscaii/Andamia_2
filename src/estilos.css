@@ -151,3 +151,22 @@ html.modo-widget,
 html.modo-widget body {
   background: transparent;
 }
+
+/* Barra de desplazamiento fina y discreta (sin flechas), para listas chicas dentro de una tarjeta. */
+.barra-fina::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.barra-fina::-webkit-scrollbar-button {
+  display: none;
+}
+.barra-fina::-webkit-scrollbar-track {
+  background: transparent;
+}
+.barra-fina::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tenue) 35%, transparent);
+}
+.barra-fina::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--tenue) 60%, transparent);
+}

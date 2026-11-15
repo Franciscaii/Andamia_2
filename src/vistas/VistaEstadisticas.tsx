@@ -39,14 +39,18 @@ function trazoArco(cx: number, cy: number, r: number, desde: number, hasta: numb
 }
 
 /**
- * Un solo anillo grueso: cada grupo ocupa su parte, con los colores pegados (sin bordes blancos entre tramos).
+ * Un solo anillo grueso, como en el widget del celular: cada grupo es un tramo de punta redonda,
+ * con un respiro entre tramos, sobre un riel suave.
  */
 function Circular({ filas, total, elegido, alElegir, unidad, clase = "h-56 w-56", claseCaja = "" }: { filas: FilaResumen[]; total: number; elegido: string | null; alElegir: (c: string) => void; unidad: string; clase?: string; claseCaja?: string }) {
   const tam = 240;
   const c = tam / 2;
-  const grosor = 22;
+  const grosor = 30;
   const r = c - grosor / 2 - 4;
   const fila = filas.find((f) => f.clave === elegido);
+  const varios = filas.length > 1;
+  // Grados que ocupa la punta redonda, más un respiro, a cada lado del tramo.
+  const punta = varios ? (grosor / 2 / r) * (180 / Math.PI) + 1.5 : 0;
   let angulo = 0;
   return (
     <figure data-testid="grafico-circular" className={`flex justify-center ${claseCaja}`}>
@@ -55,16 +59,20 @@ function Circular({ filas, total, elegido, alElegir, unidad, clase = "h-56 w-56"
         {filas.map((f) => {
           const desde = angulo;
           angulo += (f.cantidad / total) * 360;
-          // Se alarga un pelo hacia atrás para que no quede una rendija entre colores.
-          const inicio = desde === 0 ? 0 : desde - 0.4;
+          // Un tramo muy chico queda como un punto en su lugar.
+          const medio = (desde + angulo) / 2;
+          const cabe = angulo - desde - 2 * punta > 0.5;
+          const inicio = cabe ? desde + punta : medio - 0.25;
+          const fin = cabe ? angulo - punta : medio + 0.25;
           return (
             <path
               key={f.clave}
               data-clave={f.clave}
-              d={trazoArco(c, c, r, inicio, angulo)}
+              d={trazoArco(c, c, r, inicio, fin)}
               fill="none"
               stroke={f.color}
               strokeWidth={grosor}
+              strokeLinecap={varios ? "round" : "butt"}
               opacity={opacidad(f.clave, elegido)}
               className="cursor-pointer transition-opacity"
               onClick={() => alElegir(f.clave)}
@@ -168,9 +176,8 @@ function Areas({ resumen, elegido, alElegir, llenar = false }: { resumen: Resume
             </linearGradient>
           ))}
         </defs>
-        {/* Guías verticales finas, una por fecha marcada. */}
-        {serie.map((_, i) => (i % cadaCuanto === 0 || i === n - 1 ? <line key={`v${i}`} x1={x(i)} x2={x(i)} y1={margen.arr} y2={base} stroke="var(--borde)" strokeWidth={1} strokeOpacity={0.6} /> : null))}
-        <line x1={margen.izq} x2={ancho - margen.der} y1={base} y2={base} stroke="var(--borde)" strokeWidth={1} />
+        {/* Solo los dos ejes, como en el celular: sin guías verticales dentro del gráfico. */}
+        <path d={`M${margen.izq},${margen.arr - 4} V${base} H${ancho - margen.der}`} fill="none" stroke="var(--borde)" strokeWidth={1} strokeLinecap="round" />
         {marcasY.map((v) => (
           <text key={v} x={margen.izq - 8} y={y(v) + 3.5} textAnchor="end" className="fill-tenue text-[11px] tabular-nums">
             {v}
@@ -284,15 +291,21 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
           <>
             <div className={`flex shrink-0 items-center gap-3 h-[calc(50%-0.25rem)]`}>
               <Circular clase="aspect-square max-h-full w-full" claseCaja="h-full w-1/2 items-center" filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={esTareas ? (resumen.total === 1 ? "tarea" : "tareas") : resumen.total === 1 ? "día" : "días"} />
-              <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className={`max-h-full min-w-0 flex-1 space-y-1 overflow-y-auto rounded-xl border border-borde p-2 self-stretch`}>
+              <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className="barra-fina max-h-full min-w-0 flex-1 space-y-1 self-center overflow-y-auto py-1 pr-1">
                 {resumen.filas.map((f) => (
                   <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
                     <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className="flex w-full items-center gap-2 text-left text-xs">
-                      <span title={f.nombre} className="min-w-0 flex-1 truncate rounded-full px-2.5 py-1 font-medium" style={{ background: `color-mix(in srgb, ${f.color} 30%, transparent)`, boxShadow: elegidoVisible === f.clave ? `inset 0 0 0 1.5px ${f.color}` : undefined }}>
-                        {f.nombre}
+                      {/* Como en el widget del celular: píldora con borde y punto del color del grupo. */}
+                      <span
+                        title={f.nombre}
+                        className={`flex max-w-full min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 ${elegidoVisible === f.clave ? "font-semibold" : ""}`}
+                        style={{ borderColor: `color-mix(in srgb, ${f.color} 67%, transparent)`, background: elegidoVisible === f.clave ? `color-mix(in srgb, ${f.color} 20%, transparent)` : undefined }}
+                      >
+                        <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: f.color }} />
+                        <span className="truncate">{f.nombre}</span>
                       </span>
-                      <span className="shrink-0 text-tenue tabular-nums">
-                        {f.cantidad} • {f.porcentaje}%
+                      <span className="ml-auto shrink-0 text-tenue tabular-nums">
+                        {f.cantidad} · {f.porcentaje}%
                       </span>
                     </button>
                   </li>

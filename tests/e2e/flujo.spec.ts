@@ -322,7 +322,7 @@ test("estadística de tareas: por etiqueta, circular y en el tiempo; tocar una e
   const filas = page.getByTestId("fila-grupo");
   await expect(filas).toHaveCount(2);
   await expect(filas.first()).toContainText("VidaCotidiana");
-  await expect(filas.first()).toContainText("2 • 67%");
+  await expect(filas.first()).toContainText("2 · 67%");
   await expect(page.getByTestId("grafico-circular")).toContainText("3");
 
   await filas.nth(1).click();
