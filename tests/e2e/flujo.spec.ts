@@ -147,6 +147,17 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   await deslizarHabito(page, marca, 0.97);
   await expect(marca).toHaveAttribute("aria-checked", "true");
 
+  // En las columnas de 7 días la barra cabe en su fila y el nombre se sigue viendo.
+  await crearEnSemana(page, "Tarea", "Tarea para ensanchar el día");
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 Días" }).click();
+  const fila = page.getByTestId("habito-semana").filter({ hasText: "Estirar" }).last();
+  const cajaFila = (await fila.boundingBox())!;
+  const cajaBarra = (await fila.getByRole("switch").boundingBox())!;
+  const cajaNombre = (await fila.getByText("Estirar").boundingBox())!;
+  expect(cajaBarra.x + cajaBarra.width).toBeLessThanOrEqual(cajaFila.x + cajaFila.width);
+  expect(cajaNombre.width).toBeGreaterThan(40);
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
+
   // Con "Hábitos" solo quedan los hábitos; con "Tareas" no se ven.
   const mostrar = page.getByRole("group", { name: "Mostrar" });
   await mostrar.getByRole("button", { name: "Hábitos" }).click();

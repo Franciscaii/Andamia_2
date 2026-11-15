@@ -449,7 +449,7 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
         return (
           <li key={h.id} data-testid="habito-semana" className={`flex items-center rounded-lg bg-panel ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-3 py-1.5"}`}>
             {!estrecha && <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: h.color }} />}
-            <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-sm" : "flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
+            <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-sm" : "min-w-[40%] flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
             </span>
             <DeslizadorHabito
@@ -457,7 +457,7 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
               color={h.color}
               hecho={hecho}
               marcable={marcable}
-              clase={estrecha ? "w-full shrink-0" : celular ? "min-w-0 flex-1" : "w-64 shrink-0"}
+              clase={estrecha ? "w-full shrink-0" : celular ? "min-w-0 flex-1" : "max-w-64 min-w-0 flex-1"}
               alCambiar={(v) => void registrarHabito(h.id, fecha, v ? { estado: "hecho", valor: h.metaDiaria } : null)}
             />
           </li>
