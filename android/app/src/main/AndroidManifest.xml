@@ -120,6 +120,15 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.NoDisplay" />
 
+        <!-- Interruptor de un hábito para arrastrarlo, sobre la pantalla de inicio. -->
+        <activity
+            android:name=".DeslizarHabitoActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity="cl.andamia.app.rapida"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- Cuadro rápido del "+" de los widgets: se escribe sobre la pantalla de inicio. -->
         <activity
             android:name=".NuevaRapidaActivity"

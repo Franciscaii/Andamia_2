@@ -12,6 +12,7 @@ import { COLOR_HECHA, COLOR_NIVEL } from "../componentes/FilaTarea";
 import { colisionTareasEnZonas } from "../componentes/colision";
 import { venceEnDia } from "../logica/calendario";
 import { ordenEntre } from "../logica/vistas";
+import { DeslizadorHabito } from "../componentes/DeslizadorHabito";
 import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
 import { hashDe, irA, type Seccion } from "../logica/ruta";
@@ -431,7 +432,7 @@ function leerAlcance(): Alcance {
   }
 }
 
-/** Los hábitos que tocan un día: el nombre y un interruptor cuya perilla con ✓ se desliza a la derecha al marcarlo hecho. */
+/** Los hábitos que tocan un día: el nombre y su interruptor. En el celular es largo y se completa arrastrando el círculo; en el computador, chico y con un clic. */
 function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha?: boolean }) {
   const habitos = useTienda((s) => s.habitos);
   const registros = useTienda((s) => s.registros);
@@ -451,21 +452,25 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
             <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : ancho ? "w-2/5 text-sm" : "flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
             </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={hecho}
-              aria-label={`Hábito ${h.nombre}`}
-              disabled={!marcable}
-              title={marcable ? (hecho ? "Quitar la marca" : "Marcar como hecho") : "Todavía no llega este día"}
-              style={hecho ? { background: `linear-gradient(135deg, color-mix(in srgb, ${h.color} 72%, white), ${h.color})` } : undefined}
-              className={`relative shrink-0 rounded-full transition-colors ${ancho ? "h-7 flex-1" : "h-[22px] w-10"} ${hecho ? "" : "bg-suave ring-1 ring-borde ring-inset"} ${marcable ? "" : "opacity-40"}`}
-              onClick={() => void registrarHabito(h.id, fecha, hecho ? null : { estado: "hecho", valor: h.metaDiaria })}
-            >
-              <span className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-[left] duration-200 ease-out ${ancho ? "h-6 w-6" : "h-[18px] w-[18px]"} ${hecho ? (ancho ? "left-[calc(100%-26px)]" : "left-5") : "left-[2px]"}`}>
-                <Check size={11} strokeWidth={3.5} style={{ color: hecho ? h.color : "#c5cad3" }} />
-              </span>
-            </button>
+            {ancho ? (
+              <DeslizadorHabito nombre={h.nombre} color={h.color} hecho={hecho} marcable={marcable} alCambiar={(v) => void registrarHabito(h.id, fecha, v ? { estado: "hecho", valor: h.metaDiaria } : null)} />
+            ) : (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={hecho}
+                aria-label={`Hábito ${h.nombre}`}
+                disabled={!marcable}
+                title={marcable ? (hecho ? "Quitar la marca" : "Marcar como hecho") : "Todavía no llega este día"}
+                style={hecho ? { background: `linear-gradient(135deg, color-mix(in srgb, ${h.color} 72%, white), ${h.color})` } : undefined}
+                className={`relative shrink-0 rounded-full transition-colors h-[22px] w-10 ${hecho ? "" : "bg-suave ring-1 ring-borde ring-inset"} ${marcable ? "" : "opacity-40"}`}
+                onClick={() => void registrarHabito(h.id, fecha, hecho ? null : { estado: "hecho", valor: h.metaDiaria })}
+              >
+                <span className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-[left] duration-200 ease-out h-[18px] w-[18px] ${hecho ? "left-5" : "left-[2px]"}`}>
+                  <Check size={11} strokeWidth={3.5} style={{ color: hecho ? h.color : "#c5cad3" }} />
+                </span>
+              </button>
+            )}
           </li>
         );
       })}

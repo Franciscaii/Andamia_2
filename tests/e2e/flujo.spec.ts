@@ -781,3 +781,43 @@ test("menú Widgets (app de PC): añadir y quitar widgets del escritorio", async
   await page.getByRole("button", { name: "Quitar del escritorio: Semana" }).click();
   await expect(page.getByRole("button", { name: "Añadir al escritorio: Semana" })).toBeVisible();
 });
+test.describe("celular", () => {
+  test.use({ viewport: { width: 390, height: 780 } });
+
+  test("semana: el hábito se completa arrastrando el círculo, no con un toque", async ({ page }) => {
+    await page.goto("/#/habitos");
+    await page.getByRole("button", { name: "Nuevo hábito" }).click();
+    await page.getByLabel("Nombre del hábito").fill("Estirar");
+    await page.getByRole("button", { name: "Crear hábito" }).click();
+    await expect(page.getByTestId("habito")).toHaveCount(1);
+
+    await page.goto("/#/semana");
+    const interruptor = page.getByRole("switch", { name: "Hábito Estirar" });
+    const perilla = interruptor.getByTestId("perilla-habito");
+    const arrastrar = async (hasta: number) => {
+      // El círculo termina de volver a su lugar antes de tomarlo de nuevo.
+      await page.waitForTimeout(350);
+      const riel = (await interruptor.boundingBox())!;
+      const c = (await perilla.boundingBox())!;
+      await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(riel.x + riel.width * hasta, c.y + c.height / 2, { steps: 8 });
+      await page.mouse.up();
+    };
+
+    // Un toque no lo marca.
+    await perilla.click();
+    await expect(interruptor).toHaveAttribute("aria-checked", "false");
+    // Soltarlo a medio camino tampoco: el círculo vuelve.
+    await arrastrar(0.5);
+    await expect(interruptor).toHaveAttribute("aria-checked", "false");
+    // Llevarlo hasta el final lo deja hecho.
+    await arrastrar(0.97);
+    await expect(interruptor).toHaveAttribute("aria-checked", "true");
+    await page.reload();
+    await expect(interruptor).toHaveAttribute("aria-checked", "true");
+    // De vuelta a la izquierda quita la marca.
+    await arrastrar(0.03);
+    await expect(interruptor).toHaveAttribute("aria-checked", "false");
+  });
+});
