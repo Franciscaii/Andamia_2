@@ -14,7 +14,6 @@ import {
   type Periodo,
   type Resumen,
 } from "../logica/estadisticas";
-import { useEsComputador } from "../logica/pantalla";
 import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 
 /** En el widget de estadísticas del PC no va el título: ya lo dice la barra del widget. */
@@ -238,7 +237,6 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   const [referencia, setReferencia] = useState(() => new Date());
   const [elegido, setElegido] = useState<string | null>(null);
   const esTareas = tipo === "tareas";
-  const esPc = useEsComputador(EN_WIDGET);
 
   const resumen = useMemo(() => {
     const hechos = esTareas ? hechosDeTareas(tareas) : hechosDeHabitos(habitos, registros);
@@ -254,9 +252,9 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   const vacio = esTareas ? "No completaste tareas en este período." : "No hay días cumplidos en este período.";
 
   // Como el boceto: arriba el período; abajo una tarjeta con el anillo, la leyenda y las ondas.
-  // En el celular la tarjeta se reparte en cuadrados: anillo y etiquetas arriba (una mitad cada uno) y las ondas en la mitad de abajo.
+  // La tarjeta se reparte en cuadrados (en el celular y en el computador): anillo y etiquetas arriba (una mitad cada uno) y las ondas en la mitad de abajo.
   return (
-    <div className={`flex min-h-0 flex-1 flex-col gap-3 ${EN_WIDGET ? "p-3" : esPc ? "p-5" : "p-4"}`}>
+    <div className={`flex min-h-0 flex-1 flex-col gap-3 ${EN_WIDGET ? "p-3" : "p-4 lg:p-5"}`}>
       {!EN_WIDGET && <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>}
       <header className="shrink-0 rounded-2xl border border-borde bg-panel px-3 py-2.5 shadow-sm">
         <div role="group" aria-label="Período" className="mx-auto flex max-w-md gap-1 rounded-full bg-suave p-1">
@@ -284,9 +282,9 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
           <p className="m-auto px-6 text-center text-sm text-tenue">{vacio}</p>
         ) : (
           <>
-            <div className={`flex shrink-0 items-center gap-3 ${esPc ? "h-40" : "h-[calc(50%-0.25rem)]"}`}>
-              <Circular clase={esPc ? "h-40 w-40" : "aspect-square max-h-full w-full"} claseCaja={esPc ? undefined : "h-full w-1/2 items-center"} filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={esTareas ? (resumen.total === 1 ? "tarea" : "tareas") : resumen.total === 1 ? "día" : "días"} />
-              <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className={`max-h-full min-w-0 flex-1 space-y-1 overflow-y-auto rounded-xl border border-borde p-2 ${esPc ? "" : "self-stretch"}`}>
+            <div className={`flex shrink-0 items-center gap-3 h-[calc(50%-0.25rem)]`}>
+              <Circular clase="aspect-square max-h-full w-full" claseCaja="h-full w-1/2 items-center" filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={esTareas ? (resumen.total === 1 ? "tarea" : "tareas") : resumen.total === 1 ? "día" : "días"} />
+              <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className={`max-h-full min-w-0 flex-1 space-y-1 overflow-y-auto rounded-xl border border-borde p-2 self-stretch`}>
                 {resumen.filas.map((f) => (
                   <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
                     <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className="flex w-full items-center gap-2 text-left text-xs">

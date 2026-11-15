@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, 
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { addMonths, addWeeks, format, isSameDay, isSameMonth, parseISO, startOfDay, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import { Check, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
+import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { estiloEvento } from "../componentes/CamposTarea";
 import { colisionPunteroOTeclado } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
@@ -12,7 +12,6 @@ import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes, diasDeSemana, entradasDelDia, entradasEnRango, venceEnDia, venceEnHora, type EntradaCalendario } from "../logica/calendario";
 import { interpretarEntrada } from "../logica/entradaRapida";
 import { habitosDelDia, type HabitoDelDia } from "../logica/habitos";
-import { useEsComputador } from "../logica/pantalla";
 import { hashDe, irA, type ModoCalendario } from "../logica/ruta";
 import type { FiltroSemana } from "../logica/semana";
 import { DialogoHabito } from "./VistaHabitos";
@@ -112,42 +111,13 @@ function ChipMes({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: Pr
   );
 }
 
-/** En el celular: un hábito cumplido ese día, como una barrita de su color (igual que en el widget). */
+/** Un hábito cumplido ese día, como una barrita de su color (igual en el celular, el computador y los widgets). */
 function BarraHabitoMes({ dato }: { dato: HabitoDelDia }) {
   const h = dato.habito;
   return (
     <div data-testid="barra-habito" data-entrada title={`${h.nombre}: cumplido`} className="w-full min-w-0 truncate rounded border-l-[3px] px-0.5 py-0.5 text-left text-[11px] leading-tight font-medium" style={{ borderColor: h.color, background: `color-mix(in srgb, ${h.color} 28%, transparent)` }}>
       {h.nombre}
     </div>
-  );
-}
-
-/** Un hábito en un día del mes: su casilla redonda (del color del hábito) y el nombre. */
-function ChipHabitoMes({ dato, fecha }: { dato: HabitoDelDia; fecha: string }) {
-  const registrarHabito = useTienda((s) => s.registrarHabito);
-  const { habito: h, marcable } = dato;
-  const hecho = dato.estado === "hecho";
-  return (
-    <button
-      type="button"
-      role="checkbox"
-      aria-checked={hecho}
-      aria-label={`Hábito ${h.nombre}`}
-      data-testid="chip-habito"
-      data-entrada
-      disabled={!marcable}
-      title={marcable ? h.nombre : `${h.nombre} (todavía no llega este día)`}
-      onClick={(e) => {
-        e.stopPropagation();
-        void registrarHabito(h.id, fecha, hecho ? null : { estado: "hecho", valor: h.metaDiaria });
-      }}
-      className={`flex w-full min-w-0 items-center gap-1 overflow-hidden rounded px-0.5 py-0.5 text-left text-[11px] leading-tight sm:text-xs ${marcable ? "hover:bg-suave" : "opacity-60"}`}
-    >
-      <span style={{ borderColor: h.color, background: hecho ? h.color : undefined }} className="flex h-3 w-3 shrink-0 items-center justify-center rounded-full border-[1.5px]">
-        {hecho && <Check size={8} strokeWidth={4} className="text-white" />}
-      </span>
-      <span className={`truncate ${hecho ? "text-tenue line-through" : ""}`}>{h.nombre}</span>
-    </button>
   );
 }
 
@@ -230,7 +200,6 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const habitos = useTienda((s) => s.habitos);
   const registros = useTienda((s) => s.registros);
   // En el celular el mes muestra solo los hábitos cumplidos; en el computador, todos, con su casilla para marcarlos.
-  const esComputador = useEsComputador(EN_WIDGET);
   const [fecha, setFecha] = useState(() => new Date());
   const [creacion, setCreacion] = useState<Creacion | null>(null);
   const [activa, setActiva] = useState<Tarea | null>(null);
@@ -392,7 +361,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                   delDia.sort((a, b) => Number(b.tarea.esEvento === true) - Number(a.tarea.esEvento === true));
                   // Tantas como quepan en el recuadro; si sobran, "n más" al final, sin salirse del día.
                   // Los hábitos del día van después de eventos y tareas (con "Hábitos" o "Todos").
-                  const habitosDia = delMes && (filtro === "habitos" || filtro === "todos") ? habitosDelDia(habitos, registros, dia, hoy).filter((h) => esComputador || h.estado === "hecho") : [];
+                  const habitosDia = delMes && (filtro === "habitos" || filtro === "todos") ? habitosDelDia(habitos, registros, dia, hoy).filter((h) => h.estado === "hecho") : [];
                   const total = delDia.length + habitosDia.length;
                   const visibles = entradasQueCaben(altoCelda, total);
                   const resto = total - visibles;
@@ -413,7 +382,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                               <ChipMes key={e.clave} tarea={e.tarea} fecha={e.fecha} esOcurrencia={e.esOcurrencia} idArrastre={e.esOcurrencia ? `ocurrencia:${e.clave}` : undefined} alAbrir={() => abrir(e.tarea.id)} />
                             ))}
                             {habitosDia.slice(0, Math.max(0, visibles - delDia.length)).map((h) => (
-                              esComputador ? <ChipHabitoMes key={h.habito.id} dato={h} fecha={claveDia(dia)} /> : <BarraHabitoMes key={h.habito.id} dato={h} />
+                              <BarraHabitoMes key={h.habito.id} dato={h} />
                             ))}
                             {resto > 0 && (
                               <a
