@@ -432,13 +432,13 @@ function leerAlcance(): Alcance {
   }
 }
 
-/** Los hábitos que tocan un día: el nombre y su interruptor. En el celular es largo y se completa arrastrando el círculo; en el computador, chico y con un clic. */
+/** Los hábitos que tocan un día: el nombre y su interruptor. Se completa arrastrando el círculo, en el celular y en el computador. */
 function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha?: boolean }) {
   const habitos = useTienda((s) => s.habitos);
   const registros = useTienda((s) => s.registros);
   const registrarHabito = useTienda((s) => s.registrarHabito);
-  // En el celular el interruptor va a lo ancho de la fila; en el computador (y sus widgets), chico.
-  const ancho = !useEsEscritorio() && !estrecha;
+  // En el celular el interruptor va a lo ancho de la fila; en el computador tiene un largo fijo y en las columnas de 7 días ocupa la columna.
+  const celular = !useEsEscritorio() && !estrecha;
   const delDia = habitosDelDia(habitos, registros, dia, ahora);
   if (!delDia.length) return null;
   const fecha = claveDia(dia);
@@ -449,28 +449,17 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
         return (
           <li key={h.id} data-testid="habito-semana" className={`flex items-center rounded-lg bg-panel ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-3 py-1.5"}`}>
             {!estrecha && <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: h.color }} />}
-            <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : ancho ? "w-2/5 text-sm" : "flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
+            <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-sm" : "flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
             </span>
-            {ancho ? (
-              <DeslizadorHabito nombre={h.nombre} color={h.color} hecho={hecho} marcable={marcable} alCambiar={(v) => void registrarHabito(h.id, fecha, v ? { estado: "hecho", valor: h.metaDiaria } : null)} />
-            ) : (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={hecho}
-                aria-label={`Hábito ${h.nombre}`}
-                disabled={!marcable}
-                title={marcable ? (hecho ? "Quitar la marca" : "Marcar como hecho") : "Todavía no llega este día"}
-                style={hecho ? { background: `linear-gradient(135deg, color-mix(in srgb, ${h.color} 72%, white), ${h.color})` } : undefined}
-                className={`relative shrink-0 rounded-full transition-colors h-[22px] w-10 ${hecho ? "" : "bg-suave ring-1 ring-borde ring-inset"} ${marcable ? "" : "opacity-40"}`}
-                onClick={() => void registrarHabito(h.id, fecha, hecho ? null : { estado: "hecho", valor: h.metaDiaria })}
-              >
-                <span className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-[left] duration-200 ease-out h-[18px] w-[18px] ${hecho ? "left-5" : "left-[2px]"}`}>
-                  <Check size={11} strokeWidth={3.5} style={{ color: hecho ? h.color : "#c5cad3" }} />
-                </span>
-              </button>
-            )}
+            <DeslizadorHabito
+              nombre={h.nombre}
+              color={h.color}
+              hecho={hecho}
+              marcable={marcable}
+              clase={estrecha ? "w-full shrink-0" : celular ? "min-w-0 flex-1" : "w-64 shrink-0"}
+              alCambiar={(v) => void registrarHabito(h.id, fecha, v ? { estado: "hecho", valor: h.metaDiaria } : null)}
+            />
           </li>
         );
       })}
@@ -807,7 +796,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <ArrastreSemana ahora={ahora}>
       <header data-widget-cabecera className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center ${esEscritorio ? "gap-2" : "gap-1 min-[400px]:gap-2"}`}>
           <div className="flex shrink-0 items-center">
             <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
@@ -839,14 +828,14 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               ))}
             </div>
           )}
-          <div role="group" aria-label="Mostrar" className={`${esEscritorio ? "" : "ml-auto "}flex min-w-0 gap-0.5 rounded-md bg-suave p-0.5`}>
+          <div role="group" aria-label="Mostrar" className={`${esEscritorio ? "" : "ml-auto "}flex shrink-0 gap-0.5 rounded-md bg-suave p-0.5`}>
             {FILTROS.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 aria-pressed={filtro === f.id}
                 onClick={() => setFiltro(f.id)}
-                className={`rounded px-2 py-1 text-xs sm:px-2.5 ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+                className={`rounded py-1 whitespace-nowrap ${esEscritorio ? "px-2.5 text-xs" : "px-1 text-[11px] min-[400px]:px-2 min-[400px]:text-xs"} ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
               >
                 {f.nombre}
               </button>
