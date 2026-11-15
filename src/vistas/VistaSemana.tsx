@@ -436,6 +436,8 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
   const habitos = useTienda((s) => s.habitos);
   const registros = useTienda((s) => s.registros);
   const registrarHabito = useTienda((s) => s.registrarHabito);
+  // En el celular el interruptor va a lo ancho de la fila; en el computador (y sus widgets), chico.
+  const ancho = !useEsEscritorio() && !estrecha;
   const delDia = habitosDelDia(habitos, registros, dia, ahora);
   if (!delDia.length) return null;
   const fecha = claveDia(dia);
@@ -446,7 +448,7 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
         return (
           <li key={h.id} data-testid="habito-semana" className={`flex items-center rounded-lg bg-panel ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-3 py-1.5"}`}>
             {!estrecha && <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: h.color }} />}
-            <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : "flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
+            <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : ancho ? "w-2/5 text-sm" : "flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
             </span>
             <button
@@ -457,10 +459,10 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
               disabled={!marcable}
               title={marcable ? (hecho ? "Quitar la marca" : "Marcar como hecho") : "Todavía no llega este día"}
               style={hecho ? { background: `linear-gradient(135deg, color-mix(in srgb, ${h.color} 72%, white), ${h.color})` } : undefined}
-              className={`relative h-[22px] w-10 shrink-0 rounded-full transition-colors ${hecho ? "" : "bg-suave ring-1 ring-borde ring-inset"} ${marcable ? "" : "opacity-40"}`}
+              className={`relative shrink-0 rounded-full transition-colors ${ancho ? "h-7 flex-1" : "h-[22px] w-10"} ${hecho ? "" : "bg-suave ring-1 ring-borde ring-inset"} ${marcable ? "" : "opacity-40"}`}
               onClick={() => void registrarHabito(h.id, fecha, hecho ? null : { estado: "hecho", valor: h.metaDiaria })}
             >
-              <span className={`absolute top-[2px] flex h-[18px] w-[18px] items-center justify-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-[left] duration-200 ease-out ${hecho ? "left-5" : "left-[2px]"}`}>
+              <span className={`absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-[left] duration-200 ease-out ${ancho ? "h-6 w-6" : "h-[18px] w-[18px]"} ${hecho ? (ancho ? "left-[calc(100%-26px)]" : "left-5") : "left-[2px]"}`}>
                 <Check size={11} strokeWidth={3.5} style={{ color: hecho ? h.color : "#c5cad3" }} />
               </span>
             </button>

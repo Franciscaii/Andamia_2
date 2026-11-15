@@ -295,8 +295,12 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         TemaWidget.tenirFondo(vista, R.id.habito_fila, color(contexto, R.color.widget_evento_suave));
         // Interruptor: hecho = riel del color del hábito y la perilla con su ✓ a la derecha; sin marcar = riel apagado y perilla a la izquierda.
         float densidad = contexto.getResources().getDisplayMetrics().density;
-        vista.setImageViewBitmap(R.id.habito_marca, Dibujos.interruptor(densidad, f.hecha, propio, tenue));
-        if (!f.marcable) vista.setInt(R.id.habito_marca, "setImageAlpha", 110);
+        int perilla = f.hecha ? R.id.habito_perilla_der : R.id.habito_perilla_izq;
+        vista.setViewVisibility(R.id.habito_perilla_izq, f.hecha ? View.GONE : View.VISIBLE);
+        vista.setViewVisibility(R.id.habito_perilla_der, f.hecha ? View.VISIBLE : View.GONE);
+        vista.setImageViewBitmap(perilla, Dibujos.perilla(densidad, f.hecha, propio));
+        if (!f.marcable) vista.setInt(perilla, "setImageAlpha", 120);
+        TemaWidget.tenirFondo(vista, R.id.habito_marca, f.hecha ? propio : Color.argb(f.marcable ? 60 : 30, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
         if (f.marcable) {
             Intent marcar = new Intent();
             marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")));
