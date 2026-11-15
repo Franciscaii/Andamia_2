@@ -118,6 +118,19 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
   await expect(page.getByRole("dialog", { name: "Nuevo hábito" })).toBeVisible();
 });
 
+/** Arrastra el círculo de un hábito hasta una fracción del riel (0 = izquierda, 1 = derecha). */
+async function deslizarHabito(page: Page, interruptor: import("@playwright/test").Locator, hasta: number) {
+  // El círculo termina de volver a su lugar antes de tomarlo de nuevo.
+  await page.waitForTimeout(350);
+  const perilla = interruptor.getByTestId("perilla-habito");
+  const riel = (await interruptor.boundingBox())!;
+  const c = (await perilla.boundingBox())!;
+  await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(riel.x + riel.width * hasta, c.y + c.height / 2, { steps: 8 });
+  await page.mouse.up();
+}
+
 test("semana: los hábitos del día se marcan con su interruptor y tienen su propio filtro", async ({ page }) => {
   await page.goto("/#/habitos");
   await page.getByRole("button", { name: "Nuevo hábito" }).click();
@@ -128,7 +141,10 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   await page.goto("/#/semana");
   const marca = page.getByRole("switch", { name: "Hábito Estirar" }).first();
   await expect(marca).toHaveAttribute("aria-checked", "false");
-  await marca.click();
+  // También en el computador: un clic no lo marca, hay que arrastrar el círculo.
+  await marca.getByTestId("perilla-habito").click();
+  await expect(marca).toHaveAttribute("aria-checked", "false");
+  await deslizarHabito(page, marca, 0.97);
   await expect(marca).toHaveAttribute("aria-checked", "true");
 
   // Con "Hábitos" solo quedan los hábitos; con "Tareas" no se ven.
@@ -143,7 +159,7 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   await page.reload();
   await mostrar.getByRole("button", { name: "Todos" }).click();
   await expect(marca).toHaveAttribute("aria-checked", "true");
-  await marca.click();
+  await deslizarHabito(page, marca, 0.03);
   await expect(marca).toHaveAttribute("aria-checked", "false");
 
   // En el Calendario, "Hábitos" muestra solo los hábitos de cada día y también se marcan ahí.
@@ -423,6 +439,8 @@ test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   const hoy = new Date(`${hoyEnSantiago()}T12:00:00`);
   const otro = new Date(hoy);
   otro.setDate(hoy.getDate() + (hoy.getDay() === 0 ? -1 : 1));
+  // El domingo el "otro día" es ayer: la tarea queda atrasada y sale también en hoy.
+  const atrasada = hoy.getDay() === 0 ? 1 : 0;
   await page.getByRole("button", { name: "Añadir", exact: true }).click();
   await page.getByRole("menuitem", { name: "Tarea" }).click();
   const dialogo = page.getByRole("dialog");
@@ -430,11 +448,11 @@ test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   await dialogo.getByLabel("Fecha", { exact: true }).fill(otro.toLocaleDateString("sv-SE"));
   await dialogo.getByRole("button", { name: "Crear tarea" }).click();
 
-  await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
+  await expect(page.getByTestId("fila-tarea")).toHaveCount(1 + atrasada);
   await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 Días" }).click();
   await expect(page.getByTestId("dia-semana")).toHaveCount(7);
-  await expect(page.getByTestId("fila-tarea")).toHaveCount(2);
-  await expect(page.getByTestId("dia-semana").filter({ hasText: "Tarea de otro día" })).toHaveCount(1);
+  await expect(page.getByTestId("fila-tarea")).toHaveCount(2 + atrasada);
+  await expect(page.getByTestId("dia-semana").filter({ hasText: "Tarea de otro día" })).toHaveCount(1 + atrasada);
   // Con 7 días no hay + general: cada día tiene el suyo y crea en ese día.
   await expect(page.getByRole("button", { name: "Añadir", exact: true })).toHaveCount(0);
   const domingo = page.getByTestId("dia-semana").last();
@@ -450,10 +468,10 @@ test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole("group", { name: "Ver" })).toHaveCount(0);
   await expect(page.getByTestId("dia-semana")).toHaveCount(0);
-  await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
+  await expect(page.getByTestId("fila-tarea")).toHaveCount(1 + atrasada);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
-  await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
+  await expect(page.getByTestId("fila-tarea")).toHaveCount(1 + atrasada);
 });
 
 test("en el computador el menú se oculta y se vuelve a mostrar", async ({ page }) => {
@@ -794,16 +812,7 @@ test.describe("celular", () => {
     await page.goto("/#/semana");
     const interruptor = page.getByRole("switch", { name: "Hábito Estirar" });
     const perilla = interruptor.getByTestId("perilla-habito");
-    const arrastrar = async (hasta: number) => {
-      // El círculo termina de volver a su lugar antes de tomarlo de nuevo.
-      await page.waitForTimeout(350);
-      const riel = (await interruptor.boundingBox())!;
-      const c = (await perilla.boundingBox())!;
-      await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(riel.x + riel.width * hasta, c.y + c.height / 2, { steps: 8 });
-      await page.mouse.up();
-    };
+    const arrastrar = (hasta: number) => deslizarHabito(page, interruptor, hasta);
 
     // Un toque no lo marca.
     await perilla.click();
@@ -820,4 +829,19 @@ test.describe("celular", () => {
     await arrastrar(0.03);
     await expect(interruptor).toHaveAttribute("aria-checked", "false");
   });
+
+  for (const ancho of [360, 369, 412]) {
+    test(`semana: los filtros caben en su barra en un celular de ${ancho} px`, async ({ page }) => {
+      await page.setViewportSize({ width: ancho, height: 780 });
+      await page.goto("/#/semana");
+      const grupo = page.getByRole("group", { name: "Mostrar" });
+      await grupo.getByRole("button", { name: "Todos" }).click();
+      const barra = (await grupo.boundingBox())!;
+      const todos = (await grupo.getByRole("button", { name: "Todos" }).boundingBox())!;
+      const nuevo = (await page.locator("header [aria-haspopup=menu]").first().boundingBox())!;
+      expect(todos.x + todos.width).toBeLessThanOrEqual(barra.x + barra.width);
+      expect(barra.x + barra.width).toBeLessThanOrEqual(nuevo.x);
+      expect(nuevo.x + nuevo.width).toBeLessThanOrEqual(ancho);
+    });
+  }
 });

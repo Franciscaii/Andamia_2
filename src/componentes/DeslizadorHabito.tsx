@@ -7,11 +7,11 @@ const MARGEN = 2;
 const UMBRAL = 0.8;
 
 /**
- * Interruptor largo de un hábito en el celular: el círculo se arrastra hacia la derecha y el lado
+ * Interruptor largo de un hábito: el círculo se arrastra hacia la derecha y el lado
  * izquierdo se va coloreando; al soltarlo cerca del final queda hecho. Arrastrarlo de vuelta a la
  * izquierda quita la marca. Un toque no lo cambia (con teclado: Enter o Espacio).
  */
-export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar }: { nombre: string; color: string; hecho: boolean; marcable: boolean; alCambiar: (hecho: boolean) => void }) {
+export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar, clase = "min-w-0 flex-1" }: { nombre: string; color: string; hecho: boolean; marcable: boolean; alCambiar: (hecho: boolean) => void; clase?: string }) {
   const riel = useRef<HTMLDivElement>(null);
   // Dónde empezó el arrastre y hasta dónde va (en una ref: al soltar puede que el último movimiento aún no se haya pintado).
   const inicio = useRef<{ x: number; avance: number; ahora: number } | null>(null);
@@ -59,7 +59,7 @@ export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar }: 
       data-testid="deslizador-habito"
       title={marcable ? (hecho ? "Arrastra el círculo a la izquierda para quitar la marca" : "Arrastra el círculo a la derecha para marcarlo hecho") : "Todavía no llega este día"}
       onKeyDown={alTeclear}
-      className={`relative h-7 min-w-0 flex-1 overflow-hidden rounded-full bg-suave ring-1 ring-borde ring-inset ${marcable ? "" : "opacity-40"}`}
+      className={`relative h-7 ${clase} overflow-hidden rounded-full bg-suave ring-1 ring-borde ring-inset ${marcable ? "" : "opacity-40"}`}
     >
       {/* El lado izquierdo se colorea hasta donde va el círculo. */}
       <span
