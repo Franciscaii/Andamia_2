@@ -27,19 +27,38 @@
         android:id="@+id/habito_titulo"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
+        android:layout_weight="2"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/widget_texto"
         android:textSize="14sp"
         android:textStyle="normal" />
 
-    <!-- Interruptor dibujado (Dibujos.interruptor): la perilla con el ✓ va a la izquierda sin marcar y a la derecha cuando está hecho. -->
-    <ImageView
+    <!-- Interruptor a lo ancho: un riel largo y la perilla con el ✓ (Dibujos.perilla), a la izquierda sin marcar y a la derecha cuando está hecho. -->
+    <FrameLayout
         android:id="@+id/habito_marca"
-        android:layout_width="46dp"
-        android:layout_height="28dp"
+        android:layout_width="0dp"
+        android:layout_height="30dp"
         android:layout_marginStart="8dp"
-        android:contentDescription="Marcar el hábito"
-        android:scaleType="fitCenter" />
+        android:layout_weight="3"
+        android:background="@drawable/widget_riel"
+        android:contentDescription="Marcar el hábito">
+
+        <ImageView
+            android:id="@+id/habito_perilla_izq"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="start|center_vertical"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter" />
+
+        <ImageView
+            android:id="@+id/habito_perilla_der"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="end|center_vertical"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+    </FrameLayout>
 </LinearLayout>

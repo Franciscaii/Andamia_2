@@ -14,24 +14,11 @@ import {
   type Periodo,
   type Resumen,
 } from "../logica/estadisticas";
+import { useEsComputador } from "../logica/pantalla";
 import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 
 /** En el widget de estadísticas del PC no va el título: ya lo dice la barra del widget. */
 const EN_WIDGET = WIDGET_ACTUAL?.id === "estadistica-tareas" || WIDGET_ACTUAL?.id === "estadistica-habitos";
-/** El diseño del boceto (período arriba; anillo, leyenda y ondas en una tarjeta) es solo para el computador. */
-const CONSULTA_PC = "(min-width: 1024px)";
-
-function useEsPc(): boolean {
-  const [es, setEs] = useState(() => EN_WIDGET || (typeof window !== "undefined" && window.matchMedia(CONSULTA_PC).matches));
-  useEffect(() => {
-    const m = window.matchMedia(CONSULTA_PC);
-    const alCambiar = () => setEs(EN_WIDGET || m.matches);
-    m.addEventListener("change", alCambiar);
-    return () => m.removeEventListener("change", alCambiar);
-  }, []);
-  return es;
-}
-
 export type TipoEstadistica = "tareas" | "habitos";
 
 const ATENUADO = 0.22;
@@ -55,7 +42,7 @@ function trazoArco(cx: number, cy: number, r: number, desde: number, hasta: numb
 /**
  * Un solo anillo grueso: cada grupo ocupa su parte, con los colores pegados (sin bordes blancos entre tramos).
  */
-function Circular({ filas, total, elegido, alElegir, unidad, clase = "h-56 w-56" }: { filas: FilaResumen[]; total: number; elegido: string | null; alElegir: (c: string) => void; unidad: string; clase?: string }) {
+function Circular({ filas, total, elegido, alElegir, unidad, clase = "h-56 w-56", claseCaja = "" }: { filas: FilaResumen[]; total: number; elegido: string | null; alElegir: (c: string) => void; unidad: string; clase?: string; claseCaja?: string }) {
   const tam = 240;
   const c = tam / 2;
   const grosor = 22;
@@ -63,7 +50,7 @@ function Circular({ filas, total, elegido, alElegir, unidad, clase = "h-56 w-56"
   const fila = filas.find((f) => f.clave === elegido);
   let angulo = 0;
   return (
-    <figure data-testid="grafico-circular" className="flex justify-center">
+    <figure data-testid="grafico-circular" className={`flex justify-center ${claseCaja}`}>
       <svg viewBox={`0 0 ${tam} ${tam}`} className={clase} shapeRendering="geometricPrecision" role="img" aria-label={`Reparto por grupo: ${filas.map((f) => `${f.nombre} ${f.porcentaje}%`).join(", ")}`}>
         <circle cx={c} cy={c} r={r} fill="none" stroke="var(--suave)" strokeWidth={grosor} />
         {filas.map((f) => {
@@ -251,7 +238,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   const [referencia, setReferencia] = useState(() => new Date());
   const [elegido, setElegido] = useState<string | null>(null);
   const esTareas = tipo === "tareas";
-  const esPc = useEsPc();
+  const esPc = useEsComputador(EN_WIDGET);
 
   const resumen = useMemo(() => {
     const hechos = esTareas ? hechosDeTareas(tareas) : hechosDeHabitos(habitos, registros);
@@ -262,138 +249,64 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   // Si el grupo elegido no tiene nada en este período, se suelta.
   const elegidoVisible = elegido !== null && resumen.filas.some((f) => f.clave === elegido) ? elegido : null;
   const alElegir = (clave: string) => setElegido((e) => (e === clave ? null : clave));
-  const unidad = esTareas ? (resumen.total === 1 ? "completada" : "completadas") : resumen.total === 1 ? "día cumplido" : "días cumplidos";
 
   const mover = (paso: number) => setReferencia((r) => moverPeriodo(periodo, r, paso));
   const vacio = esTareas ? "No completaste tareas en este período." : "No hay días cumplidos en este período.";
 
-  // Computador (app y widget): como el boceto. Arriba el período; abajo una tarjeta con el anillo, la leyenda y las ondas.
-  if (esPc) {
-    return (
-      <div className={`flex min-h-0 flex-1 flex-col gap-3 ${EN_WIDGET ? "p-3" : "p-5"}`}>
-        {!EN_WIDGET && <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>}
-        <header className="shrink-0 rounded-2xl border border-borde bg-panel px-3 py-2.5 shadow-sm">
-          <div role="group" aria-label="Período" className="mx-auto flex max-w-md gap-1 rounded-full bg-suave p-1">
-            {PERIODOS.map((p) => (
-              <button key={p.id} type="button" aria-pressed={periodo === p.id} onClick={() => setPeriodo(p.id)} className={`flex-1 rounded-full px-2 py-1 text-xs transition-colors ${periodo === p.id ? "bg-acento font-medium text-sobre-acento shadow-sm" : "text-tenue hover:text-texto"}`}>
-                {p.nombre}
-              </button>
-            ))}
-          </div>
-          <div className="mt-1.5 flex items-center justify-center gap-3">
-            <button type="button" aria-label="Período anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
-              <ChevronLeft size={18} />
-            </button>
-            <span data-testid="titulo-periodo" className="min-w-28 text-center text-sm font-medium">
-              {tituloPeriodo(periodo, referencia)}
-            </span>
-            <button type="button" aria-label="Período siguiente" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(1)}>
-              <ChevronRight size={18} />
-            </button>
-          </div>
-        </header>
-
-        <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-borde bg-panel p-3 shadow-sm">
-          {resumen.total === 0 ? (
-            <p className="m-auto px-6 text-center text-sm text-tenue">{vacio}</p>
-          ) : (
-            <>
-              <div className="flex h-40 shrink-0 items-center gap-3">
-                <Circular clase="h-40 w-40" filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={esTareas ? (resumen.total === 1 ? "tarea" : "tareas") : resumen.total === 1 ? "día" : "días"} />
-                <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className="max-h-full min-w-0 flex-1 space-y-1 overflow-y-auto rounded-xl border border-borde p-2">
-                  {resumen.filas.map((f) => (
-                    <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
-                      <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className="flex w-full items-center gap-2 text-left text-xs">
-                        <span title={f.nombre} className="min-w-0 flex-1 truncate rounded-full px-2.5 py-1 font-medium" style={{ background: `color-mix(in srgb, ${f.color} 30%, transparent)`, boxShadow: elegidoVisible === f.clave ? `inset 0 0 0 1.5px ${f.color}` : undefined }}>
-                          {f.nombre}
-                        </span>
-                        <span className="shrink-0 text-tenue tabular-nums">
-                          {f.cantidad} • {f.porcentaje}%
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-2 min-h-0 flex-1">
-                <Areas llenar resumen={resumen} elegido={elegidoVisible} alElegir={alElegir} />
-              </div>
-            </>
-          )}
-        </section>
-      </div>
-    );
-  }
-
+  // Como el boceto: arriba el período; abajo una tarjeta con el anillo, la leyenda y las ondas.
+  // En el celular la tarjeta se reparte en cuadrados: anillo y etiquetas arriba (una mitad cada uno) y las ondas en la mitad de abajo.
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="px-4 pt-4 pb-2 sm:px-6">
-        <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>
-        <div role="group" aria-label="Período" className="mt-3 flex gap-0.5 rounded-lg bg-suave p-0.5">
+    <div className={`flex min-h-0 flex-1 flex-col gap-3 ${EN_WIDGET ? "p-3" : esPc ? "p-5" : "p-4"}`}>
+      {!EN_WIDGET && <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>}
+      <header className="shrink-0 rounded-2xl border border-borde bg-panel px-3 py-2.5 shadow-sm">
+        <div role="group" aria-label="Período" className="mx-auto flex max-w-md gap-1 rounded-full bg-suave p-1">
           {PERIODOS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              aria-pressed={periodo === p.id}
-              onClick={() => setPeriodo(p.id)}
-              className={`flex-1 rounded-md px-2 py-1 text-xs transition-colors ${periodo === p.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
-            >
+            <button key={p.id} type="button" aria-pressed={periodo === p.id} onClick={() => setPeriodo(p.id)} className={`flex-1 rounded-full px-2 py-1 text-xs transition-colors ${periodo === p.id ? "bg-acento font-medium text-sobre-acento shadow-sm" : "text-tenue hover:text-texto"}`}>
               {p.nombre}
             </button>
           ))}
         </div>
-        <div className="mt-2 flex items-center justify-between">
-          <button type="button" aria-label="Período anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => setReferencia((r) => moverPeriodo(periodo, r, -1))}>
+        <div className="mt-1.5 flex items-center justify-center gap-3">
+          <button type="button" aria-label="Período anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
             <ChevronLeft size={18} />
           </button>
-          <span data-testid="titulo-periodo" className="text-sm font-medium">
+          <span data-testid="titulo-periodo" className="min-w-28 text-center text-sm font-medium">
             {tituloPeriodo(periodo, referencia)}
           </span>
-          <button type="button" aria-label="Período siguiente" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => setReferencia((r) => moverPeriodo(periodo, r, 1))}>
+          <button type="button" aria-label="Período siguiente" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(1)}>
             <ChevronRight size={18} />
           </button>
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
+      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-borde bg-panel p-3 shadow-sm">
         {resumen.total === 0 ? (
-          <p className="mt-8 rounded-2xl border border-dashed border-borde px-6 py-10 text-center text-sm text-tenue">{vacio}</p>
+          <p className="m-auto px-6 text-center text-sm text-tenue">{vacio}</p>
         ) : (
-          <div className="space-y-4">
-            <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
-              <h2 className="text-sm font-semibold">{esTareas ? "Por etiqueta" : "Por hábito"}</h2>
-              <p className="text-xs text-tenue">{esTareas ? "Toca una etiqueta para filtrar la lista de tareas." : "Toca un hábito para filtrar la lista."}</p>
-              <ul className="mt-3 space-y-1">
+          <>
+            <div className={`flex shrink-0 items-center gap-3 ${esPc ? "h-40" : "h-[calc(50%-0.25rem)]"}`}>
+              <Circular clase={esPc ? "h-40 w-40" : "aspect-square max-h-full w-full"} claseCaja={esPc ? undefined : "h-full w-1/2 items-center"} filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={esTareas ? (resumen.total === 1 ? "tarea" : "tareas") : resumen.total === 1 ? "día" : "días"} />
+              <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className={`max-h-full min-w-0 flex-1 space-y-1 overflow-y-auto rounded-xl border border-borde p-2 ${esPc ? "" : "self-stretch"}`}>
                 {resumen.filas.map((f) => (
                   <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
-                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className={`w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-suave ${elegidoVisible === f.clave ? "bg-suave" : ""}`}>
-                      <span className="flex items-center gap-2 text-sm">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: f.color }} />
-                        <span className="min-w-0 flex-1 truncate">{f.nombre}</span>
-                        <span className="shrink-0 text-xs text-tenue tabular-nums">
-                          {f.cantidad} • {f.porcentaje}%
-                        </span>
+                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className="flex w-full items-center gap-2 text-left text-xs">
+                      <span title={f.nombre} className="min-w-0 flex-1 truncate rounded-full px-2.5 py-1 font-medium" style={{ background: `color-mix(in srgb, ${f.color} 30%, transparent)`, boxShadow: elegidoVisible === f.clave ? `inset 0 0 0 1.5px ${f.color}` : undefined }}>
+                        {f.nombre}
                       </span>
-                      <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-suave">
-                        <span className="block h-full rounded-full" style={{ width: `${f.porcentaje}%`, background: f.color }} />
+                      <span className="shrink-0 text-tenue tabular-nums">
+                        {f.cantidad} • {f.porcentaje}%
                       </span>
                     </button>
                   </li>
                 ))}
               </ul>
-              <div className="mt-4">
-                <Circular filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={unidad} />
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-borde bg-panel p-4 shadow-sm sm:p-5">
-              <h2 className="mb-2 text-sm font-semibold">En el tiempo</h2>
-              <Areas resumen={resumen} elegido={elegidoVisible} alElegir={alElegir} />
-            </section>
-
-          </div>
+            </div>
+            <div className="mt-2 min-h-0 flex-1">
+              <Areas llenar resumen={resumen} elegido={elegidoVisible} alElegir={alElegir} />
+            </div>
+          </>
         )}
-      </div>
+      </section>
     </div>
   );
 }

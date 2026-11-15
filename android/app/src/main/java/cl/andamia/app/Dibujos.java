@@ -56,57 +56,26 @@ final class Dibujos {
 
     // ---------- Interruptor de un hábito ----------
 
-    /** Aclara un color mezclándolo con blanco (0 = igual, 1 = blanco). */
-    private static int aclarar(int color, float cuanto) {
-        return Color.rgb(
-                Math.round(Color.red(color) + (255 - Color.red(color)) * cuanto),
-                Math.round(Color.green(color) + (255 - Color.green(color)) * cuanto),
-                Math.round(Color.blue(color) + (255 - Color.blue(color)) * cuanto));
-    }
-
     /**
-     * Interruptor de 46×28 dp. Hecho: riel con el color del hábito (un degradado suave) y la perilla
-     * blanca con su ✓ a la derecha. Sin marcar: riel apagado con borde fino y la perilla a la izquierda.
+     * Perilla del interruptor de un hábito (30×30 dp): un círculo blanco con sombra suave y el ✓
+     * trazado, del color del hábito cuando está hecho y gris tenue si no. El riel largo lo pone el diseño.
      */
-    static Bitmap interruptor(float d, boolean hecho, int color, int tenue) {
-        int ancho = Math.round(46 * d);
-        int alto = Math.round(28 * d);
-        Bitmap imagen = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888);
+    static Bitmap perilla(float d, boolean hecho, int color) {
+        int lado = Math.round(30 * d);
+        Bitmap imagen = Bitmap.createBitmap(lado, lado, Bitmap.Config.ARGB_8888);
         Canvas lienzo = new Canvas(imagen);
-        float margen = 3 * d;
-        RectF riel = new RectF(margen, margen, ancho - margen, alto - margen);
-        float radio = riel.height() / 2f;
+        float cx = lado / 2f, cy = lado / 2f;
+        float r = lado / 2f - 4 * d;
 
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        if (hecho) {
-            p.setShader(new LinearGradient(riel.left, riel.top, riel.right, riel.bottom, aclarar(color, 0.28f), color, Shader.TileMode.CLAMP));
-            lienzo.drawRoundRect(riel, radio, radio, p);
-            p.setShader(null);
-        } else {
-            p.setColor(conAlfa(tenue, 40));
-            lienzo.drawRoundRect(riel, radio, radio, p);
-            p.setStyle(Paint.Style.STROKE);
-            p.setStrokeWidth(1.2f * d);
-            p.setColor(conAlfa(tenue, 120));
-            RectF borde = new RectF(riel);
-            borde.inset(0.6f * d, 0.6f * d);
-            lienzo.drawRoundRect(borde, radio, radio, p);
-            p.setStyle(Paint.Style.FILL);
-        }
-
-        // Perilla blanca con una sombra suave debajo.
-        float r = radio - 2.4f * d;
-        float cx = hecho ? riel.right - radio : riel.left + radio;
-        float cy = riel.centerY();
         p.setColor(Color.WHITE);
         p.setShadowLayer(2.4f * d, 0, 1.1f * d, Color.argb(hecho ? 90 : 60, 0, 0, 0));
         lienzo.drawCircle(cx, cy, r, p);
         p.clearShadowLayer();
 
-        // El ✓, trazado con puntas redondas: del color del hábito al estar hecho, gris tenue si no.
         Paint tick = new Paint(Paint.ANTI_ALIAS_FLAG);
         tick.setStyle(Paint.Style.STROKE);
-        tick.setStrokeWidth(1.9f * d);
+        tick.setStrokeWidth(2.1f * d);
         tick.setStrokeCap(Paint.Cap.ROUND);
         tick.setStrokeJoin(Paint.Join.ROUND);
         tick.setColor(hecho ? color : Color.argb(70, 110, 116, 128));
@@ -232,13 +201,13 @@ final class Dibujos {
             for (int k = 0; delDia != null && k < delDia.length(); k++) {
                 int codigo = delDia.optInt(k, -1);
                 JSONObject h = codigo < 0 ? null : habitosMes.optJSONObject(codigo / 2);
-                if (h == null) continue;
+                // Solo los hábitos que sí se cumplieron ese día.
+                if (h == null || codigo % 2 == 0) continue;
                 try {
                     JSONObject e = new JSONObject();
                     e.put("titulo", h.optString("titulo"));
                     e.put("color", h.optString("color"));
                     e.put("habito", true);
-                    e.put("hecha", codigo % 2 == 1);
                     entradas.put(e);
                     total++;
                 } catch (org.json.JSONException ex) {
@@ -272,7 +241,7 @@ final class Dibujos {
                 int ce = esEvento ? colorSeguro(e.optString("color"), colorEvento) : esHabito ? colorSeguro(e.optString("color"), acento) : FabricaListaHoy.colorNivel(c, e.optInt("nivel"));
                 if (hecha) ce = colorTenue;
                 float alto0 = lineas * altoLinea;
-                if (esEvento) {
+                if (esEvento || esHabito) {
                     relleno.setColor(conAlfa(ce, delMes ? 70 : 35));
                     lienzo.drawRoundRect(new RectF(ix, ey, fx, ey + alto0), 3 * d, 3 * d, relleno);
                 }
@@ -350,14 +319,17 @@ final class Dibujos {
         JSONArray serie = r.optJSONArray("serie");
         float filaNormal = 21 * d * Math.max(1f, TemaWidget.letra());
         boolean conOndas = serie != null && serie.length() > 0 && alto > 150 * d;
-        float altoArriba = conOndas ? Math.min(Math.max(96 * d, (alto - 2 * m) * 0.36f), 150 * d) : alto - 2 * m;
+        // En cuadrados: arriba, el anillo (izquierda) y las etiquetas (derecha), cada uno en su mitad;
+        // abajo, las ondas a todo el ancho con la otra mitad del alto.
+        float altoArriba = conOndas ? (alto - 2 * m) * 0.5f - 6 * d : alto - 2 * m;
         // Si hay muchas etiquetas, sus filas se aprietan un poco para que entren todas sin agrandar el bloque.
         float filaAlto = Math.min(filaNormal, Math.max(15 * d, altoArriba / n));
         float aprieta = filaAlto / filaNormal;
         int caben = Math.max(1, Math.min(n, (int) (altoArriba / filaAlto + 0.01f)));
-        float diametro = Math.min(altoArriba, (ancho - 2 * m) * 0.36f);
+        float mitad = ancho / 2f;
+        float diametro = Math.min(altoArriba, mitad - m - 4 * d);
 
-        float cx = m + diametro / 2f;
+        float cx = m + (mitad - m - 4 * d) / 2f;
         float cy = m + altoArriba / 2f;
         RectF caja = new RectF(cx - diametro / 2f, cy - diametro / 2f, cx + diametro / 2f, cy + diametro / 2f);
         Paint arco = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -396,7 +368,7 @@ final class Dibujos {
         lienzo.drawText(rotulo, cx, cy + tamGrande * 0.12f + bajo.getTextSize() * 1.15f, bajo);
 
         // Etiquetas: cada una es una píldora con su punto de color; a la derecha, cantidad y porcentaje.
-        float lx = m + diametro + 10 * d;
+        float lx = mitad + 4 * d;
         float ly = cy - caben * filaAlto / 2f;
         TextPaint leyenda = texto(colorTexto, 11f * d * Math.max(0.8f, aprieta), false);
         TextPaint cifra = texto(colorTenue, 10.5f * d * Math.max(0.8f, aprieta), false);

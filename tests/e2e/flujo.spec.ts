@@ -419,7 +419,8 @@ test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   await page.goto("/");
   await crearEnSemana(page, "Tarea", "Tarea de hoy");
   // Una tarea para otro día de la semana.
-  const hoy = new Date();
+  // "Hoy" es el del navegador (Santiago), que de noche no coincide con el del servidor.
+  const hoy = new Date(`${hoyEnSantiago()}T12:00:00`);
   const otro = new Date(hoy);
   otro.setDate(hoy.getDate() + (hoy.getDay() === 0 ? -1 : 1));
   await page.getByRole("button", { name: "Añadir", exact: true }).click();

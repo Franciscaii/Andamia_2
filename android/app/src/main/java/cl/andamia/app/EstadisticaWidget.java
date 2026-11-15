@@ -298,7 +298,8 @@ final class EstadisticaWidget {
         vista.setTextColor(R.id.est_atras, texto);
         vista.setTextColor(R.id.est_adelante, paso < 0 ? texto : tenue);
         vista.setViewVisibility(R.id.est_atras, navegable ? View.VISIBLE : View.INVISIBLE);
-        vista.setViewVisibility(R.id.est_adelante, navegable && paso < 0 ? View.VISIBLE : View.INVISIBLE);
+        // La flecha › se ve siempre; en el período actual queda apagada porque no hay nada más adelante.
+        vista.setViewVisibility(R.id.est_adelante, navegable ? View.VISIBLE : View.INVISIBLE);
         if (navegable) {
             vista.setOnClickPendingIntent(R.id.est_atras, accion(contexto, tipo, idWidget, "paso", String.valueOf(paso - 1), 20));
             if (paso < 0) vista.setOnClickPendingIntent(R.id.est_adelante, accion(contexto, tipo, idWidget, "paso", String.valueOf(paso + 1), 21));
