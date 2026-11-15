@@ -4,7 +4,12 @@ import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -13,6 +18,7 @@ import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -23,7 +29,6 @@ import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.text.SimpleDateFormat;
@@ -320,30 +325,149 @@ public class NuevaRapidaActivity extends Activity {
         for (int i = 0; lista != null && i < lista.length(); i++) colores.add(lista.optString(i));
         if (colores.isEmpty()) for (String c : COLORES_HABITO) colores.add(c);
         if (!colores.contains(colorHabito)) colorHabito = colores.get(0);
-        // Además de los colores fijos, uno a elección: el último círculo abre una barra de tonos.
+        // Además de los colores fijos, uno a elección: el último círculo abre el selector
+        // (barra de tonos a la izquierda y cuadro de intensidad y brillo a la derecha).
         final List<String> fijos = new ArrayList<>(colores);
         colores.add(PERSONALIZADO);
         LinearLayout zona = new LinearLayout(this);
         zona.setOrientation(LinearLayout.VERTICAL);
-        final SeekBar tonos = new SeekBar(this);
-        tonos.setMax(360);
-        tonos.setProgress(200);
-        tonos.setVisibility(View.GONE);
-        final View fila = circulos(colores, false, fijos, () -> tonos.setVisibility(View.VISIBLE));
-        tonos.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar barra, int tono, boolean delUsuario) {
-                if (!delUsuario) return;
-                colorHabito = String.format(Locale.US, "#%06x", 0xFFFFFF & Color.HSVToColor(new float[] { tono, 0.62f, 0.8f }));
-                repintarCirculos(fila, fijos);
-            }
-            @Override public void onStartTrackingTouch(SeekBar barra) {}
-            @Override public void onStopTrackingTouch(SeekBar barra) {}
+        final SelectorColor selector = new SelectorColor(this);
+        selector.setVisibility(View.GONE);
+        final View fila = circulos(colores, false, fijos, () -> {
+            selector.poner(colorSeguro(colorHabito, acento));
+            selector.setVisibility(View.VISIBLE);
         });
+        selector.alCambiar = color -> {
+            colorHabito = String.format(Locale.US, "#%06x", 0xFFFFFF & color);
+            repintarCirculos(fila, fijos);
+        };
         zona.addView(fila, ancho());
-        LinearLayout.LayoutParams lt = ancho();
-        lt.topMargin = px(6);
-        zona.addView(tonos, lt);
+        LinearLayout.LayoutParams ls = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(150));
+        ls.topMargin = px(10);
+        zona.addView(selector, ls);
         return zona;
+    }
+
+    /** Recibe el color que se va eligiendo en el selector. */
+    private interface AlCambiarColor {
+        void cambio(int color);
+    }
+
+    /**
+     * Selector de color a elección: a la izquierda una barra vertical con todos los tonos y a la
+     * derecha un cuadro donde se elige qué tan intenso (hacia la izquierda) y qué tan claro
+     * (hacia arriba) es ese tono. Los dos se manejan arrastrando su círculo.
+     */
+    private static final class SelectorColor extends View {
+        AlCambiarColor alCambiar;
+        private final float[] hsv = { 200f, 0.62f, 0.8f };
+        private final float d;
+        private final Paint pintura = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint borde = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF barra = new RectF();
+        private final RectF cuadro = new RectF();
+        private Shader tonos;
+        private Shader sombra;
+        /** 1 = se arrastra la barra de tonos; 2 = el cuadro; 0 = nada. */
+        private int arrastrando;
+
+        SelectorColor(Context c) {
+            super(c);
+            d = c.getResources().getDisplayMetrics().density;
+            borde.setStyle(Paint.Style.STROKE);
+        }
+
+        void poner(int color) {
+            Color.colorToHSV(color, hsv);
+            invalidate();
+        }
+
+        @Override
+        protected void onSizeChanged(int ancho, int alto, int anchoAntes, int altoAntes) {
+            float margen = 10 * d;
+            barra.set(margen, margen, margen + 8 * d, alto - margen);
+            cuadro.set(barra.right + 22 * d, margen, ancho - margen, alto - margen);
+            // De arriba hacia abajo: del rojo, pasando por morado, azul, verde y amarillo, de vuelta al rojo.
+            int[] colores = new int[7];
+            for (int i = 0; i < 7; i++) colores[i] = Color.HSVToColor(new float[] { 360f - i * 60f, 1f, 1f });
+            tonos = new LinearGradient(0, barra.top, 0, barra.bottom, colores, null, Shader.TileMode.CLAMP);
+            sombra = new LinearGradient(0, cuadro.top, 0, cuadro.bottom, Color.TRANSPARENT, Color.BLACK, Shader.TileMode.CLAMP);
+        }
+
+        @Override
+        protected void onDraw(Canvas lienzo) {
+            if (tonos == null) return;
+            // Barra de tonos.
+            pintura.setStyle(Paint.Style.FILL);
+            pintura.setShader(tonos);
+            lienzo.drawRoundRect(barra, barra.width() / 2f, barra.width() / 2f, pintura);
+            // Cuadro: a la izquierda el tono puro, a la derecha blanco; hacia abajo se oscurece.
+            int puro = Color.HSVToColor(new float[] { hsv[0], 1f, 1f });
+            pintura.setShader(new LinearGradient(cuadro.left, 0, cuadro.right, 0, puro, Color.WHITE, Shader.TileMode.CLAMP));
+            lienzo.drawRoundRect(cuadro, 4 * d, 4 * d, pintura);
+            pintura.setShader(sombra);
+            lienzo.drawRoundRect(cuadro, 4 * d, 4 * d, pintura);
+            pintura.setShader(null);
+            borde.setStrokeWidth(Math.max(1, d));
+            borde.setColor(0x33000000);
+            lienzo.drawRoundRect(cuadro, 4 * d, 4 * d, borde);
+
+            // Círculo de la barra: relleno con el tono elegido.
+            float yTono = barra.top + (1f - hsv[0] / 360f) * barra.height();
+            circulo(lienzo, barra.centerX(), yTono, 9 * d, puro);
+            // Círculo del cuadro: relleno con el color final.
+            float x = cuadro.left + (1f - hsv[1]) * cuadro.width();
+            float y = cuadro.top + (1f - hsv[2]) * cuadro.height();
+            circulo(lienzo, x, y, 9 * d, Color.HSVToColor(hsv));
+        }
+
+        private void circulo(Canvas lienzo, float x, float y, float radio, int color) {
+            pintura.setStyle(Paint.Style.FILL);
+            pintura.setColor(color);
+            lienzo.drawCircle(x, y, radio, pintura);
+            borde.setStrokeWidth(2.5f * d);
+            borde.setColor(Color.WHITE);
+            lienzo.drawCircle(x, y, radio, borde);
+            borde.setStrokeWidth(Math.max(1, d));
+            borde.setColor(0x66000000);
+            lienzo.drawCircle(x, y, radio + 1.5f * d, borde);
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent e) {
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    // Lo que quede a la izquierda del cuadro mueve la barra de tonos.
+                    arrastrando = e.getX() < cuadro.left - 8 * d ? 1 : 2;
+                    // Mientras se arrastra, el formulario no se desplaza.
+                    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+                    mover(e);
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    mover(e);
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    arrastrando = 0;
+                    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+                    return true;
+                default:
+                    return super.onTouchEvent(e);
+            }
+        }
+
+        private void mover(MotionEvent e) {
+            if (arrastrando == 1) {
+                float t = Math.min(1f, Math.max(0f, (e.getY() - barra.top) / Math.max(1f, barra.height())));
+                // 359.9 y no 360: así arriba y abajo son rojo sin que el círculo salte de un extremo al otro.
+                hsv[0] = Math.min(359.9f, (1f - t) * 360f);
+            } else if (arrastrando == 2) {
+                hsv[1] = 1f - Math.min(1f, Math.max(0f, (e.getX() - cuadro.left) / Math.max(1f, cuadro.width())));
+                hsv[2] = 1f - Math.min(1f, Math.max(0f, (e.getY() - cuadro.top) / Math.max(1f, cuadro.height())));
+            } else return;
+            invalidate();
+            if (alCambiar != null) alCambiar.cambio(Color.HSVToColor(hsv));
+        }
     }
 
     /** Vuelve a pintar los círculos de una fila (están dentro de su desplazamiento horizontal). */

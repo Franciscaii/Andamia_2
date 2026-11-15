@@ -128,8 +128,10 @@ final class TareaRapida {
 
     /** Pone una nueva en el día que le toca de Semana, de Hoy y de cada mes del Calendario. */
     private static void inyectar(JSONObject datos, JSONObject n) throws Exception {
-        // Los hábitos no salen en Semana ni en Calendario.
-        if ("habito".equals(n.optString("tipo"))) return;
+        if ("habito".equals(n.optString("tipo"))) {
+            inyectarHabito(datos, n);
+            return;
+        }
         String fecha = n.optString("fecha");
         boolean evento = n.optBoolean("evento");
         int prioridad = nivel(n.optString("prioridad"));
@@ -171,6 +173,52 @@ final class TareaRapida {
         JSONArray meses = datos.optJSONArray("meses");
         for (int i = 0; meses != null && i < meses.length(); i++) agregarAlMes(meses.optJSONObject(i), fecha, entrada, evento);
         agregarAlMes(datos.optJSONObject("mes"), fecha, entrada, evento);
+    }
+
+    /**
+     * Un hábito recién creado en el widget sale al tiro en Semana, en hoy y en los días siguientes
+     * que le tocan (todos, o solo los días de la semana elegidos). Se puede marcar hoy mismo.
+     */
+    private static void inyectarHabito(JSONObject datos, JSONObject n) throws Exception {
+        String inicio = n.optString("fecha");
+        String hoy = hoy();
+        JSONObject frecuencia = n.optJSONObject("frecuencia");
+        JSONArray elegidos = frecuencia != null && "dias".equals(frecuencia.optString("tipo")) ? frecuencia.optJSONArray("dias") : null;
+        SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        JSONArray dias = datos.optJSONArray("semanaDias");
+        for (int i = 0; dias != null && i < dias.length(); i++) {
+            JSONObject d = dias.optJSONObject(i);
+            String fecha = d == null ? "" : d.optString("fecha");
+            // Las fechas AAAA-MM-DD se ordenan como texto.
+            if (fecha.isEmpty() || fecha.compareTo(inicio) < 0) continue;
+            if (elegidos != null) {
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                Date dia = formato.parse(fecha);
+                if (dia == null) continue;
+                cal.setTime(dia);
+                // 0 = lunes ... 6 = domingo, como en la app.
+                int deLaSemana = (cal.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7;
+                boolean toca = false;
+                for (int k = 0; k < elegidos.length(); k++) if (elegidos.optInt(k, -1) == deLaSemana) toca = true;
+                if (!toca) continue;
+            }
+            JSONArray habitos = d.optJSONArray("habitos");
+            if (habitos == null) habitos = new JSONArray();
+            boolean esta = false;
+            for (int k = 0; k < habitos.length(); k++) {
+                JSONObject h = habitos.optJSONObject(k);
+                if (h != null && n.optString("id").equals(h.optString("id"))) esta = true;
+            }
+            if (esta) continue;
+            JSONObject fila = new JSONObject();
+            fila.put("id", n.optString("id"));
+            fila.put("nombre", n.optString("titulo"));
+            fila.put("color", n.optString("color"));
+            fila.put("hecho", false);
+            fila.put("marcable", fecha.compareTo(hoy) <= 0);
+            habitos.put(fila);
+            d.put("habitos", habitos);
+        }
     }
 
     private static int nivel(String s) {
