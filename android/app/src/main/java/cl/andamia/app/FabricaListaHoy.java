@@ -303,7 +303,8 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         TemaWidget.tenirFondo(vista, R.id.habito_marca, f.hecha ? propio : Color.argb(f.marcable ? 60 : 30, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
         if (f.marcable) {
             Intent marcar = new Intent();
-            marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")));
+            marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")
+                    + "?n=" + Uri.encode(f.titulo) + "&c=" + Uri.encode(f.color) + "&w=" + idWidget));
             vista.setOnClickFillInIntent(R.id.habito_marca, marcar);
         }
         vista.setOnClickFillInIntent(R.id.habito_fila, abrirDia());
