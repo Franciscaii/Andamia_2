@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Una tarea: casilla con el color de la dificultad, título, importancia y etiqueta. -->
+<!-- Una tarea: casilla (pegada a la izquierda, bajo el título de su tarjeta) con el color de la importancia, título, dificultad y etiqueta. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/fila_raiz"
     android:layout_width="match_parent"
@@ -10,10 +10,10 @@
 
     <TextView
         android:id="@+id/fila_circulo"
-        android:layout_width="40dp"
+        android:layout_width="32dp"
         android:layout_height="48dp"
         android:contentDescription="Marcar como hecha"
-        android:gravity="center"
+        android:gravity="center_vertical|start"
         android:text="☐"
         android:textColor="@color/widget_texto_tenue"
         android:textSize="22sp" />

@@ -271,7 +271,8 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setInt(R.id.evento_color, "setBackgroundColor", colorEvento);
         vista.setTextColor(R.id.evento_titulo, color(contexto, R.color.widget_texto));
         vista.setTextColor(R.id.evento_hora, color(contexto, R.color.widget_texto_tenue));
-        TemaWidget.tenirFondo(vista, R.id.evento_fila, color(contexto, R.color.widget_evento_suave));
+        // Rectángulo con el color del evento (suave, como en la app); la franja de la izquierda lleva el color pleno.
+        TemaWidget.tenirFondo(vista, R.id.evento_fila, Color.argb(95, Color.red(colorEvento), Color.green(colorEvento), Color.blue(colorEvento)));
         Intent abrir = new Intent();
         abrir.setData(Uri.parse("andamia://tarea/" + Uri.encode(f.id)));
         vista.setOnClickFillInIntent(R.id.evento_fila, abrir);

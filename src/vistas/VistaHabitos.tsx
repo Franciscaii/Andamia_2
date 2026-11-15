@@ -3,6 +3,7 @@ import { addDays, addMonths, format, isSameMonth, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { IconoHabito, ICONOS_HABITO } from "../componentes/IconoHabito";
+import { PanelColor } from "../componentes/PanelColor";
 import { recordatoriosActivos } from "../config";
 import { claseBoton, claseBotonPrincipal, claseCampo, Confirmar, Modal } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
@@ -13,20 +14,32 @@ import { COLORES_LISTA, type EstadoHabito, type FrecuenciaHabito, type Habito, t
 
 const NOMBRES_ESTADO: Record<EstadoHabito | "vacio", string> = { hecho: "hecho", parcial: "parcial", "no-hecho": "no hecho", vacio: "sin marcar" };
 
-/** Los colores de siempre y, al final, un círculo arcoíris para elegir cualquier otro. */
+/** Los colores de siempre y, al final, un círculo arcoíris que abre el selector de cualquier otro color. */
 function SelectorColor({ color, alElegir, etiqueta = "Color" }: { color: string; alElegir: (c: string) => void; etiqueta?: string }) {
   const personalizado = !COLORES_LISTA.includes(color);
+  const [abierto, setAbierto] = useState(false);
   return (
-    <div role="group" aria-label={etiqueta} className="flex flex-wrap items-center gap-1.5">
-      {COLORES_LISTA.map((c) => (
-        <button key={c} type="button" aria-label={`Color ${c}`} aria-pressed={color === c} style={{ background: c }} className={`flex h-7 w-7 items-center justify-center rounded-full ${color === c ? "ring-2 ring-acento ring-offset-1 ring-offset-panel" : ""}`} onClick={() => alElegir(c)}>
-          {color === c && <Check size={14} className="text-white" />}
+    <div role="group" aria-label={etiqueta}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {COLORES_LISTA.map((c) => (
+          <button key={c} type="button" aria-label={`Color ${c}`} aria-pressed={color === c} style={{ background: c }} className={`flex h-7 w-7 items-center justify-center rounded-full ${color === c ? "ring-2 ring-acento ring-offset-1 ring-offset-panel" : ""}`} onClick={() => alElegir(c)}>
+            {color === c && <Check size={14} className="text-white" />}
+          </button>
+        ))}
+        <button
+          type="button"
+          aria-label="Otro color"
+          aria-expanded={abierto}
+          aria-pressed={personalizado}
+          title="Otro color"
+          onClick={() => setAbierto((a) => !a)}
+          className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-borde ${personalizado ? "ring-2 ring-acento ring-offset-1 ring-offset-panel" : ""}`}
+          style={{ background: personalizado ? color : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
+        >
+          {personalizado && <Check size={14} className="text-white" />}
         </button>
-      ))}
-      <label title="Otro color" className={`relative flex h-7 w-7 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-borde ${personalizado ? "ring-2 ring-acento ring-offset-1 ring-offset-panel" : ""}`} style={{ background: personalizado ? color : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}>
-        {personalizado && <Check size={14} className="text-white" />}
-        <input type="color" aria-label="Otro color" className="absolute inset-0 cursor-pointer opacity-0" value={color} onChange={(e) => alElegir(e.target.value)} />
-      </label>
+      </div>
+      {abierto && <PanelColor valor={color} alCambiar={alElegir} />}
     </div>
   );
 }
