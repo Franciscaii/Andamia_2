@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Un hábito del día en el widget Semana: su nombre y, a la derecha, el interruptor para marcarlo hecho. -->
+<!-- Un hábito del día en el widget Semana: una fila ovalada con su nombre y, al medio del óvalo, el interruptor para marcarlo hecho. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/habito_fila"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="4dp"
-    android:background="@drawable/widget_evento"
+    android:background="@drawable/widget_oval"
     android:gravity="center_vertical"
-    android:minHeight="36dp"
+    android:minHeight="46dp"
     android:orientation="horizontal"
-    android:paddingStart="10dp"
-    android:paddingEnd="6dp">
+    android:paddingStart="16dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="8dp">
 
     <TextView
         android:id="@+id/habito_titulo"
@@ -28,6 +30,7 @@
         android:id="@+id/habito_marca"
         android:layout_width="0dp"
         android:layout_height="30dp"
+        android:layout_gravity="center_vertical"
         android:layout_marginStart="8dp"
         android:layout_weight="3"
         android:background="@drawable/widget_riel"

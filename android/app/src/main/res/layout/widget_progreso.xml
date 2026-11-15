@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Barra de progreso del día, entre los eventos y las tareas. -->
+<!-- Barra de progreso del día, entre los eventos y las tareas. Su título y su barra empiezan donde empiezan las casillas de las tareas (a la izquierda del todo, sin sangría). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/progreso_fila"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingStart="4dp"
+    android:paddingStart="2dp"
     android:paddingTop="6dp"
     android:paddingEnd="4dp"
     android:paddingBottom="6dp">

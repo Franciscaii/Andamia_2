@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fondo de la fila de un evento; el color va en la franja evento_color. -->
+<!-- Fondo de la fila de un evento: rectangular, sin esquinas redondeadas. Se tiñe con el color del evento. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <corners android:radius="6dp" />
+    <corners android:radius="0dp" />
     <solid android:color="@color/widget_evento_suave" />
 </shape>

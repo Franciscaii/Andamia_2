@@ -248,13 +248,26 @@ test.describe("hábitos", () => {
     await expect(leer.getByRole("button", { name: /^Leer, miércoles 4 de noviembre/ })).toBeDisabled();
 
     // Desplegado se cambian el color (también uno a elección) y la frecuencia, y queda guardado.
-    await leer.getByLabel("Otro color").fill("#12ab34");
+    await leer.getByRole("button", { name: "Otro color" }).click();
+    // El cuadro del selector: arrastrar el círculo hasta la esquina derecha de arriba da blanco, a la izquierda el tono puro.
+    const cuadro = leer.getByRole("slider", { name: "Intensidad y brillo" });
+    const caja = (await cuadro.boundingBox())!;
+    await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(caja.x + 2, caja.y + 2, { steps: 5 });
+    await page.mouse.up();
+    const rojoOtro = await cuadro.getAttribute("aria-valuetext");
+    expect(rojoOtro).toMatch(/^#[0-9a-f]{6}$/);
+    await leer.getByRole("slider", { name: "Tono" }).press("ArrowDown");
+    await expect(cuadro).not.toHaveAttribute("aria-valuetext", rojoOtro!);
+    const elegido = (await cuadro.getAttribute("aria-valuetext"))!;
     await leer.getByRole("button", { name: "Veces por semana" }).click();
     await expect(leer).toContainText("3 veces por semana");
     await page.reload();
     await expect(page.getByTestId("habito").filter({ hasText: "Leer" })).toContainText("3 veces por semana");
     await page.getByTestId("habito").filter({ hasText: "Leer" }).getByRole("button", { name: "Desplegar Leer" }).click();
-    await expect(page.getByLabel("Otro color")).toHaveValue("#12ab34");
+    await page.getByRole("button", { name: "Otro color" }).click();
+    await expect(page.getByRole("slider", { name: "Intensidad y brillo" })).toHaveAttribute("aria-valuetext", elegido);
 
     // El basurero lo borra, con confirmación.
     await page.getByRole("button", { name: "Borrar Leer" }).click();

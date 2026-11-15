@@ -4,7 +4,7 @@
     android:id="@+id/seccion_titulo"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingStart="4dp"
+    android:paddingStart="2dp"
     android:paddingTop="10dp"
     android:paddingBottom="2dp"
     android:text="Completadas"
