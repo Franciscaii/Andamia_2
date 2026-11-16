@@ -280,24 +280,24 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
       {modo === "mes" ? (
         <header className={`flex items-center gap-2 px-4 sm:px-5 ${EN_WIDGET ? "pt-1 pb-1.5 pr-12 sm:pr-12" : "pt-4 pb-2"}`}>
           <div className="flex shrink-0 items-center">
-            <button type="button" aria-label="Periodo anterior" className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(-1)}>
+            <button type="button" aria-label="Periodo anterior" className="rounded-md p-1 border border-borde bg-panel text-texto hover:bg-suave" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
             <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className="px-0.5 text-lg font-semibold sm:px-1.5">
               {tituloMes}
             </h1>
-            <button type="button" aria-label="Periodo siguiente" className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(1)}>
+            <button type="button" aria-label="Periodo siguiente" className="rounded-md p-1 border border-borde bg-panel text-texto hover:bg-suave" onClick={() => mover(1)}>
               <ChevronRight size={18} />
             </button>
           </div>
-          <div role="group" aria-label="Mostrar" className="ml-auto flex min-w-0 gap-0.5 rounded-md bg-suave p-0.5">
+          <div role="group" aria-label="Mostrar" className="ml-auto flex shrink-0 gap-0.5 rounded-md bg-suave p-0.5">
             {FILTROS_MES.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 aria-pressed={filtro === f.id}
                 onClick={() => setFiltro(f.id)}
-                className={`rounded px-2 py-1 text-xs sm:px-2.5 ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+                className={`rounded px-1 py-1 text-[11px] whitespace-nowrap min-[400px]:px-2 min-[400px]:text-xs sm:px-2.5 ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
               >
                 {f.nombre}
               </button>

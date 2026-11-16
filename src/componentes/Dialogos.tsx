@@ -104,7 +104,7 @@ export function DialogoCarpeta({ carpeta, alCerrar }: { carpeta: Carpeta | null;
 }
 
 /** Crear o editar una etiqueta del ámbito de la tarea: nombre y color. */
-export function DialogoEtiqueta({ etiqueta, alCerrar }: { etiqueta: Etiqueta | null; alCerrar: () => void }) {
+export function DialogoEtiqueta({ etiqueta, alCerrar, alEliminar }: { etiqueta: Etiqueta | null; alCerrar: () => void; /** Al editar: muestra "Eliminar" (pide confirmar afuera). */ alEliminar?: () => void }) {
   const guardarEtiqueta = useTienda((s) => s.guardarEtiqueta);
   const [nombre, setNombre] = useState(etiqueta?.nombreVisible ?? "");
   const [color, setColor] = useState(etiqueta?.color ?? COLORES_ETIQUETA[0]);
@@ -168,7 +168,12 @@ export function DialogoEtiqueta({ etiqueta, alCerrar }: { etiqueta: Etiqueta | n
             {error}
           </p>
         )}
-        <div className="flex justify-end gap-2">
+        <div className="flex items-center justify-end gap-2">
+          {etiqueta && alEliminar && (
+            <button type="button" className="mr-auto rounded-md bg-peligro px-3 py-1.5 text-sm font-medium text-white hover:opacity-90" onClick={alEliminar}>
+              Eliminar
+            </button>
+          )}
           <button type="button" className={claseBoton} onClick={alCerrar}>
             Cancelar
           </button>

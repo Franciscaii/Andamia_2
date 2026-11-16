@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   titulo: string;
@@ -15,13 +16,15 @@ export function Modal({ titulo, alCerrar, children }: Props) {
     return () => window.removeEventListener("keydown", alPulsar);
   }, [alCerrar]);
 
-  return (
+  // Va colgada del cuerpo de la página: así queda al medio de la pantalla aunque se abra desde el menú lateral.
+  return createPortal(
     <div className="ventana fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}>
       <div role="dialog" aria-modal="true" aria-label={titulo} className="sin-barra max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-borde bg-panel p-5 shadow-xl">
         <h2 className="mb-4 text-lg font-semibold">{titulo}</h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

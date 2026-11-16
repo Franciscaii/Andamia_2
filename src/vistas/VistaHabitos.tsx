@@ -58,18 +58,21 @@ export function DialogoHabito({ habito, alCerrar, alEliminar }: { habito: Habito
   const [color, setColor] = useState(habito?.color ?? COLORES_LISTA[4]);
   const [frecuencia, setFrecuencia] = useState<FrecuenciaHabito>(habito?.frecuencia ?? { tipo: "diaria" });
   const [meta, setMeta] = useState(habito?.metaDiaria ?? 1);
-  const [unidad, setUnidad] = useState(habito?.unidad ?? "");
+  // La unidad ya no se pide; se conserva la que tuviera el hábito.
+  const unidad = habito?.unidad ?? "";
   const [inicio, setInicio] = useState(habito?.inicio ?? format(new Date(), "yyyy-MM-dd"));
+  const [fin, setFin] = useState(habito?.fin ?? "");
   const [hora, setHora] = useState(habito?.recordatorioHora ?? "");
 
   const diasVacios = frecuencia.tipo === "dias" && frecuencia.dias.length === 0;
-  const valido = Boolean(nombre.trim()) && meta >= 1 && !diasVacios && Boolean(inicio);
+  const finAntes = Boolean(fin) && fin < inicio;
+  const valido = Boolean(nombre.trim()) && meta >= 1 && !diasVacios && Boolean(inicio) && !finAntes;
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
     if (!valido) return;
     // Con los recordatorios apagados se conserva lo que ya tuviera el hábito.
-    const datos = { nombre: nombre.trim(), icono, color, frecuencia, metaDiaria: meta, unidad: unidad.trim(), inicio, recordatorioHora: recordatoriosActivos ? hora || null : (habito?.recordatorioHora ?? null) };
+    const datos = { nombre: nombre.trim(), icono, color, frecuencia, metaDiaria: meta, unidad, inicio, fin: fin || null, recordatorioHora: recordatoriosActivos ? hora || null : (habito?.recordatorioHora ?? null) };
     if (habito) await actualizarHabito(habito.id, datos);
     else await crearHabito(datos);
     alCerrar();
@@ -81,6 +84,17 @@ export function DialogoHabito({ habito, alCerrar, alEliminar }: { habito: Habito
           <span className="mb-1 block text-tenue">Nombre</span>
           <input autoFocus={!alEliminar} maxLength={64} aria-label="Nombre del hábito" className={claseCampo} placeholder="Tomar agua" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         </label>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <label>
+            <span className="mb-1 block text-tenue">Fecha de inicio</span>
+            <input type="date" aria-label="Fecha de inicio" className={claseCampo} value={inicio} onChange={(e) => setInicio(e.target.value)} />
+          </label>
+          <label>
+            <span className="mb-1 block text-tenue">Fecha de fin (opcional)</span>
+            <input type="date" aria-label="Fecha de fin" min={inicio} className={claseCampo} value={fin} onChange={(e) => setFin(e.target.value)} />
+          </label>
+          {finAntes && <p className="col-span-2 text-xs text-peligro">La fecha de fin no puede ser anterior a la de inicio.</p>}
+        </div>
         <div className="text-sm">
           <span className="mb-1 block text-tenue">Icono</span>
           <div role="group" aria-label="Icono" className="flex flex-wrap gap-1">
@@ -138,14 +152,6 @@ export function DialogoHabito({ habito, alCerrar, alEliminar }: { habito: Habito
           <label>
             <span className="mb-1 block text-tenue">Objetivo por día</span>
             <input type="number" min={1} aria-label="Objetivo por día" className={claseCampo} value={meta} onChange={(e) => setMeta(Math.max(1, Number(e.target.value) || 1))} />
-          </label>
-          <label>
-            <span className="mb-1 block text-tenue">Unidad (opcional)</span>
-            <input maxLength={20} aria-label="Unidad" className={claseCampo} placeholder="vasos" value={unidad} onChange={(e) => setUnidad(e.target.value)} />
-          </label>
-          <label>
-            <span className="mb-1 block text-tenue">Empieza el</span>
-            <input type="date" aria-label="Fecha de inicio" className={claseCampo} value={inicio} onChange={(e) => setInicio(e.target.value)} />
           </label>
           {recordatoriosActivos && (
             <label>

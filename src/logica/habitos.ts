@@ -26,10 +26,20 @@ export function describirFrecuencia(f: FrecuenciaHabito): string {
   return orden.map((d) => NOMBRES_DIA[d].slice(0, 3)).join(", ");
 }
 
-/** Se puede registrar desde el inicio hasta hoy; el futuro no. */
-export function esEditable(h: Pick<Habito, "inicio" | "frecuencia">, dia: Date, hoy: Date): boolean {
+/** El hábito rige ese día ("AAAA-MM-DD"): desde su inicio hasta su fin (si tiene). */
+export function vigente(h: Pick<Habito, "inicio" | "fin">, fecha: string): boolean {
+  return fecha >= h.inicio && (!h.fin || fecha <= h.fin);
+}
+
+/** Hasta qué día se evalúa el hábito: hoy, o su último día si ya terminó. */
+function hastaDe(h: Pick<Habito, "fin">, hoy: Date): Date {
+  return h.fin && h.fin < clave(hoy) ? parseISO(h.fin) : hoy;
+}
+
+/** Se puede registrar desde el inicio hasta hoy (o hasta su fin); el futuro no. */
+export function esEditable(h: Pick<Habito, "inicio" | "fin" | "frecuencia">, dia: Date, hoy: Date): boolean {
   const c = clave(dia);
-  return c >= h.inicio && c <= clave(hoy) && esProgramado(h.frecuencia, dia);
+  return vigente(h, c) && c <= clave(hoy) && esProgramado(h.frecuencia, dia);
 }
 
 export function estadoPorValor(valor: number, meta: number): EstadoHabito {
@@ -97,12 +107,14 @@ function rachasSemanales(h: Habito, veces: number, registros: IndiceRegistros, h
   return { actual, maxima, unidad: "semanas" };
 }
 
-export function calcularRachas(h: Habito, registros: IndiceRegistros, hoy: Date): Rachas {
+export function calcularRachas(h: Habito, registros: IndiceRegistros, ahora: Date): Rachas {
+  const hoy = hastaDe(h, ahora);
   return h.frecuencia.tipo === "semanal" ? rachasSemanales(h, h.frecuencia.veces, registros, hoy) : rachasDiarias(h, registros, hoy);
 }
 
 /** Porcentaje de cumplimiento (0 a 100), o null si aún no se esperaba nada. Un parcial cuenta como medio. */
-export function tasaCumplimiento(h: Habito, registros: IndiceRegistros, hoy: Date): number | null {
+export function tasaCumplimiento(h: Habito, registros: IndiceRegistros, ahora: Date): number | null {
+  const hoy = hastaDe(h, ahora);
   if (h.inicio > clave(hoy)) return null;
   const peso = (e?: EstadoHabito) => (e === "hecho" ? 1 : e === "parcial" ? 0.5 : 0);
   const fin = clave(hoy);
@@ -140,7 +152,7 @@ export function tasaCumplimiento(h: Habito, registros: IndiceRegistros, hoy: Dat
 
 /** Si el hábito todavía pide algo hoy. */
 export function pendienteHoy(h: Habito, registros: IndiceRegistros, hoy: Date): boolean {
-  if (h.archivado || clave(hoy) < h.inicio) return false;
+  if (h.archivado || !vigente(h, clave(hoy))) return false;
   const estado = registros.get(clave(hoy))?.estado;
   if (estado === "hecho" || estado === "no-hecho") return false;
   if (h.frecuencia.tipo === "semanal") {
@@ -186,7 +198,7 @@ export function habitosDelDia(habitos: Habito[], registros: RegistroHabito[], di
   const fecha = clave(dia);
   const estados = new Map(registros.filter((r) => r.fecha === fecha).map((r) => [r.habitoId, r.estado]));
   return habitos
-    .filter((h) => !h.archivado && h.inicio <= fecha && esProgramado(h.frecuencia, dia))
+    .filter((h) => !h.archivado && vigente(h, fecha) && esProgramado(h.frecuencia, dia))
     .sort((a, b) => a.orden - b.orden)
     .map((h) => ({ habito: h, estado: estados.get(h.id) ?? null, marcable: fecha <= clave(hoy) }));
 }

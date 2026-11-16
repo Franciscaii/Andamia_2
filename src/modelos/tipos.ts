@@ -125,6 +125,8 @@ export interface Habito {
   unidad: string;
   /** "AAAA-MM-DD". */
   inicio: string;
+  /** Último día del hábito ("AAAA-MM-DD"); sin valor, no termina. */
+  fin?: string | null;
   /** "HH:mm" o null si no tiene recordatorio. */
   recordatorioHora: string | null;
   avisosEnviados: string[];

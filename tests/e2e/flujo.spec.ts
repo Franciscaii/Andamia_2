@@ -299,7 +299,12 @@ test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, edi
   await expect(page.getByTestId("fila-tarea").filter({ hasText: "Correr" })).toContainText("Ejercicio");
 
   await menu.getByRole("link", { name: /^Otro/ }).hover();
-  await page.getByRole("button", { name: "Borrar etiqueta Otro" }).click();
+  // Ya no hay basurero: se elimina desde el lápiz, que trae Eliminar, Cancelar y Guardar.
+  await expect(page.getByRole("button", { name: "Borrar etiqueta Otro" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Editar etiqueta Otro" }).click();
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Cancelar" })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Guardar" })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Eliminar", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Borrar etiqueta" }).click();
   await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
   // Al recargar no vuelve.

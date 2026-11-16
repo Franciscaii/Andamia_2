@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { bd } from "../../src/datos/bd";
 import * as repo from "../../src/datos/repositorio";
 import { CONFIG_INICIAL, detener, estadisticasEnfoque, formatoMinutos, formatoTiempo, haTerminado, iniciar, leerTemporizador, minutosDeTarea, pausar, ponerAlDia, reanudar, restanteMs, saltar, temporizadorListo, transcurridoMs } from "../../src/logica/enfoque";
-import { avisosDeHabitos, calcularRachas, describirFrecuencia, esEditable, esProgramado, estadoPorValor, indexarRegistros, pendienteHoy, siguienteEstado, tasaCumplimiento } from "../../src/logica/habitos";
+import { avisosDeHabitos, calcularRachas, describirFrecuencia, esEditable, esProgramado, estadoPorValor, habitosDelDia, indexarRegistros, pendienteHoy, siguienteEstado, tasaCumplimiento, vigente } from "../../src/logica/habitos";
 import { cuadranteDePrioridad, CUADRANTES, prioridadDeCuadrante, repartirEnCuadrantes } from "../../src/logica/matriz";
 import type { EstadoHabito, FrecuenciaHabito, Habito, Lista, RegistroHabito, SesionEnfoque, Tarea } from "../../src/modelos/tipos";
 
@@ -267,6 +267,20 @@ describe("frecuencia de hábitos", () => {
     expect(esEditable(h, new Date(2026, 10, 11), HOY)).toBe(false);
     expect(esEditable(h, new Date(2026, 8, 30), HOY)).toBe(false);
     expect(esEditable(h, new Date(2026, 10, 3), HOY)).toBe(false);
+  });
+
+  it("con fecha de fin, el hábito deja de regir después de ese día", () => {
+    const h = habito({ tipo: "diaria" }, { inicio: "2026-10-01", fin: "2026-11-02" });
+    expect(vigente(h, "2026-11-02")).toBe(true);
+    expect(vigente(h, "2026-11-03")).toBe(false);
+    expect(vigente(h, "2026-09-30")).toBe(false);
+    expect(esEditable(h, new Date(2026, 10, 2), HOY)).toBe(true);
+    expect(esEditable(h, new Date(2026, 10, 3), HOY)).toBe(false);
+    expect(habitosDelDia([h], [], new Date(2026, 10, 2), HOY)).toHaveLength(1);
+    expect(habitosDelDia([h], [], HOY, HOY)).toHaveLength(0);
+    expect(pendienteHoy(h, indexarRegistros([], h.id), HOY)).toBe(false);
+    // Sin fecha de fin sigue como siempre.
+    expect(habitosDelDia([{ ...h, fin: null }], [], HOY, HOY)).toHaveLength(1);
   });
 
   it("calcula el estado por cantidad", () => {

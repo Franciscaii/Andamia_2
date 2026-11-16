@@ -280,10 +280,13 @@ test.describe("hábitos", () => {
     await page.goto("/#/habitos");
     await crear(page, "Agua", async () => {
       await page.getByLabel("Objetivo por día").fill("8");
-      await page.getByLabel("Unidad").fill("vasos");
+      // Ya no se pide unidad; bajo el nombre van la fecha de inicio y la de fin.
+      await expect(page.getByLabel("Unidad")).toHaveCount(0);
+      await expect(page.getByLabel("Fecha de inicio")).toBeVisible();
+      await expect(page.getByLabel("Fecha de fin")).toBeVisible();
     });
     const agua = page.getByTestId("habito").filter({ hasText: "Agua" });
-    await expect(agua).toContainText("8 vasos");
+    await expect(agua).toContainText("· 8");
     await agua.getByRole("button", { name: "Desplegar Agua" }).click();
     const hoy = agua.getByRole("button", { name: /^Agua, miércoles 4 de noviembre/ });
 
