@@ -18,7 +18,7 @@ import { useBarraVentana } from "./logica/puenteEscritorio";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
 import { VistaCalendario } from "./vistas/VistaCalendario";
 import { VistaEnfoque } from "./vistas/VistaEnfoque";
-import { VistaHabitos } from "./vistas/VistaHabitos";
+import { DetalleHabito, VistaHabitos } from "./vistas/VistaHabitos";
 import { VistaMatriz } from "./vistas/VistaMatriz";
 import { VistaEstadisticas } from "./vistas/VistaEstadisticas";
 import { VistaSemana } from "./vistas/VistaSemana";
@@ -119,7 +119,7 @@ export default function App() {
 
   useEffect(() => {
     const alPulsar = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !document.querySelector("[role=dialog]") && ruta.tareaId) {
+      if (e.key === "Escape" && !document.querySelector("[role=dialog]") && (ruta.tareaId || ruta.habitoId)) {
         irA(ruta.seccion);
         return;
       }
@@ -157,6 +157,7 @@ export default function App() {
           <Vista ruta={ruta} />
         </main>
         {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}
+      {ruta.habitoId && <DetalleHabito key={ruta.habitoId} habitoId={ruta.habitoId} seccion={ruta.seccion} />}
       </MarcoWidget>
     );
   }
@@ -197,6 +198,7 @@ export default function App() {
       </main>
 
       {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}
+      {ruta.habitoId && <DetalleHabito key={ruta.habitoId} habitoId={ruta.habitoId} seccion={ruta.seccion} />}
       <PanelAvisos seccion={ruta.seccion} />
       <MotorEnfoque />
       <DialogoMigracion />

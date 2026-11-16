@@ -250,7 +250,8 @@ test("Calendario: arrastrar cambia la fecha, clic crea y no hay panel sin fecha"
   await chip("Dentista").click();
   const detalle = page.getByRole("complementary", { name: "Detalle de la tarea" });
   await expect(detalle.getByLabel("Fecha", { exact: true })).toHaveValue("2026-11-18");
-  await detalle.getByRole("button", { name: "Cerrar detalle" }).click();
+  await detalle.getByRole("button", { name: "Guardar" }).click();
+  await expect(detalle).toBeHidden();
 
   // Persiste tras recargar.
   await page.reload();

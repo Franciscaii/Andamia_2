@@ -871,3 +871,55 @@ test.describe("celular", () => {
     });
   }
 });
+
+test("detalle: se cierra tocando de nuevo, con Eliminar y Guardar; el hábito de la Semana también tiene el suyo", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/#/habitos");
+  await page.getByRole("button", { name: "Nuevo hábito" }).click();
+  await page.getByLabel("Nombre del hábito").fill("Leer");
+  await page.getByRole("button", { name: "Crear hábito" }).click();
+  await expect(page.getByTestId("habito")).toHaveCount(1);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Añadir", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Evento" }).click();
+  await page.getByRole("dialog").getByRole("textbox", { name: "Añadir evento" }).fill("Doctor");
+  await page.getByRole("dialog").getByRole("button", { name: "Crear evento" }).click();
+
+  // Evento: sin casilla ni X; Eliminar (rojo) a la izquierda y Guardar a la derecha; tocar de nuevo lo cierra.
+  const detalle = page.getByRole("complementary", { name: "Detalle de la tarea" });
+  await page.getByTestId("fila-evento").click();
+  await expect(detalle).toBeVisible();
+  await expect(detalle.getByRole("checkbox")).toHaveCount(0);
+  await expect(detalle.getByRole("button", { name: "Cerrar detalle" })).toHaveCount(0);
+  const eliminar = detalle.getByRole("button", { name: "Enviar a la papelera" });
+  const guardar = detalle.getByRole("button", { name: "Guardar" });
+  await expect(eliminar).toHaveText(/Eliminar/);
+  expect((await eliminar.boundingBox())!.x).toBeLessThan((await guardar.boundingBox())!.x);
+  await page.getByTestId("fila-evento").click();
+  await expect(detalle).toBeHidden();
+
+  // Guardar conserva el cambio y cierra.
+  await page.getByTestId("fila-evento").click();
+  await detalle.getByLabel("Título").fill("Doctora");
+  await guardar.click();
+  await expect(detalle).toBeHidden();
+  await expect(page.getByTestId("fila-evento")).toContainText("Doctora");
+
+  // Hábito: tocar su nombre abre su detalle; Guardar aplica el cambio; tocar de nuevo lo cierra.
+  const habito = page.getByRole("complementary", { name: "Detalle del hábito" });
+  await page.getByRole("button", { name: "Ver Leer", exact: true }).first().click();
+  await expect(habito).toBeVisible();
+  await page.getByRole("button", { name: "Ver Leer", exact: true }).first().click();
+  await expect(habito).toBeHidden();
+  await page.getByRole("button", { name: "Ver Leer", exact: true }).first().click();
+  await habito.getByLabel("Nombre del hábito").fill("Leer mucho");
+  await habito.getByRole("button", { name: "Guardar" }).click();
+  await expect(habito).toBeHidden();
+  await page.getByRole("button", { name: "Ver Leer mucho" }).first().click();
+  await habito.getByRole("button", { name: "Eliminar" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Borrar para siempre" }).click();
+  await expect(page.getByTestId("habito-semana")).toHaveCount(0);
+
+  await page.screenshot({ path: process.env.CAPTURA ?? "/tmp/claude-0/-home-user/229ca586-01d6-597f-9392-378f6527fb35/scratchpad/detalle.png" });
+});

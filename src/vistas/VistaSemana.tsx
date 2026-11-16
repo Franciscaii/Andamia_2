@@ -15,7 +15,7 @@ import { ordenEntre } from "../logica/vistas";
 import { DeslizadorHabito } from "../componentes/DeslizadorHabito";
 import { useTienda } from "../datos/tienda";
 import { fechaDeTarea } from "../logica/fechas";
-import { hashDe, irA, type Seccion } from "../logica/ruta";
+import { alternarHabito, alternarTarea, hashDe, irA, type Seccion } from "../logica/ruta";
 import { habitosDelDia } from "../logica/habitos";
 import { contenidoDelDia, dificultadDe, diasDeSemana, hayAlgoElDia, nombreCortoDia, tituloDelDia, type FiltroSemana } from "../logica/semana";
 import { pesosAutomaticos } from "../logica/anchosSemana";
@@ -46,7 +46,7 @@ export function FilaEvento({ evento, abierta, arrastre }: { evento: Tarea; abier
         type="button"
         data-testid="fila-evento"
         title={arrastre ? "Toca para abrir; arrastra para llevarlo a otro día" : undefined}
-        onClick={() => irA(SECCION, evento.id)}
+        onClick={() => alternarTarea(SECCION, evento.id)}
         onPointerDown={arrastre?.alPresionar}
         className={`flex w-full items-center gap-2 rounded-md border-l-4 px-3 py-1.5 text-left text-sm ${arrastre ? "cursor-grab touch-none" : ""} ${abierta ? "ring-2 ring-acento" : ""}`}
         style={estiloEvento(evento.colorEvento)}
@@ -118,7 +118,7 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre, estrecha = false }: { 
       >
         {hecha && <Check size={13} strokeWidth={3} className="text-white" />}
       </button>
-      <button type="button" onClick={() => irA(SECCION, tarea.id)} className="min-w-0 flex-1 text-left">
+      <button type="button" onClick={() => alternarTarea(SECCION, tarea.id)} className="min-w-0 flex-1 text-left">
         <span className={`block text-sm break-words ${hecha ? "text-tenue line-through" : ""}`}>{tarea.titulo || "Sin título"}</span>
         {(dificultad !== "ninguna" || hora(tarea) || atrasada || (estrecha && pildora)) && (
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs">
@@ -448,9 +448,10 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
         const hecho = estado === "hecho";
         return (
           <li key={h.id} data-testid="habito-semana" className={`flex items-center rounded-lg bg-panel ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-3 py-1.5"}`}>
-            <span title={h.nombre} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-sm" : "min-w-[40%] flex-1 text-sm"} ${hecho ? "text-tenue" : ""}`}>
+            {/* Tocar el nombre abre el detalle del hábito al costado; tocarlo de nuevo lo cierra. */}
+            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
-            </span>
+            </button>
             <DeslizadorHabito
               nombre={h.nombre}
               color={h.color}
@@ -797,13 +798,13 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       <header data-widget-cabecera className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
         <div className={`flex items-center ${esEscritorio ? "gap-2" : "gap-1 min-[400px]:gap-2"}`}>
           <div className="flex shrink-0 items-center">
-            <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
+            <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
-            <h1 className="px-0.5 text-center text-lg font-semibold" title={format(elegido, "MMMM yyyy", { locale: es })}>
+            <h1 className="px-0.5 text-center text-lg font-semibold sm:px-1.5" title={format(elegido, "MMMM yyyy", { locale: es })}>
               {mes}
             </h1>
-            <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(1)}>
+            <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(1)}>
               <ChevronRight size={18} />
             </button>
           </div>

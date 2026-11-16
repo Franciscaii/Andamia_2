@@ -272,13 +272,13 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
           ))}
         </div>
         <div className="mt-1.5 flex items-center justify-center gap-3">
-          <button type="button" aria-label="Período anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
+          <button type="button" aria-label="Período anterior" className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(-1)}>
             <ChevronLeft size={18} />
           </button>
           <span data-testid="titulo-periodo" className="min-w-28 text-center text-sm font-medium">
             {tituloPeriodo(periodo, referencia)}
           </span>
-          <button type="button" aria-label="Período siguiente" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(1)}>
+          <button type="button" aria-label="Período siguiente" className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(1)}>
             <ChevronRight size={18} />
           </button>
         </div>

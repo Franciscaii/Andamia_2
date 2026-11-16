@@ -280,13 +280,13 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
       {modo === "mes" ? (
         <header className={`flex items-center gap-2 px-4 sm:px-5 ${EN_WIDGET ? "pt-1 pb-1.5 pr-12 sm:pr-12" : "pt-4 pb-2"}`}>
           <div className="flex shrink-0 items-center">
-            <button type="button" aria-label="Periodo anterior" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(-1)}>
+            <button type="button" aria-label="Periodo anterior" className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
-            <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className="px-0.5 text-lg font-semibold">
+            <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className="px-0.5 text-lg font-semibold sm:px-1.5">
               {tituloMes}
             </h1>
-            <button type="button" aria-label="Periodo siguiente" className="rounded-md p-1 text-tenue hover:bg-suave" onClick={() => mover(1)}>
+            <button type="button" aria-label="Periodo siguiente" className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(1)}>
               <ChevronRight size={18} />
             </button>
           </div>
