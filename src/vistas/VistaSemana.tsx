@@ -355,7 +355,12 @@ export function DialogoNuevo({ tipo, dia, alCerrar }: { tipo: TipoNuevo; dia: Da
 }
 
 /** El + de la semana: tarea, evento o hábito. */
-export function MenuNuevo({ alElegir, etiqueta = "Añadir", atajo = true, pequeno = false, abrirHacia = "izquierda" }: { alElegir: (tipo: TipoNuevo | "habito") => void; etiqueta?: string; atajo?: boolean; pequeno?: boolean; abrirHacia?: "izquierda" | "derecha" }) {
+/** Con un filtro puesto, el + crea directamente eso (sin preguntar); con "Todos" ofrece las tres opciones. */
+export function tipoDelFiltro(filtro: FiltroSemana): TipoNuevo | "habito" | null {
+  return filtro === "tareas" ? "tarea" : filtro === "eventos" ? "evento" : filtro === "habitos" ? "habito" : null;
+}
+
+export function MenuNuevo({ alElegir, etiqueta = "Añadir", atajo = true, pequeno = false, abrirHacia = "izquierda", directo = null }: { alElegir: (tipo: TipoNuevo | "habito") => void; etiqueta?: string; atajo?: boolean; pequeno?: boolean; abrirHacia?: "izquierda" | "derecha"; /** Si viene, el + abre de inmediato ese formulario, sin menú. */ directo?: TipoNuevo | "habito" | null }) {
   const [abierto, setAbierto] = useState(false);
   const opciones: { tipo: TipoNuevo | "habito"; nombre: string; icono: ReactNode }[] = [
     { tipo: "tarea", nombre: "Tarea", icono: <CheckSquare size={16} /> },
@@ -368,15 +373,15 @@ export function MenuNuevo({ alElegir, etiqueta = "Añadir", atajo = true, pequen
         type="button"
         data-nueva-tarea={atajo ? "" : undefined}
         aria-label={etiqueta}
-        aria-haspopup="menu"
-        aria-expanded={abierto}
-        title="Añadir tarea, evento o hábito"
+        aria-haspopup={directo ? undefined : "menu"}
+        aria-expanded={directo ? undefined : abierto}
+        title={directo === "tarea" ? "Añadir tarea" : directo === "evento" ? "Añadir evento" : directo === "habito" ? "Añadir hábito" : "Añadir tarea, evento o hábito"}
         className={`flex items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90 ${pequeno ? "h-6 w-6" : "h-8 w-8"}`}
-        onClick={() => setAbierto((a) => !a)}
+        onClick={() => (directo ? alElegir(directo) : setAbierto((a) => !a))}
       >
         <Plus size={pequeno ? 15 : 18} />
       </button>
-      {abierto && (
+      {abierto && !directo && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setAbierto(false)} />
           <div role="menu" aria-label={etiqueta} className={`absolute ${abrirHacia === "derecha" ? "left-0" : "right-0"} z-20 mt-1 w-40 rounded-lg border border-borde bg-panel p-1 shadow-lg`}>
@@ -841,7 +846,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               </button>
             ))}
           </div>
-          {alcance === "dia" && <MenuNuevo alElegir={(tipo) => nuevoEn(tipo, elegido)} />}
+          {alcance === "dia" && <MenuNuevo directo={tipoDelFiltro(filtro)} alElegir={(tipo) => nuevoEn(tipo, elegido)} />}
         </div>
 
 
@@ -911,7 +916,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                         <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-texto"}`}>{nombreCortoDia(d)}</span>
                         <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
                       </h2>
-                      <MenuNuevo pequeno etiqueta={etiquetaNuevo} atajo={atajo} abrirHacia={i < 4 ? "derecha" : "izquierda"} alElegir={(tipo) => nuevoEn(tipo, d)} />
+                      <MenuNuevo directo={tipoDelFiltro(filtro)} pequeno etiqueta={etiquetaNuevo} atajo={atajo} abrirHacia={i < 4 ? "derecha" : "izquierda"} alElegir={(tipo) => nuevoEn(tipo, d)} />
                     </div>
                     <ResumenDiaAngosto
                       dia={d}
@@ -941,6 +946,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                     </h2>
                     {/* El atajo N abre el + de hoy, o el del lunes si hoy no está en la semana. */}
                     <MenuNuevo
+                      directo={tipoDelFiltro(filtro)}
                       pequeno
                       etiqueta={`Añadir el ${format(d, "EEEE d", { locale: es })}`}
                       atajo={dias.some((x) => isSameDay(x, ahora)) ? esHoy : i === 0}
