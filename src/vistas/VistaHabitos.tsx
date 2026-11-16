@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Settings, Trash2, X } from "lucide-react";
@@ -392,6 +392,14 @@ export function VistaHabitos() {
   // Todos en una sola lista: primero los activos y al final los que están apagados.
   const visibles = [...habitos].sort((a, b) => Number(a.archivado) - Number(b.archivado) || a.orden - b.orden);
   const seleccionado = habitos.find((h) => h.id === seleccionId) ?? null;
+  // En el computador el historial va al costado; en el celular, justo bajo la tarjeta de su hábito.
+  const [enEscritorio, setEnEscritorio] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
+  useEffect(() => {
+    const m = window.matchMedia("(min-width: 1024px)");
+    const cambio = () => setEnEscritorio(m.matches);
+    m.addEventListener("change", cambio);
+    return () => m.removeEventListener("change", cambio);
+  }, []);
   const activos = visibles.filter((h) => !h.archivado);
 
   const marcar = (h: Habito, dia: Date) => {
@@ -656,13 +664,14 @@ export function VistaHabitos() {
                         </div>
                       </div>
                     )}
+                    {!enEscritorio && seleccionado?.id === h.id && <div className="border-t border-borde p-3">{detalle}</div>}
                   </li>
                 );
               })}
             </ul>
             {visibles.length > 0 && <p className="mt-3 text-xs text-tenue">Despliega un hábito con la flecha para cambiar su ícono, color y frecuencia, o para marcar sus días.</p>}
           </div>
-          {detalle}
+          {enEscritorio && detalle}
         </div>
         </div>
       </div>

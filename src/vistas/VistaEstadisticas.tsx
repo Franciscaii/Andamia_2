@@ -240,7 +240,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   const etiquetas = useTienda((s) => s.etiquetas);
   const habitos = useTienda((s) => s.habitos);
   const registros = useTienda((s) => s.registros);
-  const [periodo, setPeriodo] = useState<Periodo>("semana");
+  const [periodo, setPeriodo] = useState<Periodo>("anio");
   const [referencia, setReferencia] = useState(() => new Date());
   const [elegido, setElegido] = useState<string | null>(null);
   const esTareas = tipo === "tareas";
