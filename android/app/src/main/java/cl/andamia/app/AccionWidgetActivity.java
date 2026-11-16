@@ -30,6 +30,16 @@ public class AccionWidgetActivity extends Activity {
                 Widgets.redibujarTodo(this);
                 WidgetPlugin.avisarRapida();
             }
+        } else if (datos != null && "editar".equals(datos.getHost())) {
+            // andamia://editar/tarea|evento|habito/ID: la ventana para cambiarlo o borrarlo, sin abrir Andamia.
+            java.util.List<String> partes = datos.getPathSegments();
+            if (partes.size() == 2) {
+                Intent editar = new Intent(this, NuevaRapidaActivity.class);
+                editar.putExtra("editar_tipo", partes.get(0));
+                editar.putExtra("editar_id", partes.get(1));
+                editar.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(editar);
+            }
         } else if (datos != null) {
             Intent abrir = new Intent(Intent.ACTION_VIEW, datos, this, MainActivity.class);
             abrir.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

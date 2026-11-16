@@ -103,6 +103,34 @@ final class TareaRapida {
         WidgetPlugin.avisarRapida();
     }
 
+    /** Cambia (o quita) una de las que aún esperan en la cola, según lo hecho en la ventana del widget. */
+    static void editarEnCola(Context c, JSONObject e) {
+        String id = e.optString("id");
+        boolean eliminar = "eliminar".equals(e.optString("accion"));
+        synchronized (TareaRapida.class) {
+            JSONArray lista = cola(c);
+            JSONArray nueva = new JSONArray();
+            for (int i = 0; i < lista.length(); i++) {
+                JSONObject n = lista.optJSONObject(i);
+                if (n == null || !id.equals(n.optString("id"))) {
+                    nueva.put(lista.opt(i));
+                    continue;
+                }
+                if (eliminar) continue;
+                try {
+                    for (String k : new String[] { "titulo", "fecha", "prioridad", "dificultad", "indole", "color", "icono", "frecuencia", "fin", "meta" }) {
+                        if (e.has(k)) n.put(k, e.get(k));
+                        else n.remove(k);
+                    }
+                } catch (Exception ex) {
+                    // Queda como estaba.
+                }
+                nueva.put(n);
+            }
+            prefs(c).edit().putString(CLAVE, nueva.toString()).commit();
+        }
+    }
+
     /** Devuelve (y olvida) las que esperan ser creadas en la app. */
     static synchronized String tomar(Context c) {
         String s = cola(c).toString();
@@ -144,6 +172,8 @@ final class TareaRapida {
         JSONObject fila = new JSONObject();
         fila.put("id", id);
         fila.put("titulo", titulo);
+        // Lo que necesita la ventana de edición del widget.
+        fila.put("vence", fecha);
         if (evento) {
             fila.put("hora", "");
             fila.put("color", color);
@@ -153,6 +183,7 @@ final class TareaRapida {
             fila.put("hecha", false);
             fila.put("prioridad", prioridad);
             fila.put("dificultad", nivel(n.optString("dificultad")));
+            fila.put("indole", indole);
             fila.put("etiqueta", etiqueta == null ? indole : etiqueta.optString("nombre"));
             fila.put("colorEtiqueta", etiqueta == null ? "" : etiqueta.optString("color"));
         }
@@ -165,6 +196,7 @@ final class TareaRapida {
         if (fecha.equals(datos.optString("fecha"))) agregarFila(datos, fila, evento);
 
         JSONObject entrada = new JSONObject();
+        entrada.put("id", id);
         entrada.put("titulo", titulo);
         entrada.put("color", evento ? color : "");
         entrada.put("evento", evento);
@@ -185,6 +217,27 @@ final class TareaRapida {
         JSONObject frecuencia = n.optJSONObject("frecuencia");
         JSONArray elegidos = frecuencia != null && "dias".equals(frecuencia.optString("tipo")) ? frecuencia.optJSONArray("dias") : null;
         SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        // Su definición, para poder editarlo desde el widget antes de que la app lo cree.
+        JSONArray defs = datos.optJSONArray("habitosDef");
+        if (defs == null) defs = new JSONArray();
+        boolean definido = false;
+        for (int i = 0; i < defs.length(); i++) {
+            JSONObject h = defs.optJSONObject(i);
+            if (h != null && n.optString("id").equals(h.optString("id"))) definido = true;
+        }
+        if (!definido) {
+            JSONObject def = new JSONObject();
+            def.put("id", n.optString("id"));
+            def.put("nombre", n.optString("titulo"));
+            def.put("icono", n.optString("icono", "estrella"));
+            def.put("color", n.optString("color"));
+            def.put("frecuencia", frecuencia != null ? frecuencia : new JSONObject().put("tipo", "diaria"));
+            def.put("inicio", inicio);
+            def.put("fin", n.optString("fin"));
+            def.put("meta", n.optInt("meta", 1));
+            defs.put(def);
+            datos.put("habitosDef", defs);
+        }
         JSONArray dias = datos.optJSONArray("semanaDias");
         for (int i = 0; dias != null && i < dias.length(); i++) {
             JSONObject d = dias.optJSONObject(i);
@@ -221,12 +274,12 @@ final class TareaRapida {
         }
     }
 
-    private static int nivel(String s) {
+    static int nivel(String s) {
         return "alta".equals(s) ? 3 : "media".equals(s) ? 2 : "baja".equals(s) ? 1 : 0;
     }
 
     /** Nombre visible y color de la índole elegida, de la lista que manda la app. */
-    private static JSONObject etiqueta(JSONObject datos, String clave) {
+    static JSONObject etiqueta(JSONObject datos, String clave) {
         if (clave == null || clave.isEmpty()) return null;
         JSONObject f = datos.optJSONObject("formulario");
         JSONArray lista = f == null ? null : f.optJSONArray("indoles");
@@ -238,7 +291,7 @@ final class TareaRapida {
     }
 
     /** Eventos al final; tareas antes de las ya hechas, que van abajo. */
-    private static void agregarFila(JSONObject dia, JSONObject fila, boolean evento) throws Exception {
+    static void agregarFila(JSONObject dia, JSONObject fila, boolean evento) throws Exception {
         String clave = evento ? "eventos" : "tareas";
         JSONArray antes = dia.optJSONArray(clave);
         if (antes == null) antes = new JSONArray();
@@ -260,7 +313,7 @@ final class TareaRapida {
         dia.put(clave, nuevas);
     }
 
-    private static void agregarAlMes(JSONObject mes, String fecha, JSONObject entrada, boolean evento) throws Exception {
+    static void agregarAlMes(JSONObject mes, String fecha, JSONObject entrada, boolean evento) throws Exception {
         if (mes == null) return;
         JSONArray celdas = mes.optJSONArray("celdas");
         for (int i = 0; celdas != null && i < celdas.length(); i++) {

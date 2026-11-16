@@ -331,8 +331,15 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")));
             vista.setOnClickFillInIntent(R.id.habito_marca, marcar);
         }
-        vista.setOnClickFillInIntent(R.id.habito_fila, abrirDia());
+        vista.setOnClickFillInIntent(R.id.habito_fila, semana ? editar("habito", f.id) : abrirDia());
         return vista;
+    }
+
+    /** En el widget Semana, tocar una tarea, un evento o un hábito abre su ventana para editarlo o borrarlo. */
+    private static Intent editar(String tipo, String id) {
+        Intent editar = new Intent();
+        editar.setData(Uri.parse("andamia://editar/" + tipo + "/" + Uri.encode(id)));
+        return editar;
     }
 
     /** Abre Andamia en el día que muestra el widget (o en Hoy). */
@@ -422,7 +429,11 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         if (posicion >= filas.size()) return new RemoteViews(contexto.getPackageName(), R.layout.widget_fila);
         Fila f = filas.get(posicion);
         switch (f.tipo) {
-            case TIPO_EVENTO: return filaEvento(contexto, f);
+            case TIPO_EVENTO: {
+                RemoteViews vista = filaEvento(contexto, f);
+                if (semana) vista.setOnClickFillInIntent(R.id.evento_fila, editar("evento", f.id));
+                return vista;
+            }
             case TIPO_HABITO: return filaHabitos(f);
             case TIPO_ESPACIO: {
                 RemoteViews espacio = new RemoteViews(contexto.getPackageName(), R.layout.widget_espacio);
@@ -445,6 +456,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             default: {
                 RemoteViews vista = filaTarea(contexto, f);
                 enTarjeta(vista, R.id.fila_raiz, f);
+                if (semana) vista.setOnClickFillInIntent(R.id.fila_texto, editar("tarea", f.id));
                 // Los bordes de la fila (fuera de la casilla y del texto) abren el día en Andamia.
                 vista.setOnClickFillInIntent(R.id.fila_raiz, abrirDia());
                 return vista;

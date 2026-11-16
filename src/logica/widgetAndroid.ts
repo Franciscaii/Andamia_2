@@ -19,6 +19,8 @@ interface PluginWidget {
   pendientes(): Promise<{ ids: string[] }>;
   /** Tareas y eventos escritos en el "+" de los widgets, como JSON (ver TareaRapida.java). */
   rapidas(): Promise<{ items: string }>;
+  /** Cambios y borrados hechos en la ventana del widget Semana, como JSON (ver EdicionRapida.java). */
+  ediciones(): Promise<{ items: string }>;
   /** Hábitos marcados en el widget Semana, como JSON {"idHabito|AAAA-MM-DD": hecho}. */
   habitosMarcados(): Promise<{ marcas: string }>;
   addListener(evento: "rapida", alAvisar: () => void): Promise<PluginListenerHandle>;
@@ -51,6 +53,12 @@ export function datosDelWidget(tareas: Tarea[], listas: Lista[], ahora: Date = n
   };
 }
 
+/** "AAAA-MM-DD" del día en que vence una tarea o evento ("" si no tiene fecha). */
+function diaDe(t: Pick<Tarea, "vence">): string {
+  const f = fechaDeTarea(t);
+  return f ? format(f, "yyyy-MM-dd") : "";
+}
+
 /** Cómo se ve cada evento y cada tarea en las filas de los widgets. */
 function filasDe(listas: Lista[], etiquetas: Etiqueta[], ahora: Date) {
   const nombreLista = new Map(listas.map((l) => [l.id, l.nombre]));
@@ -60,13 +68,16 @@ function filasDe(listas: Lista[], etiquetas: Etiqueta[], ahora: Date) {
     return fecha && !t.todoElDia ? format(fecha, "HH:mm") : "";
   };
   return {
-    evento: (t: Tarea) => ({ id: t.id, titulo: t.titulo, hora: hora(t), color: t.colorEvento ?? "" }),
+    evento: (t: Tarea) => ({ id: t.id, titulo: t.titulo, hora: hora(t), color: t.colorEvento ?? "", vence: diaDe(t) }),
     tarea: (t: Tarea) => {
       const lista = t.listaId !== "bandeja" ? nombreLista.get(t.listaId) ?? "" : "";
       const etiqueta = t.etiquetas[0] ? etiquetaPorNombre.get(t.etiquetas[0]) : undefined;
       return {
         id: t.id,
         titulo: t.titulo,
+        /** Día en que vence y clave de su índole: lo que necesita la ventana para editarla desde el widget. */
+        vence: diaDe(t),
+        indole: t.etiquetas[0] ?? "",
         detalle: [hora(t), lista].filter(Boolean).join(" · "),
         atrasada: t.estado === "pendiente" && (diasHasta(t, ahora) ?? 0) < 0,
         hecha: t.estado === "completada",
@@ -137,8 +148,8 @@ export function mesDelWidget(e: Estado, ahora: Date, base: Date = ahora) {
   for (let dia = inicio; dia <= fin || celdas.length % 7 !== 0; dia = addDays(dia, 1)) {
     const c = contenidoDelDia(e.tareas, e.listas, dia, ahora);
     const entradas = [
-      ...c.eventos.map((t) => ({ titulo: t.titulo, color: t.colorEvento ?? "", evento: true, hecha: false, nivel: 0 })),
-      ...c.tareas.map((t) => ({ titulo: t.titulo, color: "", evento: false, hecha: t.estado === "completada", nivel: NIVEL[t.prioridad] ?? 0 })),
+      ...c.eventos.map((t) => ({ id: t.id, titulo: t.titulo, color: t.colorEvento ?? "", evento: true, hecha: false, nivel: 0 })),
+      ...c.tareas.map((t) => ({ id: t.id, titulo: t.titulo, color: "", evento: false, hecha: t.estado === "completada", nivel: NIVEL[t.prioridad] ?? 0 })),
     ];
     celdas.push({
       fecha: format(dia, "yyyy-MM-dd"),
@@ -262,7 +273,15 @@ export function datosDeWidgets(e: Estado, ahora: Date = new Date()) {
     meses: mesesDelWidget(e, ahora),
     estadisticas: estadisticasDelWidget(e, ahora),
     formulario: formularioDelWidget(e),
+    habitosDef: definicionesDeHabitos(e.habitos),
   };
+}
+
+/** Cómo es cada hábito, para editarlo desde el widget sin abrir la app. */
+export function definicionesDeHabitos(habitos: Habito[]) {
+  return habitos
+    .filter((h) => !h.archivado)
+    .map((h) => ({ id: h.id, nombre: h.nombre, icono: h.icono, color: h.color, frecuencia: h.frecuencia, inicio: h.inicio, fin: h.fin ?? "", meta: h.metaDiaria }));
 }
 
 /** Opciones del cuadro "+" de los widgets: las índoles (etiquetas) y los colores, como en la app. */
@@ -461,6 +480,88 @@ async function crearDesdeWidget(n: NuevaDesdeWidget): Promise<string | null> {
   return tarea?.id ?? null;
 }
 
+/** Un cambio o borrado hecho en la ventana que abre el widget Semana al tocar una tarea, evento o hábito. */
+export interface EdicionDesdeWidget {
+  id: string;
+  accion: "editar" | "eliminar";
+  tipo: "tarea" | "evento" | "habito";
+  titulo?: string;
+  fecha?: string;
+  prioridad?: Prioridad;
+  dificultad?: Prioridad;
+  indole?: string;
+  color?: string;
+  icono?: string;
+  frecuencia?: FrecuenciaHabito;
+  fin?: string;
+  meta?: number;
+}
+
+/** Lee las ediciones que manda el widget; descarta las que no tengan forma. */
+export function leerEdiciones(json: string): EdicionDesdeWidget[] {
+  try {
+    const lista: unknown = JSON.parse(json);
+    if (!Array.isArray(lista)) return [];
+    return lista.filter(
+      (e): e is EdicionDesdeWidget =>
+        typeof e === "object" && e !== null && typeof e.id === "string" && e.id !== "" && (e.accion === "editar" || e.accion === "eliminar") && ["tarea", "evento", "habito"].includes(e.tipo),
+    );
+  } catch {
+    return [];
+  }
+}
+
+const esFecha = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+/** Aplica en Andamia lo cambiado o borrado en el widget. Las tareas borradas van a la papelera. */
+async function aplicarEdicionDeWidget(e: EdicionDesdeWidget, real: Map<string, string>): Promise<void> {
+  const id = real.get(e.id) ?? e.id;
+  const tienda = useTienda.getState();
+  if (e.tipo === "habito") {
+    if (!tienda.habitos.some((h) => h.id === id)) return;
+    if (e.accion === "eliminar") {
+      await tienda.borrarHabito(id);
+      return;
+    }
+    const inicio = esFecha(e.fecha) ? e.fecha : undefined;
+    await tienda.actualizarHabito(id, {
+      ...(typeof e.titulo === "string" && e.titulo.trim() ? { nombre: e.titulo.trim() } : {}),
+      ...(typeof e.icono === "string" && e.icono ? { icono: e.icono } : {}),
+      ...(typeof e.color === "string" && /^#[0-9a-f]{6}$/i.test(e.color) ? { color: e.color } : {}),
+      ...(e.frecuencia ? { frecuencia: frecuenciaValida(e.frecuencia) } : {}),
+      ...(typeof e.meta === "number" && e.meta >= 1 ? { metaDiaria: Math.min(99, Math.round(e.meta)) } : {}),
+      ...(inicio ? { inicio } : {}),
+      fin: esFecha(e.fin) && (!inicio || e.fin >= inicio) ? e.fin : null,
+    });
+    return;
+  }
+  const tarea = tienda.tareas.find((t) => t.id === id && t.eliminadaEn === null);
+  if (!tarea) return;
+  if (e.accion === "eliminar") {
+    await tienda.enviarAPapelera(id);
+    return;
+  }
+  const esEvento = tarea.esEvento === true;
+  const cambios: Partial<Tarea> = {};
+  if (typeof e.titulo === "string" && e.titulo.trim()) cambios.titulo = e.titulo.trim();
+  if (!esEvento) {
+    cambios.prioridad = nivelValido(e.prioridad);
+    cambios.dificultad = nivelValido(e.dificultad);
+  } else cambios.colorEvento = typeof e.color === "string" && e.color ? e.color : null;
+  cambios.etiquetas = typeof e.indole === "string" && e.indole ? [e.indole] : [];
+  if (esFecha(e.fecha) && e.fecha !== diaDe(tarea)) {
+    const actual = fechaDeTarea(tarea);
+    if (tarea.todoElDia || !actual) cambios.vence = e.fecha;
+    else {
+      // Con hora: cambia el día y se conserva la hora.
+      const nueva = parseISO(e.fecha);
+      nueva.setHours(actual.getHours(), actual.getMinutes(), 0, 0);
+      cambios.vence = nueva.toISOString();
+    }
+  }
+  tienda.actualizarTarea(id, cambios);
+}
+
 /** Lee la cola que manda el widget; descarta lo que no tenga forma de tarea. */
 export function leerRapidas(json: string): NuevaDesdeWidget[] {
   try {
@@ -496,6 +597,7 @@ async function aplicarAhora(): Promise<void> {
     const id = await crearDesdeWidget(n);
     if (id && n.id) real.set(n.id, id);
   }
+  await aplicarEdiciones(real);
   const { ids } = await widget.pendientes();
   for (const marcado of ids) {
     const id = real.get(marcado) ?? marcado;
@@ -507,6 +609,17 @@ async function aplicarAhora(): Promise<void> {
   await aplicarHabitosMarcados(real);
   ultimoEnviado = "";
   programarEnvio();
+}
+
+async function aplicarEdiciones(real: Map<string, string>): Promise<void> {
+  let items = "[]";
+  try {
+    items = (await widget.ediciones()).items;
+  } catch {
+    // App de Android anterior, sin ventana de edición en el widget.
+    return;
+  }
+  for (const e of leerEdiciones(items)) await aplicarEdicionDeWidget(e, real);
 }
 
 /** Lee las marcas de hábitos hechas en el widget: {"idHabito|AAAA-MM-DD": hecho}. */

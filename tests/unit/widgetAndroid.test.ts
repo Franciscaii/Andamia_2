@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { habitosDelDia } from "../../src/logica/habitos";
-import { datosDelWidget, datosDeWidgets, leerHabitosMarcados, mesDelWidget } from "../../src/logica/widgetAndroid";
+import { datosDelWidget, datosDeWidgets, definicionesDeHabitos, leerEdiciones, leerHabitosMarcados, mesDelWidget } from "../../src/logica/widgetAndroid";
 import type { Habito, Lista, RegistroHabito, Tarea } from "../../src/modelos/tipos";
 
 const base: Tarea = {
@@ -39,7 +39,7 @@ describe("datosDelWidget", () => {
     ] as Tarea[];
     const etiquetas = [{ nombre: "uni", nombreVisible: "Universidad", color: "#2f9e5b", orden: 0 }];
     const datos = datosDelWidget(tareas, listas, ahora, etiquetas);
-    expect(datos.eventos).toEqual([{ id: "e1", titulo: "Doctor", hora: "11:00", color: "" }]);
+    expect(datos.eventos).toEqual([{ id: "e1", titulo: "Doctor", hora: "11:00", color: "", vence: "2026-11-09" }]);
     expect(datos.tareas).toHaveLength(1);
     expect(datos.tareas[0]).toMatchObject({ dificultad: 2, etiqueta: "Universidad", colorEtiqueta: "#2f9e5b" });
   });
@@ -224,5 +224,36 @@ describe("hábitos en el widget Semana", () => {
     ]);
     expect(leerHabitosMarcados("")).toEqual([]);
     expect(leerHabitosMarcados("[]")).toEqual([]);
+  });
+});
+
+describe("ventana de edición del widget Semana", () => {
+  const ahora = new Date(2026, 10, 9, 10, 0);
+  it("cada fila lleva su día y su índole, y cada entrada del mes su id, para editarlas desde el widget", () => {
+    const tareas = [
+      { ...base, id: "t1", etiquetas: ["uni"] },
+      { ...base, id: "e1", titulo: "Doctor", esEvento: true, colorEvento: "#d6409f" },
+    ] as Tarea[];
+    const datos = datosDeWidgets({ tareas, listas, etiquetas: [], habitos: [], registros: [] }, ahora);
+    expect(datos.tareas[0]).toMatchObject({ id: "t1", vence: "2026-11-09", indole: "uni" });
+    expect(datos.eventos[0]).toMatchObject({ id: "e1", vence: "2026-11-09", color: "#d6409f" });
+    const celda = datos.mes.celdas.find((c) => c.fecha === "2026-11-09")!;
+    expect(celda.entradas.map((e) => e.id).sort()).toEqual(["e1", "t1"]);
+  });
+
+  it("manda la definición de los hábitos activos", () => {
+    const h = { id: "h1", nombre: "Leer", icono: "libro", color: "#3f74b5", frecuencia: { tipo: "diaria" }, metaDiaria: 2, unidad: "", inicio: "2026-11-10", fin: null, archivado: false, orden: 0 } as Habito;
+    expect(definicionesDeHabitos([h, { ...h, id: "h2", archivado: true }])).toEqual([
+      { id: "h1", nombre: "Leer", icono: "libro", color: "#3f74b5", frecuencia: { tipo: "diaria" }, inicio: "2026-11-10", fin: "", meta: 2 },
+    ]);
+  });
+
+  it("lee las ediciones del widget y descarta lo que no entiende", () => {
+    expect(leerEdiciones('[{"id":"t1","accion":"editar","tipo":"tarea","titulo":"Nuevo"},{"id":"h1","accion":"eliminar","tipo":"habito"},{"id":"x","accion":"raro","tipo":"tarea"},{"accion":"editar","tipo":"tarea"},{"id":"y","accion":"editar","tipo":"otro"}]')).toEqual([
+      { id: "t1", accion: "editar", tipo: "tarea", titulo: "Nuevo" },
+      { id: "h1", accion: "eliminar", tipo: "habito" },
+    ]);
+    expect(leerEdiciones("")).toEqual([]);
+    expect(leerEdiciones("{}")).toEqual([]);
   });
 });
