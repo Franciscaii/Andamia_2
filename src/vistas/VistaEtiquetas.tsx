@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, ListTodo, Pencil, Plus, Tag, Trash2 } from "lucide-react";
+import { Pencil, Plus, Tag, Trash2 } from "lucide-react";
 import { DialogoEtiqueta } from "../componentes/Dialogos";
 import { Confirmar } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
-import { hashDe } from "../logica/ruta";
 import { estaPendiente } from "../logica/vistas";
 import type { Etiqueta } from "../modelos/tipos";
 
@@ -14,7 +13,6 @@ export function VistaEtiquetas() {
   const etiquetas = useTienda((s) => s.etiquetas);
   const tareas = useTienda((s) => s.tareas);
   const borrarEtiqueta = useTienda((s) => s.borrarEtiqueta);
-  const [abierta, setAbierta] = useState<string | null>(null);
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
 
   const pendientes = useMemo(() => {
@@ -40,35 +38,18 @@ export function VistaEtiquetas() {
         {!etiquetas.length && <p className="mt-10 text-center text-sm text-tenue">Aún no tienes etiquetas. Crea una con el +.</p>}
         <ul className="grid grid-cols-2 items-start gap-2">
           {etiquetas.map((e) => {
-            const esAbierta = abierta === e.nombre;
             const n = pendientes.get(e.nombre) ?? 0;
             return (
-              <li key={e.nombre} data-testid="tarjeta-etiqueta" className={`min-w-0 rounded-xl border bg-panel ${esAbierta ? "border-acento" : "border-borde"}`}>
-                <button
-                  type="button"
-                  aria-expanded={esAbierta}
-                  aria-label={`Etiqueta ${e.nombreVisible}`}
-                  className="flex w-full min-w-0 items-center gap-2 p-3 text-left"
-                  onClick={() => setAbierta(esAbierta ? null : e.nombre)}
-                >
-                  <Tag size={17} className="shrink-0" style={{ color: e.color }} />
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{e.nombreVisible}</span>
-                  {n > 0 && <span className="shrink-0 text-xs text-tenue tabular-nums">{n}</span>}
-                  {esAbierta ? <ChevronDown size={16} className="shrink-0 text-tenue" /> : <ChevronRight size={16} className="shrink-0 text-tenue" />}
+              <li key={e.nombre} data-testid="tarjeta-etiqueta" className="flex min-w-0 items-center gap-2 rounded-xl border border-borde bg-panel p-2.5 pl-3">
+                <Tag size={17} className="shrink-0" style={{ color: e.color }} />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium" title={e.nombreVisible}>{e.nombreVisible}</span>
+                {n > 0 && <span className="shrink-0 text-xs text-tenue tabular-nums">{n}</span>}
+                <button type="button" aria-label={`Editar etiqueta ${e.nombreVisible}`} title="Editar" className={claseAccion} onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
+                  <Pencil size={14} /> <span className="hidden sm:inline">Editar</span>
                 </button>
-                {esAbierta && (
-                  <div className="flex flex-wrap gap-1.5 border-t border-borde p-2">
-                    <a href={hashDe({ tipo: "etiqueta", nombre: e.nombre })} className={claseAccion}>
-                      <ListTodo size={14} /> Ver tareas
-                    </a>
-                    <button type="button" aria-label={`Editar etiqueta ${e.nombreVisible}`} className={claseAccion} onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
-                      <Pencil size={14} /> Editar
-                    </button>
-                    <button type="button" aria-label={`Eliminar etiqueta ${e.nombreVisible}`} className={`${claseAccion} text-peligro`} onClick={() => setDialogo({ tipo: "borrar", etiqueta: e })}>
-                      <Trash2 size={14} /> Eliminar
-                    </button>
-                  </div>
-                )}
+                <button type="button" aria-label={`Eliminar etiqueta ${e.nombreVisible}`} title="Eliminar" className={`${claseAccion} text-peligro`} onClick={() => setDialogo({ tipo: "borrar", etiqueta: e })}>
+                  <Trash2 size={14} /> <span className="hidden sm:inline">Eliminar</span>
+                </button>
               </li>
             );
           })}
@@ -79,11 +60,7 @@ export function VistaEtiquetas() {
         <DialogoEtiqueta
           etiqueta={dialogo.etiqueta}
           alEliminar={() => dialogo.etiqueta && setDialogo({ tipo: "borrar", etiqueta: dialogo.etiqueta })}
-          alCerrar={() => {
-            setDialogo(null);
-            // Si cambió de nombre, su tarjeta ya no queda abierta con el nombre viejo.
-            setAbierta(null);
-          }}
+          alCerrar={() => setDialogo(null)}
         />
       )}
       {dialogo?.tipo === "borrar" && (

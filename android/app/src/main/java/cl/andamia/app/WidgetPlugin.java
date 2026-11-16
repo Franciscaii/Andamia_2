@@ -38,6 +38,14 @@ public class WidgetPlugin extends Plugin {
         call.resolve(respuesta);
     }
 
+    /** Devuelve (y olvida) los cambios y borrados hechos en la ventana del widget Semana, como JSON. */
+    @PluginMethod
+    public void ediciones(PluginCall call) {
+        JSObject respuesta = new JSObject();
+        respuesta.put("items", EdicionRapida.tomar(getContext()));
+        call.resolve(respuesta);
+    }
+
     /** Guarda las tareas de hoy que mostrará el widget y lo redibuja. */
     @PluginMethod
     public void actualizar(PluginCall call) {
@@ -48,7 +56,7 @@ public class WidgetPlugin extends Plugin {
         }
         Context contexto = getContext();
         // Lo escrito en los widgets que la app aún no crea sigue a la vista.
-        DatosWidget.guardarTareas(contexto, TareaRapida.conPendientes(contexto, datos));
+        DatosWidget.guardarTareas(contexto, EdicionRapida.conPendientes(contexto, TareaRapida.conPendientes(contexto, datos)));
         try {
             // Tema y aspecto aparte, para leerlos rápido en cada dibujo.
             org.json.JSONObject todo = new org.json.JSONObject(datos);

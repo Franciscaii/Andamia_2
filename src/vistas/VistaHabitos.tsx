@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState, type FormEvent } from "react";
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Trash2, X } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Settings, Trash2, X } from "lucide-react";
 import { IconoHabito, ICONOS_HABITO } from "../componentes/IconoHabito";
 import { claseBotonEliminar, clasePanelDetalle, FondoDetalle } from "../componentes/DetalleTarea";
 import { PanelColor } from "../componentes/PanelColor";
@@ -476,38 +476,41 @@ export function VistaHabitos() {
       <div className="mx-auto max-w-6xl p-5">
         <header className="mb-4 flex items-center gap-2">
           <h1 className="text-xl font-semibold">Hábitos</h1>
-          <button type="button" aria-label="Nuevo hábito" title="Nuevo hábito" className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90" onClick={() => setDialogo({ habito: null })}>
+          {/* En el computador, en la misma fila: < mes >, Semana | Mes y el +, todos con borde. */}
+          {activos.length > 0 && (
+            <div className="ml-4 hidden items-center rounded-lg border border-borde bg-panel p-0.5 lg:flex">
+              <button type="button" aria-label={alcanceTabla === "semana" ? "Semana anterior" : "Mes anterior de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(-1)}>
+                <ChevronLeft size={18} />
+              </button>
+              <span data-testid="titulo-tabla-habitos" title={format(baseTabla, "MMMM yyyy", { locale: es })} className="min-w-12 px-2 text-center text-lg font-semibold first-letter:uppercase">
+                {tituloTabla}
+              </span>
+              <button type="button" aria-label={alcanceTabla === "semana" ? "Semana siguiente" : "Mes siguiente de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(1)}>
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
+          {activos.length > 0 && (
+            <div role="group" aria-label="Ver por" className="ml-auto hidden gap-1 lg:flex">
+              {(["semana", "mes"] as const).map((a) => (
+                <button key={a} type="button" aria-pressed={alcanceTabla === a} className={`rounded-md border px-3 py-1.5 text-xs first-letter:uppercase ${alcanceTabla === a ? "border-acento bg-panel font-medium shadow-sm" : "border-borde bg-panel text-tenue hover:text-texto"}`} onClick={() => setAlcanceTabla(a)}>
+                  {a === "semana" ? "Semana" : "Mes"}
+                </button>
+              ))}
+            </div>
+          )}
+          <button type="button" aria-label="Nuevo hábito" title="Nuevo hábito" className={`flex h-9 w-9 items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90 lg:h-8 lg:w-8 lg:rounded-md lg:border lg:border-borde lg:bg-panel lg:text-texto lg:hover:bg-suave ${activos.length > 0 ? "ml-auto lg:ml-0" : "ml-auto"}`} onClick={() => setDialogo({ habito: null })}>
             <Plus size={18} />
           </button>
         </header>
 
         {/* Solo en el computador: los hábitos activos contra los días, para marcarlos de un vistazo. */}
         {activos.length > 0 && (
-          <section aria-label="Hábitos por día" data-testid="tabla-habitos" className="mb-6 hidden lg:block">
-            <div className="mb-3 flex items-center gap-2">
-              <div className="flex items-center">
-                <button type="button" aria-label={alcanceTabla === "semana" ? "Semana anterior" : "Mes anterior de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(-1)}>
-                  <ChevronLeft size={18} />
-                </button>
-                <span data-testid="titulo-tabla-habitos" title={format(baseTabla, "MMMM yyyy", { locale: es })} className="min-w-12 px-1.5 text-center text-lg font-semibold first-letter:uppercase">
-                  {tituloTabla}
-                </span>
-                <button type="button" aria-label={alcanceTabla === "semana" ? "Semana siguiente" : "Mes siguiente de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(1)}>
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-              <div role="group" aria-label="Ver por" className="ml-auto flex gap-0.5 rounded-md bg-suave p-0.5">
-                {(["semana", "mes"] as const).map((a) => (
-                  <button key={a} type="button" aria-pressed={alcanceTabla === a} className={`rounded px-2.5 py-1 text-xs first-letter:uppercase ${alcanceTabla === a ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`} onClick={() => setAlcanceTabla(a)}>
-                    {a === "semana" ? "Semana" : "Mes"}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <section aria-label="Hábitos por día" data-testid="tabla-habitos" className="mb-6 hidden rounded-xl border border-borde p-3 lg:block">
             <div className="overflow-x-auto pb-1">
               <div
                 className={`grid items-stretch gap-y-1.5 ${alcanceTabla === "semana" ? "gap-x-1" : "gap-x-0.5"}`}
-                style={{ gridTemplateColumns: alcanceTabla === "semana" ? "minmax(10rem, 16rem) repeat(7, minmax(3rem, 1fr))" : `minmax(9rem, 13rem) repeat(${diasTabla.length}, minmax(1.5rem, 1fr))` }}
+                style={{ gridTemplateColumns: alcanceTabla === "semana" ? "minmax(6.5rem, 9rem) repeat(7, minmax(3.5rem, 1fr))" : `minmax(6rem, 8rem) repeat(${diasTabla.length}, minmax(1.5rem, 1fr))` }}
               >
                 <span />
                 {diasTabla.map((dia) => {
@@ -533,7 +536,7 @@ export function VistaHabitos() {
                           <div key={claveDia(dia)} className={`flex items-center justify-center rounded-lg py-1 ${isSameDay(dia, hoy) ? "bg-acento-suave" : "bg-panel"}`}>
                             <CeldaEstado
                               contorno
-                              tamano={alcanceTabla === "semana" ? "h-8 w-8" : "h-5 w-5"}
+                              tamano={alcanceTabla === "semana" ? "h-10 w-10" : "h-6 w-6"}
                               estado={r?.estado ?? null}
                               color={h.color}
                               inhabilitado={!esEditable(h, dia, hoy)}
@@ -553,7 +556,12 @@ export function VistaHabitos() {
           </section>
         )}
 
-        {visibles.length > 0 && <h2 className="mb-3 hidden border-b border-borde pb-1 text-base font-semibold lg:block">Configuración</h2>}
+        <div className="lg:rounded-xl lg:border lg:border-borde lg:p-3">
+        {visibles.length > 0 && (
+          <h2 className="mb-3 hidden items-center gap-2 border-b border-borde pb-1 text-base font-semibold lg:flex">
+            <Settings size={17} className="text-tenue" /> Configuración
+          </h2>
+        )}
         <div className={`grid items-start gap-4 ${seleccionado ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
           <div className="min-w-0">
             {!visibles.length && (
@@ -655,6 +663,7 @@ export function VistaHabitos() {
             {visibles.length > 0 && <p className="mt-3 text-xs text-tenue">Despliega un hábito con la flecha para cambiar su ícono, color y frecuencia, o para marcar sus días.</p>}
           </div>
           {detalle}
+        </div>
         </div>
       </div>
 

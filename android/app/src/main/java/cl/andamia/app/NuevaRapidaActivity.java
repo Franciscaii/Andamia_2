@@ -57,6 +57,7 @@ public class NuevaRapidaActivity extends Activity {
     private static final String PERSONALIZADO = "*";
     private static final String[] COLORES_HABITO = { "#c2553d", "#d48a2c", "#b7a42e", "#4f8a4c", "#2f8f83", "#3f74b5", "#7a5fb0", "#b65583" };
     private static final String MORADO_EVENTO = "#9b5cd6";
+    private static final int ROJO = 0xFFD64545;
     private static final String[] DIAS = { "L", "M", "M", "J", "V", "S", "D" };
 
     private int idWidget;
@@ -84,6 +85,11 @@ public class NuevaRapidaActivity extends Activity {
     /** Último día del hábito; null = no termina. */
     private Calendar finHabito = null;
     private int metaHabito = 1;
+    /** Si viene, la ventana edita (o borra) esta tarea, evento o hábito en vez de crear uno nuevo. */
+    private String editarId;
+    private String textoInicial = "";
+    private TextView botonEliminar;
+    private boolean confirmandoEliminar;
 
     @Override
     protected void onCreate(Bundle estado) {
@@ -98,6 +104,18 @@ public class NuevaRapidaActivity extends Activity {
             fecha.setTime(new SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(TareaRapida.diaInicial(this, idWidget, tipoWidget)));
         } catch (Exception e) {
             // Queda hoy.
+        }
+
+        editarId = getIntent().getStringExtra("editar_id");
+        String tipoEditar = getIntent().getStringExtra("editar_tipo");
+        if (editarId != null) {
+            JSONObject info = EdicionRapida.buscar(this, tipoEditar, editarId);
+            if (info == null) {
+                Toast.makeText(getApplicationContext(), "Abre Andamia una vez para poder editar esto desde el widget", Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }
+            precargar(info);
         }
 
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
@@ -121,10 +139,50 @@ public class NuevaRapidaActivity extends Activity {
         // Con un filtro puesto en el widget (Tareas, Eventos o Hábitos), el "+" abre directo ese formulario;
         // con "Todos" se pregunta qué añadir.
         String filtro = idWidget == AppWidgetManager.INVALID_APPWIDGET_ID ? "todos" : DatosWidget.filtro(this, idWidget);
-        if ("tareas".equals(filtro)) mostrarFormulario("tarea");
+        if (editarId != null) mostrarFormulario(tipoEditar);
+        else if ("tareas".equals(filtro)) mostrarFormulario("tarea");
         else if ("eventos".equals(filtro)) mostrarFormulario("evento");
         else if ("habitos".equals(filtro)) mostrarFormulario("habito");
         else mostrarMenu();
+    }
+
+    /** Pone en el formulario lo que ya tiene la tarea, el evento o el hábito que se edita. */
+    private void precargar(JSONObject info) {
+        textoInicial = info.optString("titulo");
+        SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        boolean habito = "habito".equals(info.optString("tipo"));
+        try {
+            Calendar dia = habito ? inicioHabito : fecha;
+            if (!info.optString("fecha").isEmpty()) dia.setTime(formato.parse(info.optString("fecha")));
+            if (habito && !info.optString("fin").isEmpty()) {
+                finHabito = Calendar.getInstance();
+                finHabito.setTime(formato.parse(info.optString("fin")));
+            }
+        } catch (Exception e) {
+            // Queda la fecha de hoy.
+        }
+        for (int i = 0; i < NUM_NIVEL.length; i++) {
+            if (NUM_NIVEL[i] == info.optInt("prioridad")) prioridad = NIVELES[i];
+            if (NUM_NIVEL[i] == info.optInt("dificultad")) dificultad = NIVELES[i];
+        }
+        indole = info.optString("indole").isEmpty() ? null : info.optString("indole");
+        if (habito) {
+            if (!info.optString("icono").isEmpty()) icono = info.optString("icono");
+            if (!info.optString("color").isEmpty()) colorHabito = info.optString("color");
+            metaHabito = Math.max(1, Math.min(99, info.optInt("meta", 1)));
+            JSONObject f = info.optJSONObject("frecuencia");
+            if (f != null) {
+                frecuencia = f.optString("tipo", "diaria");
+                JSONArray dias = f.optJSONArray("dias");
+                for (int i = 0; dias != null && i < dias.length(); i++) {
+                    int n = dias.optInt(i, -1);
+                    if (n >= 0 && n < 7) diasHabito[n] = true;
+                }
+                veces = Math.max(1, Math.min(7, f.optInt("veces", 3)));
+            }
+        } else {
+            colorEvento = info.optString("color").isEmpty() ? null : info.optString("color");
+        }
     }
 
     // ---------- Paso 1: qué crear ----------
@@ -158,7 +216,8 @@ public class NuevaRapidaActivity extends Activity {
         tipo = elegido;
         tarjeta.removeAllViews();
         boolean esTarea = "tarea".equals(tipo), esEvento = "evento".equals(tipo), esHabito = "habito".equals(tipo);
-        tarjeta.addView(titulo(esTarea ? "Nueva tarea" : esEvento ? "Nuevo evento" : "Nuevo hábito"));
+        if (editarId != null) tarjeta.addView(titulo(esTarea ? "Editar tarea" : esEvento ? "Editar evento" : "Editar hábito"));
+        else tarjeta.addView(titulo(esTarea ? "Nueva tarea" : esEvento ? "Nuevo evento" : "Nuevo hábito"));
 
         // El formulario se desplaza si el teclado deja poco espacio; los botones quedan a la vista.
         ScrollView desplazable = new ScrollView(this);
@@ -176,6 +235,10 @@ public class NuevaRapidaActivity extends Activity {
         campo.setPadding(px(12), px(10), px(12), px(10));
         campo.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         campo.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        if (editarId != null) {
+            campo.setText(textoInicial);
+            campo.setSelection(campo.getText().length());
+        }
         campo.setOnEditorActionListener((v, accion, ev) -> {
             ocultarTeclado();
             return true;
@@ -226,9 +289,21 @@ public class NuevaRapidaActivity extends Activity {
             pintarMeta(zonaMeta);
         }
 
-        // Cancelar y Añadir.
+        // Eliminar (solo al editar), Cancelar y Añadir o Guardar.
         LinearLayout botones = new LinearLayout(this);
         botones.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        if (editarId != null) {
+            botonEliminar = new TextView(this);
+            botonEliminar.setText("Eliminar");
+            botonEliminar.setTextColor(ROJO);
+            botonEliminar.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            botonEliminar.setTypeface(Typeface.DEFAULT_BOLD);
+            botonEliminar.setPadding(px(12), px(8), px(12), px(8));
+            botonEliminar.setOnClickListener(v -> eliminar());
+            botones.addView(botonEliminar);
+            // Empuja Cancelar y Guardar a la derecha.
+            botones.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
+        }
         TextView cancelar = new TextView(this);
         cancelar.setText("Cancelar");
         cancelar.setTextColor(texto);
@@ -237,7 +312,7 @@ public class NuevaRapidaActivity extends Activity {
         cancelar.setOnClickListener(v -> cerrar());
         botones.addView(cancelar);
         boton = new TextView(this);
-        boton.setText(esTarea ? "Crear tarea" : esEvento ? "Crear evento" : "Crear hábito");
+        boton.setText(editarId != null ? "Guardar" : esTarea ? "Crear tarea" : esEvento ? "Crear evento" : "Crear hábito");
         boton.setTextColor(sobreAcento);
         boton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         boton.setTypeface(Typeface.DEFAULT_BOLD);
@@ -404,7 +479,8 @@ public class NuevaRapidaActivity extends Activity {
         JSONArray lista = formulario == null ? null : formulario.optJSONArray("coloresHabito");
         for (int i = 0; lista != null && i < lista.length(); i++) colores.add(lista.optString(i));
         if (colores.isEmpty()) for (String c : COLORES_HABITO) colores.add(c);
-        if (!colores.contains(colorHabito)) colorHabito = colores.get(0);
+        // Al editar, un color a elección se queda como está.
+        if (editarId == null && !colores.contains(colorHabito)) colorHabito = colores.get(0);
         // Además de los colores fijos, uno a elección: el último círculo abre el selector
         // (barra de tonos a la izquierda y cuadro de intensidad y brillo a la derecha).
         final List<String> fijos = new ArrayList<>(colores);
@@ -872,9 +948,44 @@ public class NuevaRapidaActivity extends Activity {
         } catch (Exception e) {
             return;
         }
+        if (editarId != null) {
+            try {
+                n.put("id", editarId);
+                n.put("accion", "editar");
+            } catch (Exception e) {
+                return;
+            }
+            EdicionRapida.guardar(this, n);
+            Toast.makeText(getApplicationContext(), "Cambios guardados", Toast.LENGTH_SHORT).show();
+            cerrar();
+            return;
+        }
         TareaRapida.guardar(this, n);
         String aviso = "tarea".equals(tipo) ? "Tarea añadida a Andamia" : "evento".equals(tipo) ? "Evento añadido a Andamia" : "Hábito añadido a Andamia";
         Toast.makeText(getApplicationContext(), aviso, Toast.LENGTH_SHORT).show();
+        cerrar();
+    }
+
+    /** Borra lo que se está editando; pide tocar dos veces para no borrar sin querer. */
+    private void eliminar() {
+        if (!confirmandoEliminar) {
+            confirmandoEliminar = true;
+            botonEliminar.setText("¿Seguro?");
+            botonEliminar.setTextColor(Color.WHITE);
+            botonEliminar.setBackground(redondo(ROJO, 0, 18));
+            if ("habito".equals(tipo)) Toast.makeText(getApplicationContext(), "Se borra también su historial. Toca Eliminar otra vez para confirmar.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        JSONObject e = new JSONObject();
+        try {
+            e.put("id", editarId);
+            e.put("accion", "eliminar");
+            e.put("tipo", tipo);
+        } catch (Exception ex) {
+            return;
+        }
+        EdicionRapida.guardar(this, e);
+        Toast.makeText(getApplicationContext(), "habito".equals(tipo) ? "Hábito eliminado" : "Enviado a la papelera de Andamia", Toast.LENGTH_SHORT).show();
         cerrar();
     }
 

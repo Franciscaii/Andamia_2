@@ -785,8 +785,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
   const elegirDia = (d: Date) => setElegido(d);
-  // En el widget, tocar la tarjeta de un día lo marca: ahí añade el único + de arriba.
-  const elegirColumna = (d: Date) => (EN_WIDGET ? { elegida: isSameDay(d, elegido), alElegir: () => setElegido(d) } : {});
+  // Con 7 días, tocar la tarjeta de un día lo marca: ahí añade el único + de arriba.
+  const elegirColumna = (d: Date) => ({ elegida: isSameDay(d, elegido), alElegir: () => setElegido(d) });
   // En el celular, arrastrar hacia abajo la tira de días despliega el mes completo.
   const [mesAbierto, setMesAbierto] = useState(false);
   const verMes = mesAbierto && !esEscritorio;
@@ -852,10 +852,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               </button>
             ))}
           </div>
-          {/* En el widget hay un solo +: añade en el día marcado (al tocar su tarjeta). */}
-          {(alcance === "dia" || EN_WIDGET) && (
-            <MenuNuevo directo={tipoDelFiltro(filtro)} etiqueta={alcance === "dia" ? "Añadir" : `Añadir el ${format(elegido, "EEEE d", { locale: es })}`} alElegir={(tipo) => nuevoEn(tipo, elegido)} />
-          )}
+          {/* Un solo +, junto a los filtros: añade en el día marcado (con 7 días, el de la tarjeta tocada). */}
+          <MenuNuevo directo={tipoDelFiltro(filtro)} alElegir={(tipo) => nuevoEn(tipo, elegido)} />
         </div>
 
 
@@ -915,8 +913,6 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
             {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
               const angosta = anchos.angosta(i);
-              const etiquetaNuevo = `Añadir el ${format(d, "EEEE d", { locale: es })}`;
-              const atajo = dias.some((x) => isSameDay(x, ahora)) ? esHoy : i === 0;
               if (angosta) {
                 return (
                   <Fragment key={d.toISOString()}>
@@ -927,7 +923,6 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                         <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-texto"}`}>{nombreCortoDia(d)}</span>
                         <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
                       </h2>
-                      {!EN_WIDGET && <MenuNuevo directo={tipoDelFiltro(filtro)} pequeno etiqueta={etiquetaNuevo} atajo={atajo} abrirHacia={i < 4 ? "derecha" : "izquierda"} alElegir={(tipo) => nuevoEn(tipo, d)} />}
                     </div>
                     <ResumenDiaAngosto
                       dia={d}
@@ -955,16 +950,6 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                       <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
                       {esHoy && <span className="text-xs font-medium text-acento">Hoy</span>}
                     </h2>
-                    {/* El atajo N abre el + de hoy, o el del lunes si hoy no está en la semana. */}
-                    {!EN_WIDGET && (
-                      <MenuNuevo
-                        directo={tipoDelFiltro(filtro)}
-                        pequeno
-                        etiqueta={`Añadir el ${format(d, "EEEE d", { locale: es })}`}
-                        atajo={dias.some((x) => isSameDay(x, ahora)) ? esHoy : i === 0}
-                        alElegir={(tipo) => nuevoEn(tipo, d)}
-                      />
-                    )}
                   </div>
                   <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} verHabitos={verHabitos} tareaAbierta={tareaAbierta} compacto />
                 </ColumnaDia>
@@ -979,7 +964,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       </ArrastreSemana>
 
       {(creando === "tarea" || creando === "evento") && <DialogoNuevo tipo={creando} dia={diaNuevo} alCerrar={() => setCreando(null)} />}
-      {creando === "habito" && <DialogoHabito habito={null} inicioSugerido={EN_WIDGET ? claveDia(diaNuevo) : undefined} alCerrar={() => setCreando(null)} />}
+      {creando === "habito" && <DialogoHabito habito={null} inicioSugerido={claveDia(diaNuevo)} alCerrar={() => setCreando(null)} />}
     </div>
   );
 }
