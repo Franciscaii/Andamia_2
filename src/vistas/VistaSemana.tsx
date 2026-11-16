@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type PointerEvent as EventoPuntero, type FormEvent, type HTMLAttributes, type ReactNode } from "react";
+import { EnlaceAjustesWidget } from "../componentes/EnlaceAjustesWidget";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, TouchSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -896,6 +897,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
           <div>
             <ContenidoDia dia={elegido} ahora={ahora} verEventos={verEventos} verTareas={verTareas} verHabitos={verHabitos} tareaAbierta={tareaAbierta} compacto={false} />
           </div>
+          {/* Pegado a la tarjeta de tareas. */}
+          {!EN_WIDGET && <EnlaceAjustesWidget id="semana" clase="mt-2 px-1" />}
         </div>
       ) : (
         // En el computador: los 7 días uno al lado del otro, cada uno en su columna.
@@ -959,6 +962,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               );
             })}
           </div>
+          {!EN_WIDGET && <EnlaceAjustesWidget id="semana" clase="mt-2 px-1" />}
         </div>
       )}
 
