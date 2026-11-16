@@ -28,6 +28,12 @@ function SelectorColor({ color, alElegir, etiqueta = "Color" }: { color: string;
             {color === c && <Check size={14} className="text-white" />}
           </button>
         ))}
+        {/* El color a elección ya elegido se ve como un círculo más; el multicolor queda siempre a la vista. */}
+        {personalizado && (
+          <span title="Color elegido" style={{ background: color }} className="flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-acento ring-offset-1 ring-offset-panel">
+            <Check size={14} className="text-white" />
+          </span>
+        )}
         <button
           type="button"
           aria-label="Otro color"
@@ -35,11 +41,9 @@ function SelectorColor({ color, alElegir, etiqueta = "Color" }: { color: string;
           aria-pressed={personalizado}
           title="Otro color"
           onClick={() => setAbierto((a) => !a)}
-          className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-borde ${personalizado ? "ring-2 ring-acento ring-offset-1 ring-offset-panel" : ""}`}
-          style={{ background: personalizado ? color : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
-        >
-          {personalizado && <Check size={14} className="text-white" />}
-        </button>
+          className="h-7 w-7 rounded-full border border-borde"
+          style={{ background: "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
+        />
       </div>
       {abierto && <PanelColor valor={color} alCambiar={alElegir} />}
     </div>

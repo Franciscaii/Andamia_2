@@ -539,7 +539,8 @@ test("temas de color y color de un evento", async ({ page }) => {
   // Por defecto, Clásico (azul): el menú es la "cabecera" de color.
   await expect(page.locator("html")).toHaveAttribute("data-tema", "clasico");
   // El tema está en su propia entrada del menú, no en Cuenta y ajustes.
-  await page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Tema" }).click();
+  await expect(page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Tema" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Elegir tema" }).first().click();
   await expect(page).toHaveURL(/#\/tema$/);
   await page.goto("/#/ajustes");
   await expect(page.getByRole("radiogroup", { name: "Tema de la app" })).toHaveCount(0);
@@ -578,6 +579,9 @@ test("temas de color y color de un evento", async ({ page }) => {
   await expect(colores.getByTestId("panel-color")).toBeVisible();
   await colores.getByRole("slider", { name: "Tono" }).press("ArrowUp");
   await expect(colores.getByRole("button", { name: "Otro color" })).toHaveAttribute("aria-pressed", "true");
+  // El círculo multicolor sigue a la vista y el color elegido aparece como un círculo más.
+  await expect(colores.getByRole("button", { name: "Otro color" })).toHaveAttribute("style", /conic-gradient/);
+  await expect(colores.getByTitle("Color elegido")).toBeVisible();
   await expect(page.getByTestId("fila-evento").first()).not.toHaveAttribute("style", /border-color: rgb\(224, 36, 94\)/);
 });
 

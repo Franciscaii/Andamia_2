@@ -167,6 +167,8 @@ export function SelectorColorEvento({ valor, alElegir }: { valor: string | null;
             />
           );
         })}
+        {/* El color a elección ya elegido se ve como un círculo más; el multicolor queda siempre a la vista. */}
+        {personalizado && <span role="radio" aria-checked aria-label={`Color elegido ${valor}`} title="Color elegido" className="h-6 w-6 rounded-full ring-2 ring-texto ring-offset-2 ring-offset-panel" style={{ background: valor }} />}
         <button
           type="button"
           aria-label="Otro color"
@@ -174,8 +176,8 @@ export function SelectorColorEvento({ valor, alElegir }: { valor: string | null;
           aria-pressed={personalizado}
           title="Otro color"
           onClick={() => setAbierto((a) => !a)}
-          className={`h-6 w-6 rounded-full border border-borde ${personalizado ? "ring-2 ring-texto ring-offset-2 ring-offset-panel" : ""}`}
-          style={{ background: personalizado ? valor : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
+          className="h-6 w-6 rounded-full border border-borde"
+          style={{ background: "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
         />
       </div>
       {abierto && <PanelColor valor={valor ?? "#9b5cd6"} alCambiar={alElegir} />}
