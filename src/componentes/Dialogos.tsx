@@ -145,6 +145,11 @@ export function DialogoEtiqueta({ etiqueta, alCerrar }: { etiqueta: Etiqueta | n
                 {color === c && <Check size={14} className="text-white" />}
               </button>
             ))}
+            {personalizado && (
+              <span title="Color elegido" style={{ background: color }} className="flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-acento ring-offset-1 ring-offset-panel">
+                <Check size={14} className="text-white" />
+              </span>
+            )}
             <button
               type="button"
               aria-label="Otro color"
@@ -152,11 +157,9 @@ export function DialogoEtiqueta({ etiqueta, alCerrar }: { etiqueta: Etiqueta | n
               aria-pressed={personalizado}
               title="Otro color"
               onClick={() => setOtroAbierto((a) => !a)}
-              className={`flex h-7 w-7 items-center justify-center rounded-full border border-borde ${personalizado ? "ring-2 ring-acento ring-offset-1 ring-offset-panel" : ""}`}
-              style={{ background: personalizado ? color : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
-            >
-              {personalizado && <Check size={14} className="text-white" />}
-            </button>
+              className="h-7 w-7 rounded-full border border-borde"
+              style={{ background: "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
+            />
           </div>
           {otroAbierto && <PanelColor valor={color} alCambiar={setColor} />}
         </div>

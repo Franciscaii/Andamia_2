@@ -229,7 +229,7 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
         {listas.filter((l) => !l.carpetaId || !carpetas.some((c) => c.id === l.carpetaId)).map(filaLista)}
 
         <div className="mt-4">
-          <Fila href={hashDe({ tipo: "tema" })} activa={seccion.tipo === "tema"} icono={<Palette size={17} />} nombre="Tema" />
+          {/* El tema se elige con la paleta de arriba, junto al nombre de la app. */}
           {/* En la app de PC (escritorio de Windows) y en la del celular (pantalla de inicio). */}
           {(puenteEscritorio() || esAppNativa()) && <Fila href={hashDe({ tipo: "widgets" })} activa={seccion.tipo === "widgets"} icono={<LayoutDashboard size={17} />} nombre="Widgets" />}
         </div>
