@@ -15,7 +15,7 @@ import { habitosDelDia, type HabitoDelDia } from "../logica/habitos";
 import { hashDe, irA, type ModoCalendario } from "../logica/ruta";
 import type { FiltroSemana } from "../logica/semana";
 import { DialogoHabito } from "./VistaHabitos";
-import { DialogoNuevo, FILTROS, MenuNuevo, verDiaEnSemana, type TipoNuevo } from "./VistaSemana";
+import { DialogoNuevo, FILTROS, MenuNuevo, tipoDelFiltro, verDiaEnSemana, type TipoNuevo } from "./VistaSemana";
 import type { Tarea } from "../modelos/tipos";
 import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 
@@ -303,7 +303,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
               </button>
             ))}
           </div>
-          <MenuNuevo alElegir={setNuevo} />
+          <MenuNuevo directo={tipoDelFiltro(filtro)} alElegir={setNuevo} />
         </header>
       ) : (
         <header className="flex flex-wrap items-center gap-2 px-5 pt-5 pb-3">

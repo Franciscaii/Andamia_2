@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties, type PointerEvent as PunteroReact } from "react";
 import { Menu, PanelLeftOpen, X } from "lucide-react";
 import { BarraLateral, Marca } from "./componentes/BarraLateral";
 import { DetalleTarea } from "./componentes/DetalleTarea";
@@ -11,6 +11,8 @@ import { DialogoMigracion } from "./componentes/DialogoMigracion";
 import { iniciarCuenta, useCuenta } from "./datos/cuenta";
 
 const MARCA_ETIQUETAS = "andamia-etiquetas-iniciales";
+const ANCHO_MENU_MIN = 170;
+const ANCHO_MENU_MAX = 420;
 import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes, VistaTema } from "./vistas/VistaAjustes";
 import { VistaWidgets } from "./vistas/VistaWidgets";
@@ -82,6 +84,25 @@ export default function App() {
       return false;
     }
   });
+  // En el computador el menú se puede angostar o ensanchar arrastrando su borde derecho; se recuerda.
+  const [anchoMenu, setAnchoMenu] = useState(() => {
+    try {
+      const n = Number(localStorage.getItem("andamia-menu-ancho"));
+      return n >= ANCHO_MENU_MIN && n <= ANCHO_MENU_MAX ? n : 288;
+    } catch {
+      return 288;
+    }
+  });
+  const ajustarMenu = (e: PunteroReact<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    const ancho = Math.round(Math.min(ANCHO_MENU_MAX, Math.max(ANCHO_MENU_MIN, e.clientX)));
+    setAnchoMenu(ancho);
+    try {
+      localStorage.setItem("andamia-menu-ancho", String(ancho));
+    } catch {
+      // Sin almacenamiento: se recuerda mientras la página siga abierta.
+    }
+  };
   const setMenuOculto = (oculto: boolean) => {
     setMenuOcultoEstado(oculto);
     try {
@@ -165,8 +186,19 @@ export default function App() {
   return (
     <div className="flex h-full overflow-hidden">
       {lateralAbierta && <div className="fixed inset-0 z-20 bg-black/40 lg:hidden" onClick={() => setLateralAbierta(false)} />}
-      <div className={`fixed inset-y-0 left-0 z-30 w-72 shrink-0 transition-transform lg:static lg:translate-x-0 ${lateralAbierta ? "translate-x-0" : "-translate-x-full"} ${menuOculto ? "lg:hidden" : ""}`}>
+      <div style={{ "--ancho-menu": `${anchoMenu}px` } as CSSProperties} className={`fixed inset-y-0 left-0 z-30 w-72 shrink-0 transition-transform lg:relative lg:w-[var(--ancho-menu)] lg:translate-x-0 ${lateralAbierta ? "translate-x-0" : "-translate-x-full"} ${menuOculto ? "lg:hidden" : ""}`}>
         <BarraLateral seccion={ruta.seccion} alOcultar={() => setMenuOculto(true)} />
+        {/* Borde derecho: se arrastra para achicar o agrandar el menú. */}
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Ajustar el ancho del menú"
+          title="Arrastra para achicar o agrandar el menú"
+          data-testid="ancho-menu"
+          className="absolute inset-y-0 -right-1 z-10 hidden w-2 cursor-col-resize touch-none [-webkit-app-region:no-drag] hover:bg-acento/40 lg:block"
+          onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
+          onPointerMove={ajustarMenu}
+        />
       </div>
       {menuOculto && (
         <div className="barra-lateral hidden shrink-0 border-r border-borde px-1.5 pt-4 lg:block">

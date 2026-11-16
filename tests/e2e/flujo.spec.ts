@@ -118,17 +118,12 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
   await expect(page.getByRole("dialog", { name: "Nuevo hábito" })).toBeVisible();
 });
 
-/** Arrastra el círculo de un hábito hasta una fracción del riel (0 = izquierda, 1 = derecha). */
+/** Pincha el interruptor de un hábito en una fracción de su largo (0 = izquierda, 1 = derecha). */
 async function deslizarHabito(page: Page, interruptor: import("@playwright/test").Locator, hasta: number) {
-  // El círculo termina de volver a su lugar antes de tomarlo de nuevo.
-  await page.waitForTimeout(350);
-  const perilla = interruptor.getByTestId("perilla-habito");
+  // El círculo termina de moverse antes del siguiente toque.
+  await page.waitForTimeout(250);
   const riel = (await interruptor.boundingBox())!;
-  const c = (await perilla.boundingBox())!;
-  await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(riel.x + riel.width * hasta, c.y + c.height / 2, { steps: 8 });
-  await page.mouse.up();
+  await page.mouse.click(riel.x + riel.width * hasta, riel.y + riel.height / 2);
 }
 
 test("semana: los hábitos del día se marcan con su interruptor y tienen su propio filtro", async ({ page }) => {
@@ -141,7 +136,7 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   await page.goto("/#/semana");
   const marca = page.getByRole("switch", { name: "Hábito Estirar" }).first();
   await expect(marca).toHaveAttribute("aria-checked", "false");
-  // También en el computador: un clic no lo marca, hay que arrastrar el círculo.
+  // Pinchar a la izquierda no lo marca; pinchar a la derecha sí.
   await marca.getByTestId("perilla-habito").click();
   await expect(marca).toHaveAttribute("aria-checked", "false");
   await deslizarHabito(page, marca, 0.97);
@@ -365,8 +360,9 @@ test("calendario mes: eventos y tareas con casilla en cada día, filtros y +", a
   await page.getByRole("button", { name: "Tareas" }).click();
   await expect(hoy).not.toContainText("Doctor");
 
+  // Con el filtro "Eventos", el + abre directo el formulario del evento.
+  await page.getByRole("button", { name: "Eventos" }).click();
   await page.getByRole("button", { name: "Añadir", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Evento" }).click();
   await page.getByRole("textbox", { name: "Añadir evento" }).fill("Cumpleaños");
   await page.getByRole("textbox", { name: "Añadir evento" }).press("Enter");
   await page.getByRole("button", { name: "Todos" }).click();
@@ -835,7 +831,7 @@ test("menú Widgets (app de PC): añadir y quitar widgets del escritorio", async
 test.describe("celular", () => {
   test.use({ viewport: { width: 390, height: 780 } });
 
-  test("semana: el hábito se completa arrastrando el círculo, no con un toque", async ({ page }) => {
+  test("semana: el hábito se completa pinchando a la derecha y se desmarca pinchando a la izquierda", async ({ page }) => {
     await page.goto("/#/habitos");
     await page.getByRole("button", { name: "Nuevo hábito" }).click();
     await page.getByLabel("Nombre del hábito").fill("Estirar");
@@ -847,19 +843,19 @@ test.describe("celular", () => {
     const perilla = interruptor.getByTestId("perilla-habito");
     const arrastrar = (hasta: number) => deslizarHabito(page, interruptor, hasta);
 
-    // Un toque no lo marca.
+    // Un toque en el círculo (a la izquierda) no lo marca.
     await perilla.click();
     await expect(interruptor).toHaveAttribute("aria-checked", "false");
-    // Soltarlo a medio camino tampoco: el círculo vuelve.
-    await arrastrar(0.5);
+    // En la mitad izquierda tampoco.
+    await arrastrar(0.4);
     await expect(interruptor).toHaveAttribute("aria-checked", "false");
-    // Llevarlo hasta el final lo deja hecho.
-    await arrastrar(0.97);
+    // Un toque a la derecha lo deja hecho.
+    await arrastrar(0.9);
     await expect(interruptor).toHaveAttribute("aria-checked", "true");
     await page.reload();
     await expect(interruptor).toHaveAttribute("aria-checked", "true");
-    // De vuelta a la izquierda quita la marca.
-    await arrastrar(0.03);
+    // Un toque a la izquierda quita la marca.
+    await arrastrar(0.1);
     await expect(interruptor).toHaveAttribute("aria-checked", "false");
   });
 
@@ -932,4 +928,45 @@ test("detalle: ventana al medio con Eliminar y Guardar; el hábito de la Semana 
   await expect(page.getByTestId("habito-semana")).toHaveCount(0);
 
   await page.screenshot({ path: process.env.CAPTURA ?? "/tmp/claude-0/-home-user/229ca586-01d6-597f-9392-378f6527fb35/scratchpad/detalle.png" });
+});
+
+test("el + crea directo lo del filtro puesto y el menú se puede achicar", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/#/semana");
+  const mostrar = page.getByRole("group", { name: "Mostrar" });
+  const mas = page.getByRole("button", { name: "Añadir", exact: true });
+
+  // Con "Todos", el + pregunta qué crear.
+  await mostrar.getByRole("button", { name: "Todos" }).click();
+  await mas.click();
+  await expect(page.getByRole("menuitem")).toHaveCount(3);
+  await page.keyboard.press("Escape");
+  await page.mouse.click(700, 600);
+
+  // Con un filtro, abre de inmediato ese formulario.
+  await mostrar.getByRole("button", { name: "Tareas" }).click();
+  await mas.click();
+  await expect(page.getByRole("menuitem")).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Nueva tarea" })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancelar" }).click();
+  await mostrar.getByRole("button", { name: "Eventos" }).click();
+  await mas.click();
+  await expect(page.getByRole("dialog", { name: "Nuevo evento" })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancelar" }).click();
+  await mostrar.getByRole("button", { name: "Hábitos" }).click();
+  await mas.click();
+  await expect(page.getByRole("dialog", { name: "Nuevo hábito" })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancelar" }).click();
+
+  // El borde derecho del menú se arrastra para achicarlo, y se recuerda.
+  const menu = page.locator(".barra-lateral").first();
+  expect(Math.round((await menu.boundingBox())!.width)).toBe(288);
+  const borde = (await page.getByTestId("ancho-menu").boundingBox())!;
+  await page.mouse.move(borde.x + borde.width / 2, 400);
+  await page.mouse.down();
+  await page.mouse.move(200, 400, { steps: 5 });
+  await page.mouse.up();
+  expect(Math.round((await menu.boundingBox())!.width)).toBe(200);
+  await page.reload();
+  await expect.poll(async () => Math.round((await menu.boundingBox())!.width)).toBe(200);
 });
