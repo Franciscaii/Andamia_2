@@ -833,6 +833,14 @@ test("menú Widgets (app de PC): añadir y quitar widgets del escritorio", async
   await page.goto("/#/widgets/calendario");
   await expect(page.getByRole("button", { name: "Ajustes de Calendario" })).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByRole("button", { name: "Ajustes de Semana" })).toHaveAttribute("aria-expanded", "false");
+  // Abajo de la vista Semana de la app está "Ajustes del Widget", que lleva a los ajustes de ese widget.
+  await page.goto("/#/tareas/semana");
+  await page.getByRole("link", { name: "Ajustes del Widget" }).click();
+  await expect(page).toHaveURL(/#\/widgets\/semana$/);
+  await expect(page.getByRole("button", { name: "Ajustes de Semana" })).toHaveAttribute("aria-expanded", "true");
+  // En vistas sin widget (Hábitos) no aparece.
+  await page.goto("/#/habitos");
+  await expect(page.getByRole("link", { name: "Ajustes del Widget" })).toHaveCount(0);
 });
 test.describe("celular", () => {
   test.use({ viewport: { width: 390, height: 780 } });
