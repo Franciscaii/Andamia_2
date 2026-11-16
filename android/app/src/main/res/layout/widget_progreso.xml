@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Barra de progreso del día, entre los eventos y las tareas. Su título y su barra empiezan donde empiezan las casillas de las tareas (a la izquierda del todo, sin sangría). -->
+<!-- Barra de progreso del día, entre los eventos y las tareas. Su título y su barra empiezan donde empiezan las casillas de las tareas.
+     OJO: la raíz NO lleva paddingStart/paddingEnd: el fondo de la tarjeta trae su propio margen (10dp) y un paddingStart
+     puesto aquí le gana, dejando el título pegado al borde mientras las tareas quedan más adentro. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/progreso_fila"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingStart="2dp"
     android:paddingTop="6dp"
-    android:paddingEnd="4dp"
     android:paddingBottom="6dp">
 
     <TextView
         android:id="@+id/progreso_titulo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
         android:layout_marginBottom="4dp"
         android:text="Tareas hoy"
         android:textColor="@color/widget_texto"
@@ -23,6 +24,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
