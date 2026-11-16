@@ -219,13 +219,12 @@ function EnfoqueDeTarea({ tarea }: { tarea: Tarea }) {
 /** Botón rojo de eliminar, abajo a la izquierda del detalle. */
 export const claseBotonEliminar = "flex items-center gap-1.5 rounded-md bg-peligro px-3 py-1.5 text-sm font-medium text-white hover:opacity-90";
 
-/** En el celular es una ventana emergente centrada (como "Nueva tarea"); en el PC, un panel a la derecha. */
-export const clasePanelDetalle =
-  "flex flex-col bg-panel max-md:relative max-md:max-h-[90vh] max-md:w-full max-md:max-w-md max-md:overflow-hidden max-md:rounded-xl max-md:border max-md:border-borde max-md:bg-[var(--panel-solido)] max-md:shadow-xl md:w-96 md:shrink-0 md:border-l md:border-borde";
+/** El detalle es una ventana emergente al medio y encima, como "Nueva tarea" (en el celular y en el PC). */
+export const clasePanelDetalle = "ventana relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-borde bg-[var(--panel-solido)] shadow-xl";
 
 export function FondoDetalle({ alCerrar, children }: { alCerrar: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 md:contents" onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}>
       {children}
     </div>
   );
@@ -262,8 +261,8 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
 
   return envolver(
     <aside aria-label="Detalle de la tarea" className={clasePanel}>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <fieldset disabled={enPapelera} className="min-w-0 space-y-5 max-md:space-y-4">
+      <div className="sin-barra min-h-0 flex-1 overflow-y-auto p-5">
+        <fieldset disabled={enPapelera} className="min-w-0 space-y-4">
           <input
             aria-label="Título"
             className="w-full bg-transparent text-lg font-semibold outline-none"
@@ -356,7 +355,7 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
       </div>
 
       {/* Sin casilla ni X arriba: el panel se cierra tocando de nuevo la tarea o el evento, o con Guardar. */}
-      <footer className="flex items-center justify-between gap-2 border-t border-borde px-4 py-2.5">
+      <footer className="flex items-center justify-between gap-2 border-t border-borde px-5 py-3">
         {enPapelera ? (
           <button type="button" className={`${claseBoton} flex items-center gap-1.5`} onClick={() => void restaurarTarea(tarea.id)}>
             <RotateCcw size={14} /> Restaurar

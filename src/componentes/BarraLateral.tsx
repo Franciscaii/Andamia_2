@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, LayoutDashboard, Layers, ListTodo, Moon, Palette, Pencil, Plus, Sun, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
+import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, LayoutDashboard, Layers, ListTodo, Palette, Pencil, Plus, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
 import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
@@ -100,8 +100,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
   const listas = useTienda((s) => s.listas);
   const carpetas = useTienda((s) => s.carpetas);
   const etiquetas = useTienda((s) => s.etiquetas);
-  const tema = useTienda((s) => s.tema);
-  const alternarTema = useTienda((s) => s.alternarTema);
   const borrarLista = useTienda((s) => s.borrarLista);
   const borrarCarpeta = useTienda((s) => s.borrarCarpeta);
   const borrarEtiqueta = useTienda((s) => s.borrarEtiqueta);
@@ -165,8 +163,9 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
       <div className="flex items-center gap-2 px-4 pt-4 pb-3 [-webkit-app-region:drag] [&_button]:[-webkit-app-region:no-drag]">
         <Marca />
         <span className="text-base font-semibold">Andamia</span>
-        <button type="button" aria-label={tema === "oscuro" ? "Usar tema claro" : "Usar tema oscuro"} title={tema === "oscuro" ? "Usar tema claro" : "Usar tema oscuro"} className="ml-auto rounded-md p-1.5 text-tenue hover:bg-suave" onClick={alternarTema}>
-          {tema === "oscuro" ? <Sun size={17} /> : <Moon size={17} />}
+        {/* Donde estaba la luna: la paleta, que lleva a elegir el tema. */}
+        <button type="button" aria-label="Elegir tema" title="Elegir tema" className="ml-auto rounded-md p-1.5 text-tenue hover:bg-suave" onClick={() => irA({ tipo: "tema" })}>
+          <Palette size={17} />
         </button>
         {alOcultar && (
           <button type="button" aria-label="Ocultar menú" title="Ocultar menú" className="hidden rounded-md p-1.5 text-tenue hover:bg-suave lg:block" onClick={alOcultar}>

@@ -158,8 +158,8 @@ export function DialogoHabito({ habito, alCerrar, alEliminar }: { habito: Habito
       <FondoDetalle alCerrar={alCerrar}>
         <aside aria-label="Detalle del hábito" className={clasePanelDetalle}>
           <form onSubmit={enviar} className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{campos}</div>
-            <footer className="flex items-center justify-between gap-2 border-t border-borde px-4 py-2.5">
+            <div className="sin-barra min-h-0 flex-1 space-y-4 overflow-y-auto p-5">{campos}</div>
+            <footer className="flex items-center justify-between gap-2 border-t border-borde px-5 py-3">
               <button type="button" className={claseBotonEliminar} onClick={alEliminar}>
                 <Trash2 size={14} /> Eliminar
               </button>
@@ -175,7 +175,7 @@ export function DialogoHabito({ habito, alCerrar, alEliminar }: { habito: Habito
 
   return (
     <Modal titulo={habito ? "Editar hábito" : "Nuevo hábito"} alCerrar={alCerrar}>
-      <form onSubmit={enviar} className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+      <form onSubmit={enviar} className="space-y-4">
         {campos}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" className={claseBoton} onClick={alCerrar}>
