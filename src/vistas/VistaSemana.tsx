@@ -804,13 +804,13 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       <header data-widget-cabecera className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
         <div className={`flex items-center ${esEscritorio ? "gap-2" : "gap-1 min-[400px]:gap-2"}`}>
           <div className="flex shrink-0 items-center">
-            <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(-1)}>
+            <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md p-1 border border-borde bg-panel text-texto hover:bg-suave" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
             <h1 className="px-0.5 text-center text-lg font-semibold sm:px-1.5" title={format(elegido, "MMMM yyyy", { locale: es })}>
               {mes}
             </h1>
-            <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md p-1 text-tenue hover:bg-suave sm:border sm:border-borde sm:bg-panel sm:text-texto" onClick={() => mover(1)}>
+            <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md p-1 border border-borde bg-panel text-texto hover:bg-suave" onClick={() => mover(1)}>
               <ChevronRight size={18} />
             </button>
           </div>

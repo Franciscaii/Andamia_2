@@ -170,7 +170,7 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
           <Palette size={17} />
         </button>
         {alOcultar && (
-          <button type="button" aria-label="Ocultar menú" title="Ocultar menú" className="hidden shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave lg:block" onClick={alOcultar}>
+          <button type="button" aria-label="Ocultar menú" title="Ocultar menú" className="shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave" onClick={alOcultar}>
             <PanelLeftClose size={17} />
           </button>
         )}
@@ -256,9 +256,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
                 <BotonIcono etiqueta={`Editar etiqueta ${e.nombreVisible}`} alPulsar={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
                   <Pencil size={14} />
                 </BotonIcono>
-                <BotonIcono etiqueta={`Borrar etiqueta ${e.nombreVisible}`} alPulsar={() => setDialogo({ tipo: "borrar-etiqueta", nombre: e.nombre, visible: e.nombreVisible })}>
-                  <Trash2 size={14} />
-                </BotonIcono>
               </>
             }
           />
@@ -278,6 +275,7 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
       {dialogo?.tipo === "etiqueta" && (
         <DialogoEtiqueta
           etiqueta={dialogo.etiqueta}
+          alEliminar={() => dialogo.etiqueta && setDialogo({ tipo: "borrar-etiqueta", nombre: dialogo.etiqueta.nombre, visible: dialogo.etiqueta.nombreVisible })}
           alCerrar={() => {
             const anterior = dialogo.etiqueta;
             setDialogo(null);

@@ -198,7 +198,11 @@ export default function App() {
     <div className="flex h-full overflow-hidden">
       {lateralAbierta && <div className="fixed inset-0 z-20 bg-black/40 lg:hidden" onClick={() => setLateralAbierta(false)} />}
       <div style={{ "--ancho-menu": `${anchoMenu}px` } as CSSProperties} className={`fixed inset-y-0 left-0 z-30 w-72 shrink-0 transition-transform lg:relative lg:w-[var(--ancho-menu)] lg:translate-x-0 ${lateralAbierta ? "translate-x-0" : "-translate-x-full"} ${menuOculto ? "lg:hidden" : ""}`}>
-        <BarraLateral seccion={ruta.seccion} alOcultar={() => setMenuOculto(true)} />
+        <BarraLateral seccion={ruta.seccion} alOcultar={() => {
+            // En el celular el menú es un cajón: se guarda; en el computador se oculta.
+            if (window.matchMedia("(min-width: 1024px)").matches) setMenuOculto(true);
+            else setLateralAbierta(false);
+          }} />
         {/* Borde derecho: se arrastra para achicar o agrandar el menú. */}
         <div
           role="separator"
