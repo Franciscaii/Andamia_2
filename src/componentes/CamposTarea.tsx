@@ -5,6 +5,7 @@ import { nuevoId } from "../logica/texto";
 import { COLORES_ETIQUETA, PRIORIDADES, type Prioridad, type Subtarea } from "../modelos/tipos";
 import { COLOR_NIVEL } from "./FilaTarea";
 import { claseCampo } from "./Modal";
+import { PanelColor } from "./PanelColor";
 
 /**
  * Campos de una tarea o un evento, en el orden que pidió Francisca:
@@ -141,10 +142,11 @@ export function estiloEvento(color?: string | null): CSSProperties {
   return color ? { borderColor: color, background: `color-mix(in srgb, ${color} 18%, transparent)` } : { borderColor: "var(--evento)", background: "var(--evento-suave)" };
 }
 
-/** Color del evento: morado (por defecto), uno de la lista o cualquiera con el selector. */
+/** Color del evento: morado (por defecto), uno de la lista o cualquiera con el mismo selector de los hábitos. */
 export function SelectorColorEvento({ valor, alElegir }: { valor: string | null; alElegir: (color: string | null) => void }) {
   const opciones: { color: string | null; nombre: string }[] = [{ color: null, nombre: "Morado (por defecto)" }, ...COLORES_ETIQUETA.map((c) => ({ color: c, nombre: c }))];
   const personalizado = valor !== null && !COLORES_ETIQUETA.includes(valor);
+  const [abierto, setAbierto] = useState(false);
   return (
     <section role="radiogroup" aria-label="Color del evento">
       <h3 className={claseTituloCampo}>Color</h3>
@@ -165,10 +167,18 @@ export function SelectorColorEvento({ valor, alElegir }: { valor: string | null;
             />
           );
         })}
-        <label title="Otro color" className={`relative h-6 w-6 cursor-pointer overflow-hidden rounded-full border border-borde ${personalizado ? "ring-2 ring-texto ring-offset-2 ring-offset-panel" : ""}`} style={{ background: personalizado ? valor : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}>
-          <input type="color" aria-label="Otro color" className="absolute inset-0 cursor-pointer opacity-0" value={valor ?? "#9b5cd6"} onChange={(e) => alElegir(e.target.value)} />
-        </label>
+        <button
+          type="button"
+          aria-label="Otro color"
+          aria-expanded={abierto}
+          aria-pressed={personalizado}
+          title="Otro color"
+          onClick={() => setAbierto((a) => !a)}
+          className={`h-6 w-6 rounded-full border border-borde ${personalizado ? "ring-2 ring-texto ring-offset-2 ring-offset-panel" : ""}`}
+          style={{ background: personalizado ? valor : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
+        />
       </div>
+      {abierto && <PanelColor valor={valor ?? "#9b5cd6"} alCambiar={alElegir} />}
     </section>
   );
 }
