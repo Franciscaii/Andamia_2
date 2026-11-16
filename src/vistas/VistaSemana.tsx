@@ -449,13 +449,14 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
   if (!delDia.length) return null;
   const fecha = claveDia(dia);
   return (
-    <ul aria-label="Hábitos" className={estrecha ? "space-y-1" : "mb-3 space-y-1"}>
+    // En la vista de un día van de a dos por fila, para aprovechar el ancho.
+    <ul aria-label="Hábitos" className={estrecha ? "space-y-1" : "mb-3 grid grid-cols-2 gap-1"}>
       {delDia.map(({ habito: h, estado, marcable }) => {
         const hecho = estado === "hecho";
         return (
-          <li key={h.id} data-testid="habito-semana" className={`flex items-center rounded-lg bg-panel ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-3 py-1.5"}`}>
+          <li key={h.id} data-testid="habito-semana" className={`flex min-w-0 items-center rounded-lg bg-panel ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-2 py-1.5 sm:px-3"}`}>
             {/* Tocar el nombre abre el detalle del hábito al costado; tocarlo de nuevo lo cierra. */}
-            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho ? "text-tenue" : ""}`}>
+            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-1/2 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
             </button>
             <DeslizadorHabito

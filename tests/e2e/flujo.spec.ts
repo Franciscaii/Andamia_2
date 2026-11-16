@@ -1006,3 +1006,40 @@ test("el + crea directo lo del filtro puesto y el menú se puede achicar", async
   await page.reload();
   await expect.poll(async () => Math.round((await menu.boundingBox())!.width)).toBe(200);
 });
+
+test("hábitos: de a dos en la Semana y tabla por día en el computador", async ({ page }) => {
+  await page.goto("/#/habitos");
+  for (const nombre of ["Agua", "Deporte"]) {
+    await page.getByRole("button", { name: "Nuevo hábito" }).click();
+    await page.getByLabel("Nombre del hábito").fill(nombre);
+    await page.getByRole("button", { name: "Crear hábito" }).click();
+    await expect(page.getByTestId("habito").filter({ hasText: nombre })).toHaveCount(1);
+  }
+  // Tabla: una fila por hábito, 7 días, y se marca tocando el círculo de hoy.
+  const tabla = page.getByTestId("tabla-habitos");
+  await expect(tabla.getByTestId("fila-tabla-habito")).toHaveCount(2);
+  await expect(tabla.getByRole("button", { name: /^Marcar Agua el / })).toHaveCount(7);
+  const hoy = tabla.locator("button[aria-label^='Marcar Agua el ']:not([disabled])").last();
+  await hoy.click();
+  await expect(hoy).toHaveAttribute("data-estado", "hecho");
+  // Por mes: una columna por cada día del mes.
+  await tabla.getByRole("button", { name: "Mes", exact: true }).click();
+  expect(await tabla.getByRole("button", { name: /^Marcar Agua el / }).count()).toBeGreaterThanOrEqual(28);
+  await expect(page.getByRole("heading", { name: "Configuración" })).toBeVisible();
+
+  // En la Semana (vista de un día) los hábitos van de a dos por fila; el marcado en la tabla se ve aquí.
+  await page.goto("/#/tareas/semana");
+  const filas = page.getByTestId("habito-semana");
+  await expect(filas).toHaveCount(2);
+  const a = (await filas.nth(0).boundingBox())!;
+  const b = (await filas.nth(1).boundingBox())!;
+  expect(Math.abs(a.y - b.y)).toBeLessThan(2);
+  expect(b.x).toBeGreaterThan(a.x + a.width - 1);
+  await expect(page.getByRole("switch", { name: "Hábito Agua" })).toHaveAttribute("aria-checked", "true");
+
+  // En el celular la tabla no aparece (solo es para el computador).
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto("/#/habitos");
+  await expect(page.getByTestId("habito")).toHaveCount(2);
+  await expect(page.getByTestId("tabla-habitos")).toBeHidden();
+});
