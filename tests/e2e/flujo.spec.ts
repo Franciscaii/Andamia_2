@@ -136,8 +136,8 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   await page.goto("/#/semana");
   const marca = page.getByRole("switch", { name: "Hábito Estirar" }).first();
   await expect(marca).toHaveAttribute("aria-checked", "false");
-  // Pinchar a la izquierda no lo marca; pinchar a la derecha sí.
-  await marca.getByTestId("perilla-habito").click();
+  // Pinchar la parte vacía de la izquierda no lo marca; pinchar a la derecha sí.
+  await deslizarHabito(page, marca, 0.4);
   await expect(marca).toHaveAttribute("aria-checked", "false");
   await deslizarHabito(page, marca, 0.97);
   await expect(marca).toHaveAttribute("aria-checked", "true");
@@ -735,6 +735,7 @@ test("widget Semana del escritorio: 7 días, transparencia y esquinas", async ({
   await expect(page.locator("html")).toHaveClass(/modo-widget/);
   await page.getByRole("button", { name: "Transparencia y esquinas" }).click();
   const ajustes = page.getByRole("group", { name: "Aspecto del widget" });
+  await expect(ajustes.getByRole("button", { name: "Ajustes del Widget" })).toBeVisible();
   await ajustes.getByLabel("Transparencia").fill("60");
   await ajustes.getByLabel("Esquinas").fill("20");
   await expect(page.getByTestId("fondo-widget")).toHaveCSS("opacity", "0.4");
@@ -827,6 +828,11 @@ test("menú Widgets (app de PC): añadir y quitar widgets del escritorio", async
   await expect(page.getByRole("button", { name: "Quitar del escritorio: Calendario" })).toBeVisible();
   await page.getByRole("button", { name: "Quitar del escritorio: Semana" }).click();
   await expect(page.getByRole("button", { name: "Añadir al escritorio: Semana" })).toBeVisible();
+  // "Ajustes del Widget" (desde la ventana de un widget) llega con los ajustes de ese widget abiertos.
+  await expect(page.getByRole("button", { name: "Ajustes de Calendario" })).toHaveAttribute("aria-expanded", "false");
+  await page.goto("/#/widgets/calendario");
+  await expect(page.getByRole("button", { name: "Ajustes de Calendario" })).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("button", { name: "Ajustes de Semana" })).toHaveAttribute("aria-expanded", "false");
 });
 test.describe("celular", () => {
   test.use({ viewport: { width: 390, height: 780 } });
@@ -843,10 +849,12 @@ test.describe("celular", () => {
     const perilla = interruptor.getByTestId("perilla-habito");
     const arrastrar = (hasta: number) => deslizarHabito(page, interruptor, hasta);
 
-    // Un toque en el círculo (a la izquierda) no lo marca.
+    // Un toque en el círculo (a la izquierda) lo marca; a la izquierda otra vez lo desmarca.
     await perilla.click();
+    await expect(interruptor).toHaveAttribute("aria-checked", "true");
+    await arrastrar(0.03);
     await expect(interruptor).toHaveAttribute("aria-checked", "false");
-    // En la mitad izquierda tampoco.
+    // En la parte vacía de la mitad izquierda no se marca.
     await arrastrar(0.4);
     await expect(interruptor).toHaveAttribute("aria-checked", "false");
     // Un toque a la derecha lo deja hecho.
@@ -967,6 +975,10 @@ test("el + crea directo lo del filtro puesto y el menú se puede achicar", async
   await page.mouse.move(200, 400, { steps: 5 });
   await page.mouse.up();
   expect(Math.round((await menu.boundingBox())!.width)).toBe(200);
+  // Con el menú angosto, el botón de ocultarlo sigue dentro del menú.
+  const cajaMenu = (await menu.boundingBox())!;
+  const ocultar = (await page.getByRole("button", { name: "Ocultar menú" }).boundingBox())!;
+  expect(ocultar.x + ocultar.width).toBeLessThanOrEqual(cajaMenu.x + cajaMenu.width);
   await page.reload();
   await expect.poll(async () => Math.round((await menu.boundingBox())!.width)).toBe(200);
 });

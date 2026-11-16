@@ -160,15 +160,17 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
   return (
     <aside className="barra-lateral flex h-full flex-col border-r border-borde">
       {/* En la app de PC esta fila también sirve para mover la ventana (no tiene barra de título). */}
-      <div className="flex items-center gap-2 px-4 pt-4 pb-3 [-webkit-app-region:drag] [&_button]:[-webkit-app-region:no-drag]">
-        <Marca />
-        <span className="text-base font-semibold">Andamia</span>
+      <div className="flex min-w-0 items-center gap-2 px-4 pt-4 pb-3 [-webkit-app-region:drag] [&_button]:[-webkit-app-region:no-drag]">
+        <span className="shrink-0">
+          <Marca />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-base font-semibold">Andamia</span>
         {/* Donde estaba la luna: la paleta, que lleva a elegir el tema. */}
-        <button type="button" aria-label="Elegir tema" title="Elegir tema" className="ml-auto rounded-md p-1.5 text-tenue hover:bg-suave" onClick={() => irA({ tipo: "tema" })}>
+        <button type="button" aria-label="Elegir tema" title="Elegir tema" className="shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave" onClick={() => irA({ tipo: "tema" })}>
           <Palette size={17} />
         </button>
         {alOcultar && (
-          <button type="button" aria-label="Ocultar menú" title="Ocultar menú" className="hidden rounded-md p-1.5 text-tenue hover:bg-suave lg:block" onClick={alOcultar}>
+          <button type="button" aria-label="Ocultar menú" title="Ocultar menú" className="hidden shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave lg:block" onClick={alOcultar}>
             <PanelLeftClose size={17} />
           </button>
         )}
