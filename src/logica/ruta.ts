@@ -20,6 +20,8 @@ export type ModoCalendario = "mes" | "semana";
 export interface Ruta {
   seccion: Seccion;
   tareaId: string | null;
+  /** Hábito cuyo detalle está abierto al costado (desde la Semana). */
+  habitoId: string | null;
 }
 
 /** Pantalla de inicio. Hoy, Mañana, Todas y Bandeja ya no están en el menú, aunque sus direcciones siguen funcionando. */
@@ -28,21 +30,23 @@ export const INICIO: Seccion = { tipo: "vista", vista: "semana" };
 export function leerRuta(hash: string): Ruta {
   const partes = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
   const iT = partes.indexOf("t");
+  const iH = iT >= 0 ? -1 : partes.indexOf("h");
   const tareaId = iT >= 0 ? partes[iT + 1] ?? null : null;
-  const [a, b] = iT >= 0 ? partes.slice(0, iT) : partes;
+  const habitoId = iH >= 0 ? partes[iH + 1] ?? null : null;
+  const [a, b] = iT >= 0 ? partes.slice(0, iT) : iH >= 0 ? partes.slice(0, iH) : partes;
   if (a === "tareas" && VISTAS_INTELIGENTES.some((v) => v.id === b)) {
-    return { seccion: { tipo: "vista", vista: b as VistaInteligente }, tareaId };
+    return { seccion: { tipo: "vista", vista: b as VistaInteligente }, tareaId, habitoId };
   }
-  if (a === "listas" && b) return { seccion: { tipo: "lista", id: b }, tareaId };
-  if (a === "etiquetas" && b) return { seccion: { tipo: "etiqueta", nombre: b }, tareaId };
-  if (a === "calendario") return { seccion: { tipo: "calendario", modo: b === "semana" ? "semana" : "mes" }, tareaId };
-  if (a === "matriz" || a === "enfoque" || a === "habitos" || a === "ajustes" || a === "tema" || a === "widgets") return { seccion: { tipo: a }, tareaId };
-  if (a === "buscar") return { seccion: { tipo: "buscar" }, tareaId };
-  if (a === "estadisticas") return { seccion: { tipo: "estadisticas", de: b === "habitos" ? "habitos" : "tareas" }, tareaId };
-  return { seccion: INICIO, tareaId };
+  if (a === "listas" && b) return { seccion: { tipo: "lista", id: b }, tareaId, habitoId };
+  if (a === "etiquetas" && b) return { seccion: { tipo: "etiqueta", nombre: b }, tareaId, habitoId };
+  if (a === "calendario") return { seccion: { tipo: "calendario", modo: b === "semana" ? "semana" : "mes" }, tareaId, habitoId };
+  if (a === "matriz" || a === "enfoque" || a === "habitos" || a === "ajustes" || a === "tema" || a === "widgets") return { seccion: { tipo: a }, tareaId, habitoId };
+  if (a === "buscar") return { seccion: { tipo: "buscar" }, tareaId, habitoId };
+  if (a === "estadisticas") return { seccion: { tipo: "estadisticas", de: b === "habitos" ? "habitos" : "tareas" }, tareaId, habitoId };
+  return { seccion: INICIO, tareaId, habitoId };
 }
 
-export function hashDe(seccion: Seccion, tareaId: string | null = null): string {
+export function hashDe(seccion: Seccion, tareaId: string | null = null, habitoId: string | null = null): string {
   let base: string;
   switch (seccion.tipo) {
     case "vista":
@@ -72,6 +76,7 @@ export function hashDe(seccion: Seccion, tareaId: string | null = null): string 
       base = `#/estadisticas/${seccion.de}`;
       break;
   }
+  if (habitoId) return `${base}/h/${encodeURIComponent(habitoId)}`;
   return tareaId ? `${base}/t/${encodeURIComponent(tareaId)}` : base;
 }
 
@@ -85,6 +90,16 @@ export function useRuta(): Ruta {
   return ruta;
 }
 
-export function irA(seccion: Seccion, tareaId: string | null = null): void {
-  window.location.hash = hashDe(seccion, tareaId);
+export function irA(seccion: Seccion, tareaId: string | null = null, habitoId: string | null = null): void {
+  window.location.hash = hashDe(seccion, tareaId, habitoId);
+}
+
+/** Abre el detalle de una tarea o evento; si ya estaba abierto, lo cierra (se toca de nuevo para esconderlo). */
+export function alternarTarea(seccion: Seccion, tareaId: string): void {
+  irA(seccion, leerRuta(window.location.hash).tareaId === tareaId ? null : tareaId);
+}
+
+/** Lo mismo para el detalle de un hábito. */
+export function alternarHabito(seccion: Seccion, habitoId: string): void {
+  irA(seccion, null, leerRuta(window.location.hash).habitoId === habitoId ? null : habitoId);
 }

@@ -3,6 +3,7 @@ import { addDays, addMonths, format, isSameMonth, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { IconoHabito, ICONOS_HABITO } from "../componentes/IconoHabito";
+import { claseBotonEliminar, clasePanelDetalle, FondoDetalle } from "../componentes/DetalleTarea";
 import { PanelColor } from "../componentes/PanelColor";
 import { recordatoriosActivos } from "../config";
 import { claseBoton, claseBotonPrincipal, claseCampo, Confirmar, Modal } from "../componentes/Modal";
@@ -10,6 +11,7 @@ import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes } from "../logica/calendario";
 import { calcularRachas, describirFrecuencia, esEditable, estadoPorValor, indexarRegistros, siguienteEstado, tasaCumplimiento } from "../logica/habitos";
 import { INICIALES_DIA, NOMBRES_DIA } from "../logica/repeticion";
+import { irA, type Seccion } from "../logica/ruta";
 import { COLORES_LISTA, type EstadoHabito, type FrecuenciaHabito, type Habito, type RegistroHabito } from "../modelos/tipos";
 
 const NOMBRES_ESTADO: Record<EstadoHabito | "vacio", string> = { hecho: "hecho", parcial: "parcial", "no-hecho": "no hecho", vacio: "sin marcar" };
@@ -44,7 +46,7 @@ function SelectorColor({ color, alElegir, etiqueta = "Color" }: { color: string;
   );
 }
 
-export function DialogoHabito({ habito, alCerrar }: { habito: Habito | null; alCerrar: () => void }) {
+export function DialogoHabito({ habito, alCerrar, alEliminar }: { habito: Habito | null; alCerrar: () => void; /** Con esto se muestra como panel de detalle (al costado), con Eliminar y Guardar. */ alEliminar?: () => void }) {
   const crearHabito = useTienda((s) => s.crearHabito);
   const actualizarHabito = useTienda((s) => s.actualizarHabito);
   const [nombre, setNombre] = useState(habito?.nombre ?? "");
@@ -69,12 +71,11 @@ export function DialogoHabito({ habito, alCerrar }: { habito: Habito | null; alC
     alCerrar();
   };
 
-  return (
-    <Modal titulo={habito ? "Editar hábito" : "Nuevo hábito"} alCerrar={alCerrar}>
-      <form onSubmit={enviar} className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+  const campos = (
+    <>
         <label className="block text-sm">
           <span className="mb-1 block text-tenue">Nombre</span>
-          <input autoFocus maxLength={64} aria-label="Nombre del hábito" className={claseCampo} placeholder="Tomar agua" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+          <input autoFocus={!alEliminar} maxLength={64} aria-label="Nombre del hábito" className={claseCampo} placeholder="Tomar agua" value={nombre} onChange={(e) => setNombre(e.target.value)} />
         </label>
         <div className="text-sm">
           <span className="mb-1 block text-tenue">Icono</span>
@@ -149,6 +150,33 @@ export function DialogoHabito({ habito, alCerrar }: { habito: Habito | null; alC
             </label>
           )}
         </div>
+    </>
+  );
+
+  if (alEliminar) {
+    return (
+      <FondoDetalle alCerrar={alCerrar}>
+        <aside aria-label="Detalle del hábito" className={clasePanelDetalle}>
+          <form onSubmit={enviar} className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">{campos}</div>
+            <footer className="flex items-center justify-between gap-2 border-t border-borde px-4 py-2.5">
+              <button type="button" className={claseBotonEliminar} onClick={alEliminar}>
+                <Trash2 size={14} /> Eliminar
+              </button>
+              <button type="submit" className={claseBotonPrincipal} disabled={!valido}>
+                Guardar
+              </button>
+            </footer>
+          </form>
+        </aside>
+      </FondoDetalle>
+    );
+  }
+
+  return (
+    <Modal titulo={habito ? "Editar hábito" : "Nuevo hábito"} alCerrar={alCerrar}>
+      <form onSubmit={enviar} className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+        {campos}
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" className={claseBoton} onClick={alCerrar}>
             Cancelar
@@ -159,6 +187,32 @@ export function DialogoHabito({ habito, alCerrar }: { habito: Habito | null; alC
         </div>
       </form>
     </Modal>
+  );
+}
+
+/** Detalle de un hábito al costado (se abre tocando su nombre en la Semana): sus datos, Eliminar y Guardar. */
+export function DetalleHabito({ habitoId, seccion }: { habitoId: string; seccion: Seccion }) {
+  const habito = useTienda((s) => s.habitos.find((h) => h.id === habitoId));
+  const borrarHabito = useTienda((s) => s.borrarHabito);
+  const [borrando, setBorrando] = useState(false);
+  const cerrar = () => irA(seccion);
+  if (!habito) return null;
+  return (
+    <>
+      <DialogoHabito habito={habito} alCerrar={cerrar} alEliminar={() => setBorrando(true)} />
+      {borrando && (
+        <Confirmar
+          titulo={`¿Borrar "${habito.nombre}" para siempre?`}
+          mensaje="También se borrará su historial. Si quieres conservarlo, apaga «Activo» en Hábitos."
+          textoAccion="Borrar para siempre"
+          alCerrar={() => setBorrando(false)}
+          alConfirmar={() => {
+            void borrarHabito(habito.id);
+            cerrar();
+          }}
+        />
+      )}
+    </>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Check, RotateCcw, Timer, Trash2, X } from "lucide-react";
+import { RotateCcw, Timer, Trash2, X } from "lucide-react";
 import { listasActivas, opcionesAvanzadas, recordatoriosActivos } from "../config";
 import { useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
@@ -11,8 +11,7 @@ import { irA, type Seccion } from "../logica/ruta";
 import { nuevoId } from "../logica/texto";
 import { LISTA_BANDEJA, type Tarea } from "../modelos/tipos";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "./CamposTarea";
-import { COLOR_HECHA, COLOR_PRIORIDAD } from "./FilaTarea";
-import { claseBoton, claseCampo } from "./Modal";
+import { claseBoton, claseBotonPrincipal, claseCampo } from "./Modal";
 
 const UNIDADES: { valor: Frecuencia; nombre: string }[] = [
   { valor: "diaria", nombre: "días" },
@@ -217,27 +216,32 @@ function EnfoqueDeTarea({ tarea }: { tarea: Tarea }) {
   );
 }
 
+/** Botón rojo de eliminar, abajo a la izquierda del detalle. */
+export const claseBotonEliminar = "flex items-center gap-1.5 rounded-md bg-peligro px-3 py-1.5 text-sm font-medium text-white hover:opacity-90";
+
+/** En el celular es una ventana emergente centrada (como "Nueva tarea"); en el PC, un panel a la derecha. */
+export const clasePanelDetalle =
+  "flex flex-col bg-panel max-md:relative max-md:max-h-[90vh] max-md:w-full max-md:max-w-md max-md:overflow-hidden max-md:rounded-xl max-md:border max-md:border-borde max-md:bg-[var(--panel-solido)] max-md:shadow-xl md:w-96 md:shrink-0 md:border-l md:border-borde";
+
+export function FondoDetalle({ alCerrar, children }: { alCerrar: () => void; children: ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 md:contents" onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}>
+      {children}
+    </div>
+  );
+}
+
 export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: Seccion }) {
   const tarea = useTienda((s) => s.tareas.find((t) => t.id === tareaId));
   const listas = useTienda((s) => s.listas);
   const actualizarTarea = useTienda((s) => s.actualizarTarea);
-  const completarTarea = useTienda((s) => s.completarTarea);
   const enviarAPapelera = useTienda((s) => s.enviarAPapelera);
   const restaurarTarea = useTienda((s) => s.restaurarTarea);
 
   const cerrar = () => irA(seccion);
-  // En el celular es una ventana emergente centrada (como "Nueva tarea"); en el PC, un panel a la derecha.
-  const clasePanel =
-    "flex flex-col bg-panel max-md:relative max-md:max-h-[90vh] max-md:w-full max-md:max-w-md max-md:overflow-hidden max-md:rounded-xl max-md:border max-md:border-borde max-md:bg-[var(--panel-solido)] max-md:shadow-xl md:w-96 md:shrink-0 md:border-l md:border-borde";
+  const clasePanel = clasePanelDetalle;
   // Función (no componente) para no volver a montar el formulario en cada tecla.
-  const envolver = (children: ReactNode) => (
-    <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 md:contents"
-      onMouseDown={(e) => e.target === e.currentTarget && cerrar()}
-    >
-      {children}
-    </div>
-  );
+  const envolver = (children: ReactNode) => <FondoDetalle alCerrar={cerrar}>{children}</FondoDetalle>;
 
   if (!tarea) {
     return envolver(
@@ -253,36 +257,16 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
   }
 
   const enPapelera = tarea.eliminadaEn !== null;
-  const hecha = tarea.estado === "completada";
   const fecha = aFechaInput(tarea);
   const hora = aHoraInput(tarea);
 
   return envolver(
     <aside aria-label="Detalle de la tarea" className={clasePanel}>
-      <header className="flex items-center gap-2 px-4 py-2.5 max-md:absolute max-md:top-3 max-md:right-2 max-md:z-10 max-md:p-0 md:border-b md:border-borde">
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={hecha}
-          aria-label={hecha ? "Marcar como pendiente" : "Completar tarea"}
-          disabled={enPapelera}
-          onClick={() => void completarTarea(tarea.id, !hecha)}
-          style={{ borderColor: hecha ? COLOR_HECHA : COLOR_PRIORIDAD[tarea.prioridad], background: hecha ? COLOR_HECHA : undefined }}
-          className="flex h-5 w-5 items-center justify-center rounded border-2 max-md:hidden"
-        >
-          {hecha && <Check size={13} strokeWidth={3} className="text-panel" />}
-        </button>
-        <span className="text-xs text-tenue max-md:hidden">{enPapelera ? "En la papelera" : hecha ? "Completada" : "Pendiente"}</span>
-        <button type="button" aria-label="Cerrar detalle" className="ml-auto rounded p-1 text-tenue hover:bg-suave" onClick={cerrar}>
-          <X size={18} />
-        </button>
-      </header>
-
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <fieldset disabled={enPapelera} className="min-w-0 space-y-5 max-md:space-y-4">
           <input
             aria-label="Título"
-            className="w-full bg-transparent text-lg font-semibold outline-none max-md:pr-8"
+            className="w-full bg-transparent text-lg font-semibold outline-none"
             placeholder="Sin título"
             value={tarea.titulo}
             onChange={(e) => actualizarTarea(tarea.id, { titulo: e.target.value })}
@@ -371,7 +355,8 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
         </fieldset>
       </div>
 
-      <footer className="flex justify-end border-t border-borde px-4 py-2.5">
+      {/* Sin casilla ni X arriba: el panel se cierra tocando de nuevo la tarea o el evento, o con Guardar. */}
+      <footer className="flex items-center justify-between gap-2 border-t border-borde px-4 py-2.5">
         {enPapelera ? (
           <button type="button" className={`${claseBoton} flex items-center gap-1.5`} onClick={() => void restaurarTarea(tarea.id)}>
             <RotateCcw size={14} /> Restaurar
@@ -379,15 +364,21 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
         ) : (
           <button
             type="button"
-            className={`${claseBoton} flex items-center gap-1.5 text-peligro`}
+            aria-label="Enviar a la papelera"
+            title="Enviar a la papelera"
+            className={claseBotonEliminar}
             onClick={() => {
               void enviarAPapelera(tarea.id);
               cerrar();
             }}
           >
-            <Trash2 size={14} /> Enviar a la papelera
+            <Trash2 size={14} /> Eliminar
           </button>
         )}
+        {/* Los cambios se van guardando al escribir; Guardar los confirma y cierra el panel. */}
+        <button type="button" className={claseBotonPrincipal} onClick={cerrar}>
+          Guardar
+        </button>
       </footer>
     </aside>
   );
