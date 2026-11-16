@@ -7,9 +7,9 @@ import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES 
 import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
 import { esAppNativa } from "../logica/plataforma";
 import { puenteEscritorio } from "../logica/puenteEscritorio";
-import type { Carpeta, Etiqueta, Lista } from "../modelos/tipos";
+import type { Carpeta, Lista } from "../modelos/tipos";
 import { BotonAvisos } from "./Avisos";
-import { DialogoCarpeta, DialogoEtiqueta, DialogoLista } from "./Dialogos";
+import { DialogoCarpeta, DialogoLista } from "./Dialogos";
 import { Confirmar } from "./Modal";
 
 const ICONOS: Record<VistaInteligente, ReactNode> = {
@@ -91,9 +91,7 @@ type Dialogo =
   | { tipo: "lista"; lista: Lista | null; }
   | { tipo: "carpeta"; carpeta: Carpeta | null }
   | { tipo: "borrar-lista"; lista: Lista }
-  | { tipo: "borrar-carpeta"; carpeta: Carpeta }
-  | { tipo: "etiqueta"; etiqueta: Etiqueta | null }
-  | { tipo: "borrar-etiqueta"; nombre: string; visible: string };
+  | { tipo: "borrar-carpeta"; carpeta: Carpeta };
 
 export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcultar?: () => void }) {
   const tareas = useTienda((s) => s.tareas);
@@ -102,9 +100,24 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
   const etiquetas = useTienda((s) => s.etiquetas);
   const borrarLista = useTienda((s) => s.borrarLista);
   const borrarCarpeta = useTienda((s) => s.borrarCarpeta);
-  const borrarEtiqueta = useTienda((s) => s.borrarEtiqueta);
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const [plegadas, setPlegadas] = useState<Set<string>>(new Set());
+  // Las etiquetas del menú parten plegadas; se recuerda si se dejaron a la vista.
+  const [etiquetasAbiertas, setEtiquetasAbiertasEstado] = useState(() => {
+    try {
+      return localStorage.getItem("andamia-menu-etiquetas") === "si";
+    } catch {
+      return false;
+    }
+  });
+  const setEtiquetasAbiertas = (abiertas: boolean) => {
+    setEtiquetasAbiertasEstado(abiertas);
+    try {
+      localStorage.setItem("andamia-menu-etiquetas", abiertas ? "si" : "no");
+    } catch {
+      // Sin almacenamiento: se recuerda mientras la página siga abierta.
+    }
+  };
 
   // Sin listas creadas y con la opción apagada, la sección entera desaparece.
   const mostrarListas = listasActivas || listas.length > 0 || carpetas.length > 0;
@@ -193,6 +206,39 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
         <Fila href={hashDe({ tipo: "estadisticas", de: "habitos" })} activa={seccion.tipo === "estadisticas" && seccion.de === "habitos"} icono={<ChartArea size={17} />} nombre="Estadística Hábitos" />
         <Fila href={hashDe({ tipo: "matriz" })} activa={seccion.tipo === "matriz"} icono={<Grid2x2 size={17} />} nombre="Matriz" />
 
+        {/* Etiquetas: el nombre abre su vista (donde se editan); la flecha solo las despliega para verlas. */}
+        <div className={claseFila(seccion.tipo === "etiquetas")}>
+          <a href={hashDe({ tipo: "etiquetas" })} aria-current={seccion.tipo === "etiquetas" ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
+            <span className="shrink-0 text-tenue"><Tag size={17} /></span>
+            <span className="truncate">Etiquetas</span>
+          </a>
+          <button
+            type="button"
+            aria-expanded={etiquetasAbiertas}
+            aria-label={etiquetasAbiertas ? "Ocultar etiquetas" : "Ver etiquetas"}
+            title={etiquetasAbiertas ? "Ocultar etiquetas" : "Ver etiquetas"}
+            className="shrink-0 rounded p-0.5 text-tenue hover:bg-borde hover:text-texto"
+            onClick={() => setEtiquetasAbiertas(!etiquetasAbiertas)}
+          >
+            {etiquetasAbiertas ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </button>
+        </div>
+        {etiquetasAbiertas && (
+          <div className="ml-4 border-l border-borde pl-1">
+            {!etiquetas.length && <p className="px-2 py-1 text-xs text-tenue">Aún no hay etiquetas.</p>}
+            {etiquetas.map((e) => (
+              <Fila
+                key={e.nombre}
+                href={hashDe({ tipo: "etiqueta", nombre: e.nombre })}
+                activa={seccion.tipo === "etiqueta" && seccion.nombre === e.nombre}
+                icono={<Tag size={16} style={{ color: e.color }} />}
+                nombre={e.nombreVisible}
+                contador={pendientesPorEtiqueta.get(e.nombre)}
+              />
+            ))}
+          </div>
+        )}
+
         {mostrarListas && titulo(
           "Listas",
           listasActivas && <>
@@ -236,31 +282,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
           {(puenteEscritorio() || esAppNativa()) && <Fila href={hashDe({ tipo: "widgets" })} activa={seccion.tipo === "widgets"} icono={<LayoutDashboard size={17} />} nombre="Widgets" />}
         </div>
 
-        {titulo(
-          "Etiquetas",
-          <BotonIcono etiqueta="Nueva etiqueta" alPulsar={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
-            <Plus size={15} />
-          </BotonIcono>,
-        )}
-        {!etiquetas.length && <p className="px-2 text-xs text-tenue">Crea etiquetas con el + o escribe #etiqueta al crear una tarea.</p>}
-        {etiquetas.map((e) => (
-          <Fila
-            key={e.nombre}
-            href={hashDe({ tipo: "etiqueta", nombre: e.nombre })}
-            activa={seccion.tipo === "etiqueta" && seccion.nombre === e.nombre}
-            icono={<Tag size={16} style={{ color: e.color }} />}
-            nombre={e.nombreVisible}
-            contador={pendientesPorEtiqueta.get(e.nombre)}
-            acciones={
-              <>
-                <BotonIcono etiqueta={`Editar etiqueta ${e.nombreVisible}`} alPulsar={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
-                  <Pencil size={14} />
-                </BotonIcono>
-              </>
-            }
-          />
-        ))}
-
         <div className="mt-5 border-t border-borde pt-2">
           {/* "Completadas" salió del menú a pedido de Francisca; su dirección (#/tareas/completadas) sigue funcionando. */}
           {VISTAS_INTELIGENTES.filter((v) => v.id === "papelera").map((v) => (
@@ -272,21 +293,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
       </nav>
 
       {dialogo?.tipo === "lista" && <DialogoLista lista={dialogo.lista} alCerrar={() => setDialogo(null)} />}
-      {dialogo?.tipo === "etiqueta" && (
-        <DialogoEtiqueta
-          etiqueta={dialogo.etiqueta}
-          alEliminar={() => dialogo.etiqueta && setDialogo({ tipo: "borrar-etiqueta", nombre: dialogo.etiqueta.nombre, visible: dialogo.etiqueta.nombreVisible })}
-          alCerrar={() => {
-            const anterior = dialogo.etiqueta;
-            setDialogo(null);
-            // Si se renombró la etiqueta abierta, la vista pasa a la nueva.
-            if (anterior && seccion.tipo === "etiqueta" && seccion.nombre === anterior.nombre) {
-              const actual = useTienda.getState().etiquetas.find((x) => x.orden === anterior.orden);
-              if (actual && actual.nombre !== anterior.nombre) irA({ tipo: "etiqueta", nombre: actual.nombre });
-            }
-          }}
-        />
-      )}
       {dialogo?.tipo === "carpeta" && <DialogoCarpeta carpeta={dialogo.carpeta} alCerrar={() => setDialogo(null)} />}
       {dialogo?.tipo === "borrar-lista" && (
         <Confirmar
@@ -307,18 +313,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
           textoAccion="Borrar carpeta"
           alCerrar={() => setDialogo(null)}
           alConfirmar={() => void borrarCarpeta(dialogo.carpeta.id)}
-        />
-      )}
-      {dialogo?.tipo === "borrar-etiqueta" && (
-        <Confirmar
-          titulo={`¿Borrar la etiqueta "${dialogo.visible}"?`}
-          mensaje="Se quitará de todas las tareas. Las tareas no se borran."
-          textoAccion="Borrar etiqueta"
-          alCerrar={() => setDialogo(null)}
-          alConfirmar={() => {
-            void borrarEtiqueta(dialogo.nombre);
-            if (seccion.tipo === "etiqueta" && seccion.nombre === dialogo.nombre) irA(INICIO);
-          }}
         />
       )}
     </aside>

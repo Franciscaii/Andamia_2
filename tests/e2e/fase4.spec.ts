@@ -363,7 +363,8 @@ test.describe("móvil", () => {
     await page.getByLabel("Añadir tarea en Urgente + Importante").press("Enter");
     await expect(page.getByRole("region", { name: "Urgente + Importante", exact: true })).toContainText("Desde el móvil");
 
-    await page.getByRole("button", { name: "Abrir menú" }).click();
-    await expect(page.getByRole("navigation").getByRole("link", { name: /^Hábitos/ })).toBeVisible();
+    // En el celular el menú va abajo, con iconos.
+    await page.getByTestId("menu-abajo").getByRole("link", { name: "Hábitos", exact: true }).click();
+    await expect(page).toHaveURL(/#\/habitos$/);
   });
 });

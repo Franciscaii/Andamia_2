@@ -50,7 +50,7 @@ function SelectorColor({ color, alElegir, etiqueta = "Color" }: { color: string;
   );
 }
 
-export function DialogoHabito({ habito, alCerrar, alEliminar }: { habito: Habito | null; alCerrar: () => void; /** Con esto se muestra como panel de detalle (al costado), con Eliminar y Guardar. */ alEliminar?: () => void }) {
+export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: { habito: Habito | null; alCerrar: () => void; /** Fecha de inicio propuesta para un hábito nuevo (yyyy-MM-dd). */ inicioSugerido?: string; /** Con esto se muestra como panel de detalle (al costado), con Eliminar y Guardar. */ alEliminar?: () => void }) {
   const crearHabito = useTienda((s) => s.crearHabito);
   const actualizarHabito = useTienda((s) => s.actualizarHabito);
   const [nombre, setNombre] = useState(habito?.nombre ?? "");
@@ -60,7 +60,7 @@ export function DialogoHabito({ habito, alCerrar, alEliminar }: { habito: Habito
   const [meta, setMeta] = useState(habito?.metaDiaria ?? 1);
   // La unidad ya no se pide; se conserva la que tuviera el hábito.
   const unidad = habito?.unidad ?? "";
-  const [inicio, setInicio] = useState(habito?.inicio ?? format(new Date(), "yyyy-MM-dd"));
+  const [inicio, setInicio] = useState(habito?.inicio ?? inicioSugerido ?? format(new Date(), "yyyy-MM-dd"));
   const [fin, setFin] = useState(habito?.fin ?? "");
   const [hora, setHora] = useState(habito?.recordatorioHora ?? "");
 

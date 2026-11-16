@@ -53,6 +53,8 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         /** Tarjeta a la que pertenece (0 = ninguna) y su lugar en ella. */
         int grupo;
         int tarjeta;
+        /** Hábito: el que va a su derecha en la misma fila (de a dos por fila), si hay. */
+        Fila par;
     }
 
     private final Context contexto;
@@ -115,6 +117,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             JSONArray habitos = conHabitos ? datos.optJSONArray("habitos") : null;
             if (habitos != null) {
                 JSONObject marcas = DatosWidget.habitosMarcados(contexto);
+                Fila izquierda = null;
                 for (int i = 0; i < habitos.length(); i++) {
                     JSONObject h = habitos.getJSONObject(i);
                     Fila f = new Fila();
@@ -126,7 +129,14 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                     f.fecha = fechaDia;
                     f.marcable = h.optBoolean("marcable");
                     f.hecha = marcas.optBoolean(f.id + "|" + fechaDia, h.optBoolean("hecho"));
-                    filas.add(f);
+                    // De a dos por fila, como en la Semana de la app.
+                    if (izquierda == null) {
+                        filas.add(f);
+                        izquierda = f;
+                    } else {
+                        izquierda.par = f;
+                        izquierda = null;
+                    }
                 }
             }
 
@@ -280,8 +290,23 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     }
 
     /** Un hábito del día: su nombre y la píldora que lo marca hecho (o lo desmarca) sin abrir la app. */
-    private RemoteViews filaHabito(Fila f) {
+    private RemoteViews filaHabitos(Fila f) {
+        RemoteViews fila = new RemoteViews(contexto.getPackageName(), R.layout.widget_habitos_par);
+        fila.removeAllViews(R.id.par_izq);
+        fila.removeAllViews(R.id.par_der);
+        fila.addView(R.id.par_izq, celdaHabito(f));
+        if (f.par != null) fila.addView(R.id.par_der, celdaHabito(f.par));
+        // El hueco de la derecha (cuando sobra uno) también abre el día.
+        fila.setOnClickFillInIntent(R.id.par_fila, abrirDia());
+        return fila;
+    }
+
+    /** La mitad de una fila de hábitos: un hábito con su interruptor. */
+    private RemoteViews celdaHabito(Fila f) {
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_habito);
+        // Más angosto que antes: menos borde para que quepa el nombre.
+        float d = contexto.getResources().getDisplayMetrics().density;
+        vista.setViewPadding(R.id.habito_fila, Math.round(10 * d), Math.round(8 * d), Math.round(6 * d), Math.round(8 * d));
         TemaWidget.letra(vista, R.id.habito_titulo, 14);
         int propio = color(contexto, R.color.widget_acento);
         try {
@@ -398,7 +423,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         Fila f = filas.get(posicion);
         switch (f.tipo) {
             case TIPO_EVENTO: return filaEvento(contexto, f);
-            case TIPO_HABITO: return filaHabito(f);
+            case TIPO_HABITO: return filaHabitos(f);
             case TIPO_ESPACIO: {
                 RemoteViews espacio = new RemoteViews(contexto.getPackageName(), R.layout.widget_espacio);
                 espacio.setOnClickFillInIntent(R.id.espacio_fila, abrirDia());

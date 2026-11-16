@@ -660,7 +660,7 @@ function useDeslizar(alSoltar: (dx: number, dy: number) => void) {
 }
 
 /** Columna de un día en la vista de 7 días; también recibe tareas soltadas. */
-function ColumnaDia({ dia, esHoy, ahora, estilo, angosta = false, children }: { dia: Date; esHoy: boolean; ahora: Date; estilo: CSSProperties; angosta?: boolean; children: ReactNode }) {
+function ColumnaDia({ dia, esHoy, ahora, estilo, angosta = false, elegida = false, alElegir, children }: { dia: Date; esHoy: boolean; ahora: Date; estilo: CSSProperties; angosta?: boolean; /** En el widget: el día marcado, donde añade el + de arriba. */ elegida?: boolean; alElegir?: () => void; children: ReactNode }) {
   const { setNodeRef, isOver } = useZonaDia(dia);
   return (
     <section
@@ -669,7 +669,9 @@ function ColumnaDia({ dia, esHoy, ahora, estilo, angosta = false, children }: { 
       aria-label={tituloDelDia(dia, ahora)}
       data-testid="dia-semana"
       data-angosta={angosta ? "" : undefined}
-      className={`min-w-0 rounded-xl ${angosta ? "p-1.5" : "p-2"} ${isOver ? "ring-2 ring-acento" : ""} ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}
+      data-elegida={elegida ? "" : undefined}
+      onClick={alElegir}
+      className={`min-w-0 rounded-xl ${angosta ? "p-1.5" : "p-2"} ${alElegir ? "cursor-pointer" : ""} ${isOver || elegida ? "ring-2 ring-acento ring-inset" : ""} ${elegida ? "shadow-md" : ""} ${esHoy ? "bg-acento-suave" : "bg-suave/60"}`}
     >
       {children}
     </section>
@@ -783,6 +785,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
   const moverSemana = (semanas: number) => setElegido((d) => addDays(d, semanas * 7));
   const elegirDia = (d: Date) => setElegido(d);
+  // En el widget, tocar la tarjeta de un día lo marca: ahí añade el único + de arriba.
+  const elegirColumna = (d: Date) => (EN_WIDGET ? { elegida: isSameDay(d, elegido), alElegir: () => setElegido(d) } : {});
   // En el celular, arrastrar hacia abajo la tira de días despliega el mes completo.
   const [mesAbierto, setMesAbierto] = useState(false);
   const verMes = mesAbierto && !esEscritorio;
@@ -848,7 +852,10 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               </button>
             ))}
           </div>
-          {alcance === "dia" && <MenuNuevo directo={tipoDelFiltro(filtro)} alElegir={(tipo) => nuevoEn(tipo, elegido)} />}
+          {/* En el widget hay un solo +: añade en el día marcado (al tocar su tarjeta). */}
+          {(alcance === "dia" || EN_WIDGET) && (
+            <MenuNuevo directo={tipoDelFiltro(filtro)} etiqueta={alcance === "dia" ? "Añadir" : `Añadir el ${format(elegido, "EEEE d", { locale: es })}`} alElegir={(tipo) => nuevoEn(tipo, elegido)} />
+          )}
         </div>
 
 
@@ -914,13 +921,13 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                 return (
                   <Fragment key={d.toISOString()}>
                   {i > 0 && <div aria-hidden className="w-3 shrink-0" />}
-                  <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} angosta>
+                  <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} angosta {...elegirColumna(d)}>
                     <div className="mb-2 flex flex-col items-center gap-1">
                       <h2 className="flex flex-col items-center leading-tight">
                         <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-texto"}`}>{nombreCortoDia(d)}</span>
                         <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
                       </h2>
-                      <MenuNuevo directo={tipoDelFiltro(filtro)} pequeno etiqueta={etiquetaNuevo} atajo={atajo} abrirHacia={i < 4 ? "derecha" : "izquierda"} alElegir={(tipo) => nuevoEn(tipo, d)} />
+                      {!EN_WIDGET && <MenuNuevo directo={tipoDelFiltro(filtro)} pequeno etiqueta={etiquetaNuevo} atajo={atajo} abrirHacia={i < 4 ? "derecha" : "izquierda"} alElegir={(tipo) => nuevoEn(tipo, d)} />}
                     </div>
                     <ResumenDiaAngosto
                       dia={d}
@@ -941,7 +948,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
               return (
                 <Fragment key={d.toISOString()}>
                 {i > 0 && <div aria-hidden className="w-3 shrink-0" />}
-                <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)}>
+                <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} {...elegirColumna(d)}>
                   <div className="mb-2 flex items-center gap-1 px-1">
                     <h2 className="flex min-w-0 flex-1 items-baseline gap-1.5">
                       <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-texto"}`}>{nombreCortoDia(d)}</span>
@@ -949,13 +956,15 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                       {esHoy && <span className="text-xs font-medium text-acento">Hoy</span>}
                     </h2>
                     {/* El atajo N abre el + de hoy, o el del lunes si hoy no está en la semana. */}
-                    <MenuNuevo
-                      directo={tipoDelFiltro(filtro)}
-                      pequeno
-                      etiqueta={`Añadir el ${format(d, "EEEE d", { locale: es })}`}
-                      atajo={dias.some((x) => isSameDay(x, ahora)) ? esHoy : i === 0}
-                      alElegir={(tipo) => nuevoEn(tipo, d)}
-                    />
+                    {!EN_WIDGET && (
+                      <MenuNuevo
+                        directo={tipoDelFiltro(filtro)}
+                        pequeno
+                        etiqueta={`Añadir el ${format(d, "EEEE d", { locale: es })}`}
+                        atajo={dias.some((x) => isSameDay(x, ahora)) ? esHoy : i === 0}
+                        alElegir={(tipo) => nuevoEn(tipo, d)}
+                      />
+                    )}
                   </div>
                   <ContenidoDia dia={d} ahora={ahora} verEventos={verEventos} verTareas={verTareas} verHabitos={verHabitos} tareaAbierta={tareaAbierta} compacto />
                 </ColumnaDia>
@@ -970,7 +979,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       </ArrastreSemana>
 
       {(creando === "tarea" || creando === "evento") && <DialogoNuevo tipo={creando} dia={diaNuevo} alCerrar={() => setCreando(null)} />}
-      {creando === "habito" && <DialogoHabito habito={null} alCerrar={() => setCreando(null)} />}
+      {creando === "habito" && <DialogoHabito habito={null} inicioSugerido={EN_WIDGET ? claveDia(diaNuevo) : undefined} alCerrar={() => setCreando(null)} />}
     </div>
   );
 }

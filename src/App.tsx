@@ -16,7 +16,9 @@ const ANCHO_MENU_MAX = 420;
 import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes, VistaTema } from "./vistas/VistaAjustes";
 import { VistaWidgets } from "./vistas/VistaWidgets";
-import { useBarraVentana } from "./logica/puenteEscritorio";
+import { VistaEtiquetas } from "./vistas/VistaEtiquetas";
+import { BarraInferior } from "./componentes/BarraInferior";
+import { puenteEscritorio, useBarraVentana } from "./logica/puenteEscritorio";
 import { EnlaceAjustesWidget } from "./componentes/EnlaceAjustesWidget";
 import { esAppNativa } from "./logica/plataforma";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
@@ -66,6 +68,8 @@ function Vista({ ruta }: { ruta: ReturnType<typeof useRuta> }) {
         <VistaTema />
       ) : ruta.seccion.tipo === "widgets" ? (
         <VistaWidgets />
+      ) : ruta.seccion.tipo === "etiquetas" ? (
+        <VistaEtiquetas />
       ) : ruta.seccion.tipo === "vista" && ruta.seccion.vista === "semana" ? (
         <VistaSemana tareaAbierta={ruta.tareaId} />
       ) : (
@@ -87,6 +91,8 @@ export default function App() {
   const cerrarError = useTienda((s) => s.cerrarError);
   const [lateralAbierta, setLateralAbierta] = useState(false);
   const altoBarra = useBarraVentana();
+  // En el celular el menú va abajo, con iconos; el cajón lateral queda solo para la app de PC angosta.
+  const menuAbajo = !puenteEscritorio();
   // En el computador el menú se puede ocultar y volver a mostrar; se recuerda.
   const [menuOculto, setMenuOcultoEstado] = useState(() => {
     try {
@@ -196,8 +202,8 @@ export default function App() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {lateralAbierta && <div className="fixed inset-0 z-20 bg-black/40 lg:hidden" onClick={() => setLateralAbierta(false)} />}
-      <div style={{ "--ancho-menu": `${anchoMenu}px` } as CSSProperties} className={`cajon-menu fixed inset-y-0 left-0 z-30 w-72 shrink-0 transition-transform lg:relative lg:w-[var(--ancho-menu)] lg:translate-x-0 ${lateralAbierta ? "translate-x-0" : "-translate-x-full"} ${menuOculto ? "lg:hidden" : ""}`}>
+      {lateralAbierta && !menuAbajo && <div className="fixed inset-0 z-20 bg-black/40 lg:hidden" onClick={() => setLateralAbierta(false)} />}
+      <div style={{ "--ancho-menu": `${anchoMenu}px` } as CSSProperties} className={`cajon-menu fixed inset-y-0 left-0 z-30 w-72 shrink-0 transition-transform lg:relative lg:w-[var(--ancho-menu)] lg:translate-x-0 ${lateralAbierta ? "translate-x-0" : "-translate-x-full"} ${menuOculto ? "lg:hidden" : ""} ${menuAbajo ? "max-lg:hidden" : ""}`}>
         <BarraLateral seccion={ruta.seccion} alOcultar={() => {
             // En el celular el menú es un cajón: se guarda; en el computador se oculta.
             if (window.matchMedia("(min-width: 1024px)").matches) setMenuOculto(true);
@@ -226,13 +232,15 @@ export default function App() {
       <main className="flex min-w-0 flex-1 flex-col">
         {/* App de PC: franja para mover la ventana; a la derecha quedan los botones de Windows. */}
         {altoBarra > 0 && <div data-testid="barra-ventana" aria-hidden className="shrink-0 [-webkit-app-region:drag]" style={{ height: altoBarra }} />}
-        <div className="barra-lateral flex items-center gap-2 border-b border-borde px-3 py-2 lg:hidden">
-          <button type="button" aria-label="Abrir menú" className="rounded-md p-1.5 hover:bg-suave" onClick={() => setLateralAbierta(true)}>
-            <Menu size={20} />
-          </button>
-          <Marca clase="h-6 w-6" />
-          <span className="font-semibold">Andamia</span>
-        </div>
+        {!menuAbajo && (
+          <div className="barra-lateral flex items-center gap-2 border-b border-borde px-3 py-2 lg:hidden">
+            <button type="button" aria-label="Abrir menú" className="rounded-md p-1.5 hover:bg-suave" onClick={() => setLateralAbierta(true)}>
+              <Menu size={20} />
+            </button>
+            <Marca clase="h-6 w-6" />
+            <span className="font-semibold">Andamia</span>
+          </div>
+        )}
         {error && (
           <div role="alert" className="flex items-center justify-between gap-3 bg-peligro px-4 py-2 text-sm text-white">
             <span>{error}</span>
@@ -243,6 +251,7 @@ export default function App() {
         )}
         <Vista ruta={ruta} />
         {widgetDeSeccion(ruta.seccion) && <EnlaceAjustesWidget id={widgetDeSeccion(ruta.seccion)!} clase="shrink-0 px-6 pt-1 pb-3" />}
+        {menuAbajo && <BarraInferior seccion={ruta.seccion} />}
       </main>
 
       {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}

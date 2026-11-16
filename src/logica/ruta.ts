@@ -5,6 +5,8 @@ export type Seccion =
   | { tipo: "vista"; vista: VistaInteligente }
   | { tipo: "lista"; id: string }
   | { tipo: "etiqueta"; nombre: string }
+  /** Todas las etiquetas: aquí se crean, editan y eliminan. */
+  | { tipo: "etiquetas" }
   | { tipo: "calendario"; modo: ModoCalendario }
   | { tipo: "matriz" }
   | { tipo: "enfoque" }
@@ -39,6 +41,7 @@ export function leerRuta(hash: string): Ruta {
   }
   if (a === "listas" && b) return { seccion: { tipo: "lista", id: b }, tareaId, habitoId };
   if (a === "etiquetas" && b) return { seccion: { tipo: "etiqueta", nombre: b }, tareaId, habitoId };
+  if (a === "etiquetas") return { seccion: { tipo: "etiquetas" }, tareaId, habitoId };
   if (a === "calendario") return { seccion: { tipo: "calendario", modo: b === "semana" ? "semana" : "mes" }, tareaId, habitoId };
   if (a === "matriz" || a === "enfoque" || a === "habitos" || a === "ajustes" || a === "tema" || a === "widgets") return { seccion: { tipo: a }, tareaId, habitoId };
   if (a === "buscar") return { seccion: { tipo: "buscar" }, tareaId, habitoId };
@@ -61,6 +64,7 @@ export function hashDe(seccion: Seccion, tareaId: string | null = null, habitoId
     case "calendario":
       base = `#/calendario/${seccion.modo}`;
       break;
+    case "etiquetas":
     case "matriz":
     case "enfoque":
     case "habitos":

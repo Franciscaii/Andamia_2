@@ -42,6 +42,7 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
   await expect(fila).toContainText("trabajo");
   await expect(fila).not.toContainText("#trabajo");
   await expect(fila).not.toContainText("propuesta mañana");
+  await page.getByRole("button", { name: "Ver etiquetas" }).click();
   await expect(page.getByRole("navigation").getByRole("link", { name: /^trabajo/ })).toBeVisible();
 
   // Mañana ya no está en el menú, pero su dirección sigue funcionando.
@@ -274,21 +275,39 @@ test("reordenar con el teclado y borrar una lista con sus tareas", async ({ page
 
 test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, editar y borrar", async ({ page }) => {
   await page.goto("/");
-  const menu = page.getByRole("navigation");
+  const menu = page.getByRole("navigation", { name: "Navegación" });
+  // En el menú parten plegadas: la flecha las despliega solo para verlas, sin lápiz ni +.
+  await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
+  await menu.getByRole("button", { name: "Ver etiquetas" }).click();
   for (const nombre of ["Otro", "Vinculos", "Universidad", "NecesidadBiologica", "CuidadoPersonal", "DisfrutePersonal", "VidaCotidiana", "DesarrolloProfesional"]) {
     await expect(menu.getByRole("link", { name: new RegExp(`^${nombre}`) })).toBeVisible();
   }
+  await menu.getByRole("link", { name: /^Otro/ }).hover();
+  await expect(page.getByRole("button", { name: "Editar etiqueta Otro" })).toHaveCount(0);
+  await expect(menu.getByRole("button", { name: "Nueva etiqueta" })).toHaveCount(0);
+
+  await crearEnSemana(page, "Tarea", "Correr", { indole: "Otro" });
+
+  // "Etiquetas" abre su vista: tarjetas de a dos, donde sí se crean, editan y eliminan.
+  await menu.getByRole("link", { name: "Etiquetas", exact: true }).click();
+  await expect(page).toHaveURL(/#\/etiquetas$/);
+  const tarjetas = page.getByTestId("tarjeta-etiqueta");
+  await expect(tarjetas).toHaveCount(8);
+  const c0 = (await tarjetas.nth(0).boundingBox())!;
+  const c1 = (await tarjetas.nth(1).boundingBox())!;
+  expect(Math.abs(c0.y - c1.y)).toBeLessThan(2);
+  expect(c1.x).toBeGreaterThan(c0.x + c0.width - 1);
 
   await page.getByRole("button", { name: "Nueva etiqueta" }).click();
   const dialogo = page.getByRole("dialog", { name: "Nueva etiqueta" });
   await dialogo.getByLabel("Nombre").fill("Deporte");
   await dialogo.getByRole("button", { name: "Crear etiqueta" }).click();
+  await expect(tarjetas).toHaveCount(9);
   await expect(menu.getByRole("link", { name: /^Deporte/ })).toBeVisible();
 
   // Renombrar mantiene la etiqueta en las tareas.
-  await crearEnSemana(page, "Tarea", "Correr", { indole: "Deporte" });
-  await menu.getByRole("link", { name: /^Deporte/ }).hover();
-  await page.getByRole("button", { name: "Editar etiqueta Deporte" }).click();
+  await page.getByRole("button", { name: "Etiqueta Otro", exact: true }).click();
+  await page.getByRole("button", { name: "Editar etiqueta Otro" }).click();
   const edicion = page.getByRole("dialog", { name: "Editar etiqueta" });
   await edicion.getByLabel("Nombre").fill("Universidad");
   await edicion.getByRole("button", { name: "Guardar" }).click();
@@ -296,21 +315,75 @@ test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, edi
   await edicion.getByLabel("Nombre").fill("Ejercicio");
   await edicion.getByRole("button", { name: "Guardar" }).click();
   await expect(menu.getByRole("link", { name: /^Ejercicio/ })).toBeVisible();
+  await page.getByRole("button", { name: "Etiqueta Ejercicio", exact: true }).click();
+  await page.getByRole("link", { name: "Ver tareas" }).click();
   await expect(page.getByTestId("fila-tarea").filter({ hasText: "Correr" })).toContainText("Ejercicio");
 
-  await menu.getByRole("link", { name: /^Otro/ }).hover();
-  // Ya no hay basurero: se elimina desde el lápiz, que trae Eliminar, Cancelar y Guardar.
-  await expect(page.getByRole("button", { name: "Borrar etiqueta Otro" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Editar etiqueta Otro" }).click();
+  // Se elimina desde su tarjeta, o desde Editar, que trae Eliminar, Cancelar y Guardar.
+  await menu.getByRole("link", { name: "Etiquetas", exact: true }).click();
+  await page.getByRole("button", { name: "Etiqueta Deporte", exact: true }).click();
+  await page.getByRole("button", { name: "Editar etiqueta Deporte" }).click();
   await expect(page.getByRole("dialog").getByRole("button", { name: "Cancelar" })).toBeVisible();
   await expect(page.getByRole("dialog").getByRole("button", { name: "Guardar" })).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "Eliminar", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Borrar etiqueta" }).click();
-  await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
-  // Al recargar no vuelve.
+  await expect(menu.getByRole("link", { name: /^Deporte/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Etiqueta Vinculos", exact: true }).click();
+  await page.getByRole("button", { name: "Eliminar etiqueta Vinculos" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Borrar etiqueta" }).click();
+  await expect(tarjetas).toHaveCount(7);
+  // Al recargar no vuelven, y el menú recuerda que las etiquetas quedaron a la vista.
   await page.reload();
   await expect(menu.getByRole("link", { name: /^Universidad/ })).toBeVisible();
-  await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
+  await expect(menu.getByRole("link", { name: /^Vinculos/ })).toHaveCount(0);
+});
+
+test("widget Semana del PC: un solo + junto a los filtros que añade en el día marcado", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 600 });
+  await page.goto("/?widget=semana");
+  const dias = page.getByTestId("dia-semana");
+  await expect(dias).toHaveCount(7);
+  // Un solo +, arriba; parte marcado el día de hoy.
+  await expect(page.locator("[data-nueva-tarea]")).toHaveCount(1);
+  await expect(page.locator("[data-testid=dia-semana][data-elegida]")).toHaveCount(1);
+  // Se marca otro día tocando su tarjeta, y queda resaltado.
+  const hoy = await dias.evaluateAll((els) => els.findIndex((e) => e.hasAttribute("data-elegida")));
+  const otro = hoy === 6 ? 5 : hoy + 1;
+  await dias.nth(otro).click({ position: { x: 20, y: 200 } });
+  await expect(dias.nth(otro)).toHaveAttribute("data-elegida", "");
+  await expect(dias.nth(hoy)).not.toHaveAttribute("data-elegida", "");
+  await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Tareas" }).click();
+  await page.locator("[data-nueva-tarea]").click();
+  const dialogo = page.getByRole("dialog");
+  const campo = dialogo.getByRole("textbox", { name: "Añadir tarea" });
+  await campo.fill("En el día marcado");
+  await campo.press("Enter");
+  await expect(dias.nth(otro)).toContainText("En el día marcado");
+});
+
+test("celular: el menú va abajo con 7 iconos y el engranaje abre lo demás", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 780 });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Abrir menú" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Navegación" })).toBeHidden();
+  const barra = page.getByTestId("menu-abajo");
+  await expect(barra.locator(":scope > a, :scope > div > button")).toHaveCount(7);
+  const caja = (await barra.boundingBox())!;
+  expect(caja.y + caja.height).toBeGreaterThan(779);
+  await expect(barra.getByRole("link", { name: "Semana" })).toHaveAttribute("aria-current", "page");
+  for (const [nombre, direccion] of [["Calendario", /#\/calendario/], ["Estadística Tareas", /#\/estadisticas\/tareas/], ["Hábitos", /#\/habitos/], ["Estadística Hábitos", /#\/estadisticas\/habitos/], ["Etiquetas", /#\/etiquetas$/]] as const) {
+    await barra.getByRole("link", { name: nombre, exact: true }).click();
+    await expect(page).toHaveURL(direccion);
+    const desborde = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(desborde, `desborde en ${nombre}`).toBeLessThanOrEqual(0);
+  }
+  await expect(page.getByTestId("tarjeta-etiqueta")).toHaveCount(8);
+  await barra.getByRole("button", { name: "Más opciones" }).click();
+  const mas = page.getByRole("menu", { name: "Más opciones" });
+  await expect(mas.getByRole("menuitem")).toHaveText(["Papelera", "Cuenta y ajustes", "Tema"]);
+  await mas.getByRole("menuitem", { name: "Tema" }).click();
+  await expect(page).toHaveURL(/#\/tema$/);
+  await expect(mas).toHaveCount(0);
 });
 
 test("estadística de tareas: por etiqueta, circular y en el tiempo; tocar una etiqueta atenúa las demás", async ({ page }) => {
