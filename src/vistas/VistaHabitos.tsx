@@ -1,5 +1,5 @@
-import { useMemo, useState, type FormEvent } from "react";
-import { addDays, addMonths, format, isSameMonth, startOfDay } from "date-fns";
+import { Fragment, useMemo, useState, type FormEvent } from "react";
+import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { IconoHabito, ICONOS_HABITO } from "../componentes/IconoHabito";
@@ -279,7 +279,7 @@ function DialogoCantidad({ habito, dia, registro, alCerrar }: { habito: Habito; 
   );
 }
 
-function CeldaEstado({ estado, color, inhabilitado, etiqueta, alPulsar, tamano = "h-8 w-8", children }: { estado: EstadoHabito | null; color: string; inhabilitado: boolean; etiqueta: string; alPulsar: () => void; tamano?: string; children?: React.ReactNode }) {
+function CeldaEstado({ estado, color, inhabilitado, etiqueta, alPulsar, tamano = "h-8 w-8", contorno = false, children }: { estado: EstadoHabito | null; color: string; inhabilitado: boolean; etiqueta: string; alPulsar: () => void; tamano?: string; /** El círculo vacío se ve siempre (también en días que aún no llegan). */ contorno?: boolean; children?: React.ReactNode }) {
   const fondo = estado === "hecho" ? color : estado === "parcial" ? `color-mix(in srgb, ${color} 30%, transparent)` : undefined;
   return (
     <button
@@ -288,7 +288,7 @@ function CeldaEstado({ estado, color, inhabilitado, etiqueta, alPulsar, tamano =
       disabled={inhabilitado}
       data-estado={estado ?? "vacio"}
       style={{ background: fondo, borderColor: estado === "hecho" || estado === "parcial" ? color : undefined }}
-      className={`relative flex ${tamano} shrink-0 items-center justify-center rounded-full border text-xs ${inhabilitado ? "cursor-default border-transparent opacity-30" : "border-borde hover:border-acento"}`}
+      className={`relative flex ${tamano} shrink-0 items-center justify-center rounded-full border text-xs ${contorno ? `border-[color-mix(in_srgb,var(--tenue)_60%,transparent)] ${inhabilitado ? "cursor-default opacity-45" : "hover:border-acento"}` : inhabilitado ? "cursor-default border-transparent opacity-30" : "border-borde hover:border-acento"}`}
       onClick={alPulsar}
     >
       {children}
@@ -380,12 +380,19 @@ export function VistaHabitos() {
   const [seleccionId, setSeleccionId] = useState<string | null>(null);
   const [abiertoId, setAbiertoId] = useState<string | null>(null);
   const [mes, setMes] = useState(() => new Date());
+  // Tabla del computador: una semana (lunes a domingo) o un mes completo, con flechas para moverse.
+  const [alcanceTabla, setAlcanceTabla] = useState<"semana" | "mes">("semana");
+  const [baseTabla, setBaseTabla] = useState(() => startOfDay(new Date()));
 
   const hoy = startOfDay(new Date());
+  const diasTabla = alcanceTabla === "semana" ? Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(baseTabla, { weekStartsOn: 1 }), i)) : eachDayOfInterval({ start: startOfMonth(baseTabla), end: endOfMonth(baseTabla) });
+  const moverTabla = (pasos: number) => setBaseTabla(alcanceTabla === "semana" ? addDays(baseTabla, 7 * pasos) : addMonths(baseTabla, pasos));
+  const tituloTabla = format(alcanceTabla === "semana" ? diasTabla[0] : baseTabla, "MMM", { locale: es }).replace(".", "");
   const semana = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(hoy, i - 6)), [hoy.getTime()]);
   // Todos en una sola lista: primero los activos y al final los que están apagados.
   const visibles = [...habitos].sort((a, b) => Number(a.archivado) - Number(b.archivado) || a.orden - b.orden);
   const seleccionado = habitos.find((h) => h.id === seleccionId) ?? null;
+  const activos = visibles.filter((h) => !h.archivado);
 
   const marcar = (h: Habito, dia: Date) => {
     if (h.metaDiaria > 1) {
@@ -474,7 +481,80 @@ export function VistaHabitos() {
           </button>
         </header>
 
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        {/* Solo en el computador: los hábitos activos contra los días, para marcarlos de un vistazo. */}
+        {activos.length > 0 && (
+          <section aria-label="Hábitos por día" data-testid="tabla-habitos" className="mb-6 hidden lg:block">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex items-center">
+                <button type="button" aria-label={alcanceTabla === "semana" ? "Semana anterior" : "Mes anterior de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(-1)}>
+                  <ChevronLeft size={18} />
+                </button>
+                <span data-testid="titulo-tabla-habitos" title={format(baseTabla, "MMMM yyyy", { locale: es })} className="min-w-12 px-1.5 text-center text-lg font-semibold first-letter:uppercase">
+                  {tituloTabla}
+                </span>
+                <button type="button" aria-label={alcanceTabla === "semana" ? "Semana siguiente" : "Mes siguiente de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(1)}>
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+              <div role="group" aria-label="Ver por" className="ml-auto flex gap-0.5 rounded-md bg-suave p-0.5">
+                {(["semana", "mes"] as const).map((a) => (
+                  <button key={a} type="button" aria-pressed={alcanceTabla === a} className={`rounded px-2.5 py-1 text-xs first-letter:uppercase ${alcanceTabla === a ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`} onClick={() => setAlcanceTabla(a)}>
+                    {a === "semana" ? "Semana" : "Mes"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="overflow-x-auto pb-1">
+              <div
+                className={`grid items-stretch gap-y-1.5 ${alcanceTabla === "semana" ? "gap-x-1" : "gap-x-0.5"}`}
+                style={{ gridTemplateColumns: alcanceTabla === "semana" ? "minmax(10rem, 16rem) repeat(7, minmax(3rem, 1fr))" : `minmax(9rem, 13rem) repeat(${diasTabla.length}, minmax(1.5rem, 1fr))` }}
+              >
+                <span />
+                {diasTabla.map((dia) => {
+                  const esHoy = isSameDay(dia, hoy);
+                  return (
+                    <div key={claveDia(dia)} className={`flex flex-col items-center rounded-lg py-1 leading-tight ${esHoy ? "bg-acento-suave" : "bg-panel"}`}>
+                      <span className={`first-letter:uppercase ${alcanceTabla === "semana" ? "text-xs" : "text-[10px]"} ${esHoy ? "font-semibold text-acento" : "text-texto"}`}>{alcanceTabla === "semana" ? NOMBRES_DIA[(dia.getDay() + 6) % 7].slice(0, 3) : INICIALES_DIA[(dia.getDay() + 6) % 7]}</span>
+                      <span className={`font-semibold tabular-nums ${alcanceTabla === "semana" ? "text-base" : "text-xs"} ${esHoy ? "text-acento" : ""}`}>{format(dia, "d")}</span>
+                    </div>
+                  );
+                })}
+                {activos.map((h) => {
+                  const indice = indexarRegistros(registros, h.id);
+                  return (
+                    <Fragment key={h.id}>
+                      <div data-testid="fila-tabla-habito" className="flex min-w-0 items-center gap-2 rounded-lg border-l-4 bg-panel px-2 py-1.5" style={{ borderLeftColor: h.color }}>
+                        <IconoHabito nombre={h.icono} color={h.color} />
+                        <span className="truncate text-sm font-medium" title={h.nombre}>{h.nombre}</span>
+                      </div>
+                      {diasTabla.map((dia) => {
+                        const r = indice.get(claveDia(dia));
+                        return (
+                          <div key={claveDia(dia)} className={`flex items-center justify-center rounded-lg py-1 ${isSameDay(dia, hoy) ? "bg-acento-suave" : "bg-panel"}`}>
+                            <CeldaEstado
+                              contorno
+                              tamano={alcanceTabla === "semana" ? "h-8 w-8" : "h-5 w-5"}
+                              estado={r?.estado ?? null}
+                              color={h.color}
+                              inhabilitado={!esEditable(h, dia, hoy)}
+                              etiqueta={`Marcar ${h.nombre} el ${format(dia, "EEEE d 'de' MMMM", { locale: es })}: ${NOMBRES_ESTADO[r?.estado ?? "vacio"]}`}
+                              alPulsar={() => marcar(h, dia)}
+                            >
+                              {h.metaDiaria > 1 && r ? <span className={`tabular-nums ${r.estado === "hecho" ? "font-medium text-white" : ""}`}>{r.valor}</span> : undefined}
+                            </CeldaEstado>
+                          </div>
+                        );
+                      })}
+                    </Fragment>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {visibles.length > 0 && <h2 className="mb-3 hidden border-b border-borde pb-1 text-base font-semibold lg:block">Configuración</h2>}
+        <div className={`grid items-start gap-4 ${seleccionado ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
           <div className="min-w-0">
             {!visibles.length && (
               <div className="mt-16 text-center">
@@ -482,7 +562,8 @@ export function VistaHabitos() {
                 <p className="mt-1 text-sm text-tenue">Crea uno pequeño y fácil de cumplir para empezar.</p>
               </div>
             )}
-            <ul className="space-y-2">
+            {/* En el computador las tarjetas van de a dos, salvo cuando el historial ocupa el costado. */}
+            <ul className={`grid items-start gap-2 ${seleccionado ? "" : "lg:grid-cols-2"}`}>
               {visibles.map((h) => {
                 const indice = indexarRegistros(registros, h.id);
                 const rachas = calcularRachas(h, indice, hoy);
