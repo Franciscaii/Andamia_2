@@ -835,6 +835,10 @@ test("menú Widgets (app de PC): añadir y quitar widgets del escritorio", async
   await expect(page.getByRole("button", { name: "Ajustes de Semana" })).toHaveAttribute("aria-expanded", "false");
   // Abajo de la vista Semana de la app está "Ajustes del Widget", que lleva a los ajustes de ese widget.
   await page.goto("/#/tareas/semana");
+  // Va pegado a la tarjeta de tareas, no al fondo de la ventana.
+  const tarjeta = (await page.getByTestId("tarjeta-tareas").boundingBox())!;
+  const enlace = (await page.getByRole("link", { name: "Ajustes del Widget" }).boundingBox())!;
+  expect(enlace.y - (tarjeta.y + tarjeta.height)).toBeLessThan(16);
   await page.getByRole("link", { name: "Ajustes del Widget" }).click();
   await expect(page).toHaveURL(/#\/widgets\/semana$/);
   await expect(page.getByRole("button", { name: "Ajustes de Semana" })).toHaveAttribute("aria-expanded", "true");
@@ -867,6 +871,13 @@ test.describe("celular", () => {
     await expect(interruptor).toHaveAttribute("aria-checked", "false");
     // Un toque a la derecha lo deja hecho.
     await arrastrar(0.9);
+    await expect(interruptor).toHaveAttribute("aria-checked", "true");
+    // Pinchar el círculo cuando ya está hecho (a la derecha) lo desmarca; y otra vez lo marca.
+    await page.waitForTimeout(300);
+    await perilla.click();
+    await expect(interruptor).toHaveAttribute("aria-checked", "false");
+    await page.waitForTimeout(300);
+    await perilla.click();
     await expect(interruptor).toHaveAttribute("aria-checked", "true");
     await page.reload();
     await expect(interruptor).toHaveAttribute("aria-checked", "true");

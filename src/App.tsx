@@ -16,7 +16,8 @@ const ANCHO_MENU_MAX = 420;
 import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes, VistaTema } from "./vistas/VistaAjustes";
 import { VistaWidgets } from "./vistas/VistaWidgets";
-import { puenteEscritorio, useBarraVentana } from "./logica/puenteEscritorio";
+import { useBarraVentana } from "./logica/puenteEscritorio";
+import { EnlaceAjustesWidget } from "./componentes/EnlaceAjustesWidget";
 import { esAppNativa } from "./logica/plataforma";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
 import { VistaCalendario } from "./vistas/VistaCalendario";
@@ -34,31 +35,13 @@ function MotorEnfoque() {
   return null;
 }
 
-/** El widget que muestra lo mismo que esta sección, si hay uno en este dispositivo. */
+/** El widget que muestra lo mismo que esta sección. La Semana pone su enlace ella misma, pegado a su contenido. */
 function widgetDeSeccion(seccion: Seccion): string | null {
-  if (!puenteEscritorio() && !esAppNativa()) return null;
-  const w = WIDGETS.find((x) => {
-    if (x.seccion.tipo !== seccion.tipo) return false;
-    if (x.seccion.tipo === "vista") return seccion.tipo === "vista" && seccion.vista === x.seccion.vista;
-    if (x.seccion.tipo === "estadisticas") return seccion.tipo === "estadisticas" && seccion.de === x.seccion.de;
-    return true;
-  });
+  if (seccion.tipo === "vista") return null;
+  const w = WIDGETS.find((x) => x.seccion.tipo === seccion.tipo && (x.seccion.tipo !== "estadisticas" || (seccion.tipo === "estadisticas" && seccion.de === x.seccion.de)));
   // En el celular no hay widget de Matriz.
   if (!w || (esAppNativa() && w.id === "matriz")) return null;
   return w.id;
-}
-
-/** Abajo de las vistas que tienen widget: lleva al apartado Widgets con los ajustes de ese widget abiertos. */
-function EnlaceAjustesWidget({ seccion }: { seccion: Seccion }) {
-  const id = widgetDeSeccion(seccion);
-  if (!id) return null;
-  return (
-    <div className="shrink-0 px-6 pt-1 pb-3">
-      <a href={`#/widgets/${encodeURIComponent(id)}`} className="text-sm font-medium text-texto underline-offset-2 hover:underline">
-        Ajustes del Widget
-      </a>
-    </div>
-  );
 }
 
 /** La vista de la sección actual. */
@@ -255,7 +238,7 @@ export default function App() {
           </div>
         )}
         <Vista ruta={ruta} />
-        <EnlaceAjustesWidget seccion={ruta.seccion} />
+        {widgetDeSeccion(ruta.seccion) && <EnlaceAjustesWidget id={widgetDeSeccion(ruta.seccion)!} clase="shrink-0 px-6 pt-1 pb-3" />}
       </main>
 
       {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}
