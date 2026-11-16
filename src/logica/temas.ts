@@ -176,8 +176,9 @@ export function aplicarTema(e: EleccionTema) {
   raiz.dataset.tema = t.id;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t.lateral);
   if (esAppNativa()) {
-    // El color de arriba es el del fondo de la página: la franja del teléfono queda igual a lo que se ve.
-    void import("./widgetAndroid").then((m) => m.pintarBarraSistema(t.fondo, luminancia(t.fondo) <= 0.45));
+    // Arriba el color del inicio del fondo y abajo el del final (en un degradado): las franjas del teléfono quedan igual a lo que se ve.
+    const abajo = t.tipoFondo === "degradado" ? t.fondo2 : t.fondo;
+    void import("./widgetAndroid").then((m) => m.pintarBarraSistema(t.fondo, luminancia(t.fondo) <= 0.45, abajo, luminancia(abajo) <= 0.45));
   }
   guardarLocal(CLAVE_TEMA, JSON.stringify(e));
   guardarLocal(t.oscuro ? CLAVE_ULTIMO.oscuro : CLAVE_ULTIMO.claro, t.id);

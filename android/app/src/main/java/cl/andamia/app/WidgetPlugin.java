@@ -47,6 +47,8 @@ public class WidgetPlugin extends Plugin {
     public void barraSistema(PluginCall call) {
         final String texto = call.getString("color", "");
         final boolean oscuro = Boolean.TRUE.equals(call.getBoolean("oscuro", false));
+        final String textoAbajo = call.getString("colorAbajo", texto);
+        final boolean oscuroAbajo = Boolean.TRUE.equals(call.getBoolean("oscuroAbajo", oscuro));
         if (getActivity() == null) {
             call.resolve();
             return;
@@ -56,12 +58,14 @@ public class WidgetPlugin extends Plugin {
                 int color = Color.parseColor(texto);
                 Window ventana = getActivity().getWindow();
                 // Con la pantalla de borde a borde, lo que asoma bajo la barra es el fondo de la ventana.
-                ventana.getDecorView().setBackgroundColor(color);
+                int abajo = Color.parseColor(textoAbajo);
+                // Arriba el color del inicio del fondo y abajo el del final, como el degradado de la página.
+                ventana.getDecorView().setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM, new int[] { color, abajo }));
                 ventana.setStatusBarColor(color);
-                ventana.setNavigationBarColor(color);
+                ventana.setNavigationBarColor(abajo);
                 WindowInsetsControllerCompat control = WindowCompat.getInsetsController(ventana, ventana.getDecorView());
                 control.setAppearanceLightStatusBars(!oscuro);
-                control.setAppearanceLightNavigationBars(!oscuro);
+                control.setAppearanceLightNavigationBars(!oscuroAbajo);
             } catch (Exception e) {
                 // Color que no se entiende: la barra queda como estaba.
             }

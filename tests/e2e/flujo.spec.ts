@@ -1129,3 +1129,12 @@ test("hábitos: de a dos en la Semana y tabla por día en el computador", async 
   await expect(page.getByTestId("habito")).toHaveCount(2);
   await expect(page.getByTestId("tabla-habitos")).toBeHidden();
 });
+
+test("estadísticas: el filtro Año viene elegido por defecto", async ({ page }) => {
+  await page.goto("/#/estadisticas/tareas");
+  await expect(page.getByRole("button", { name: "Año", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.goto("/#/estadisticas/habitos");
+  await expect(page.getByRole("button", { name: "Año", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Semana", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Semana", exact: true })).toHaveAttribute("aria-pressed", "true");
+});

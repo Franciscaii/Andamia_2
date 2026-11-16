@@ -84,7 +84,7 @@ final class DatosWidget {
     }
 
     static String periodo(Context c, int idWidget) {
-        return prefs(c).getString("periodo_" + idWidget, "semana");
+        return prefs(c).getString("periodo_" + idWidget, "anio");
     }
 
     /** Cuánto se movió con las flechas un widget de estadísticas: "pasos|día en que se movió". */

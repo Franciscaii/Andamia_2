@@ -7,7 +7,7 @@ import { hashDe, type Seccion } from "../logica/ruta";
 export function VistaConfiguracion() {
   const fila = (nombre: string, destino: Seccion, dibujo: ReactNode) => (
     <li key={nombre}>
-      <a href={hashDe(destino)} className="flex items-center gap-3 rounded-xl border border-borde bg-panel px-4 py-3.5 text-sm font-medium hover:bg-suave">
+      <a href={hashDe(destino)} className="flex items-center gap-4 rounded-2xl border border-borde bg-panel px-5 py-6 text-base font-medium hover:bg-suave">
         <span className="text-tenue">{dibujo}</span>
         <span className="flex-1">{nombre}</span>
         <ChevronRight size={16} className="text-tenue" />
@@ -20,11 +20,11 @@ export function VistaConfiguracion() {
         <Settings size={22} />
         <h1 className="text-lg font-semibold">Configuración</h1>
       </header>
-      <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-8 sm:px-6">
-        {fila("Tema", { tipo: "tema" }, <Palette size={20} />)}
-        {esAppNativa() && fila("Widgets", { tipo: "widgets" }, <LayoutDashboard size={20} />)}
-        {fila("Cuenta y ajustes", { tipo: "ajustes" }, <UserCog size={20} />)}
-        {fila("Papelera", { tipo: "vista", vista: "papelera" }, <Trash2 size={20} />)}
+      <ul className="flex min-h-0 flex-1 flex-col justify-center gap-4 overflow-y-auto px-4 pb-16 sm:px-6">
+        {fila("Tema", { tipo: "tema" }, <Palette size={24} />)}
+        {esAppNativa() && fila("Widgets", { tipo: "widgets" }, <LayoutDashboard size={24} />)}
+        {fila("Cuenta y ajustes", { tipo: "ajustes" }, <UserCog size={24} />)}
+        {fila("Papelera", { tipo: "vista", vista: "papelera" }, <Trash2 size={24} />)}
       </ul>
     </div>
   );
