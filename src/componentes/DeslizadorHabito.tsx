@@ -5,7 +5,7 @@ const PERILLA = 24;
 const MARGEN = 2;
 
 /**
- * Interruptor largo de un hábito: se marca pinchando su lado derecho (el círculo se va a la
+ * Interruptor largo de un hábito: se marca pinchando su lado derecho o el círculo (que se va a la
  * derecha y la barra se colorea) y se desmarca pinchando su lado izquierdo. No se arrastra.
  * Con teclado: Enter o Espacio.
  */
@@ -18,7 +18,10 @@ export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar, cl
     if (!marcable || !riel.current) return;
     const r = riel.current.getBoundingClientRect();
     const derecha = e.clientX >= r.left + r.width / 2;
-    if (derecha !== hecho) alCambiar(derecha);
+    // Sin marcar, pinchar el círculo (que está a la izquierda) también lo marca.
+    const enCirculo = !hecho && (e.target as HTMLElement).closest("[data-testid='perilla-habito']") !== null;
+    if (enCirculo) alCambiar(true);
+    else if (derecha !== hecho) alCambiar(derecha);
   };
   const alTeclear = (e: KeyboardEvent) => {
     if (!marcable || (e.key !== "Enter" && e.key !== " ")) return;
@@ -36,7 +39,7 @@ export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar, cl
       aria-disabled={!marcable}
       aria-label={`Hábito ${nombre}`}
       data-testid="deslizador-habito"
-      title={marcable ? (hecho ? "Pincha a la izquierda para quitar la marca" : "Pincha a la derecha para marcarlo hecho") : "Todavía no llega este día"}
+      title={marcable ? (hecho ? "Pincha a la izquierda para quitar la marca" : "Pincha el círculo o a la derecha para marcarlo hecho") : "Todavía no llega este día"}
       onClick={alPinchar}
       onKeyDown={alTeclear}
       className={`relative h-7 ${clase} overflow-hidden rounded-full bg-suave ring-1 ring-borde ring-inset ${marcable ? "cursor-pointer" : "opacity-40"}`}

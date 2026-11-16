@@ -167,6 +167,10 @@ export function MarcoWidget({
       window.location.pathname
     }?abrir${hashDe(ruta.seccion, ruta.tareaId)}`;
   };
+  // Abre Andamia en el apartado Widgets, con los ajustes de este widget desplegados.
+  const abrirAjustes = () => {
+    window.location.href = `${window.location.origin}${window.location.pathname}?abrir#/widgets/${encodeURIComponent(id)}`;
+  };
   // El contenido se achica o agranda con la ventana, para ver todo (o casi todo) a cualquier tamaño.
   const marco = useRef<HTMLDivElement>(null);
   const [escala, setEscala] = useState(1);
@@ -319,6 +323,9 @@ export function MarcoWidget({
                 ? "Arrastra los bordes del widget para cambiar su tamaño."
                 : "Solo este widget; se guarda en este computador."}
             </p>
+            <button type="button" className="block text-xs font-medium text-texto underline-offset-2 hover:underline" onClick={abrirAjustes}>
+              Ajustes del Widget
+            </button>
           </div>
         )}
         <div className="relative flex min-h-0 flex-1 flex-col" data-testid="contenido-widget" ref={contenido} style={{ zoom: escala }}>
