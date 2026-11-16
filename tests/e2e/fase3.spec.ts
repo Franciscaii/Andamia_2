@@ -60,11 +60,15 @@ test("una tarea 'cada lunes' completada genera la siguiente", async ({ page }) =
   await detalle.getByLabel("Nueva subtarea").press("Enter");
   await detalle.getByRole("checkbox", { name: "Completar subtarea: Preparar agenda" }).click();
   await expect(tarea).toContainText("1/1");
+  // El detalle es una ventana encima: se cierra con Guardar antes de seguir con la lista.
+  await detalle.getByRole("button", { name: "Guardar" }).click();
 
   await tarea.getByRole("checkbox", { name: /^Completar: Reunión de equipo/ }).click();
 
   // Sigue pendiente, una semana después y con la subtarea sin marcar.
+  await fila(page, "Reunión de equipo").first().getByRole("button", { name: /^Reunión de equipo/ }).click();
   await expect(detalle.getByLabel("Fecha", { exact: true })).toHaveValue("2026-11-16");
+  await detalle.getByRole("button", { name: "Guardar" }).click();
   await expect(fila(page, "Reunión de equipo").first()).toContainText("0/1");
 
   await page.goto("/#/tareas/completadas");
@@ -318,6 +322,7 @@ test("los datos de la fase 2 sobreviven a la actualización", async ({ page }) =
   await page.getByRole("navigation").getByRole("link", { name: /^Antigua/ }).click();
   await page.getByRole("button", { name: /^Tarea de la fase 2/ }).click();
   await expect(page.getByLabel("Notas", { exact: true })).toHaveValue("Notas viejas");
+  await page.getByRole("complementary", { name: "Detalle de la tarea" }).getByRole("button", { name: "Guardar" }).click();
   await page.getByRole("button", { name: "Kanban" }).click();
   await expect(page.getByRole("region", { name: "Columna Sin sección" })).toContainText("Tarea de la fase 2");
 });

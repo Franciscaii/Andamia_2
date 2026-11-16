@@ -583,7 +583,7 @@ function BotonDia({ dia, activo, ahora, alElegir }: { dia: Date; activo: boolean
       data-testid="boton-dia"
       className={`flex flex-col items-center gap-0.5 rounded-lg py-1 hover:bg-suave ${isOver ? "bg-acento-suave ring-2 ring-acento" : ""}`}
     >
-      <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(dia)}</span>
+      <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-texto"}`}>{nombreCortoDia(dia)}</span>
       <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm tabular-nums ${activo ? "bg-acento font-semibold text-sobre-acento" : esHoy ? "border-2 border-acento font-semibold" : ""}`}>
         {format(dia, "d")}
       </span>
@@ -908,7 +908,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                   <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)} angosta>
                     <div className="mb-2 flex flex-col items-center gap-1">
                       <h2 className="flex flex-col items-center leading-tight">
-                        <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
+                        <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-texto"}`}>{nombreCortoDia(d)}</span>
                         <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
                       </h2>
                       <MenuNuevo pequeno etiqueta={etiquetaNuevo} atajo={atajo} abrirHacia={i < 4 ? "derecha" : "izquierda"} alElegir={(tipo) => nuevoEn(tipo, d)} />
@@ -935,7 +935,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                 <ColumnaDia dia={d} esHoy={esHoy} ahora={ahora} estilo={anchos.estilo(i)}>
                   <div className="mb-2 flex items-center gap-1 px-1">
                     <h2 className="flex min-w-0 flex-1 items-baseline gap-1.5">
-                      <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-tenue"}`}>{nombreCortoDia(d)}</span>
+                      <span className={`text-xs ${esHoy ? "font-semibold text-acento" : "text-texto"}`}>{nombreCortoDia(d)}</span>
                       <span className={`text-lg font-semibold tabular-nums ${esHoy ? "text-acento" : ""}`}>{format(d, "d")}</span>
                       {esHoy && <span className="text-xs font-medium text-acento">Hoy</span>}
                     </h2>

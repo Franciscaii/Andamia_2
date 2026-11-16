@@ -4,6 +4,7 @@ import { useTienda } from "../datos/tienda";
 import { irA } from "../logica/ruta";
 import { COLORES_ETIQUETA, COLORES_LISTA, type Carpeta, type Etiqueta, type Lista } from "../modelos/tipos";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "./Modal";
+import { PanelColor } from "./PanelColor";
 
 export function DialogoLista({ lista, alCerrar }: { lista: Lista | null; alCerrar: () => void }) {
   const carpetas = useTienda((s) => s.carpetas);
@@ -108,6 +109,9 @@ export function DialogoEtiqueta({ etiqueta, alCerrar }: { etiqueta: Etiqueta | n
   const [nombre, setNombre] = useState(etiqueta?.nombreVisible ?? "");
   const [color, setColor] = useState(etiqueta?.color ?? COLORES_ETIQUETA[0]);
   const [error, setError] = useState<string | null>(null);
+  // "Otro color": el círculo multicolor abre el mismo selector de los hábitos y eventos.
+  const [otroAbierto, setOtroAbierto] = useState(false);
+  const personalizado = !COLORES_ETIQUETA.includes(color);
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
@@ -141,11 +145,20 @@ export function DialogoEtiqueta({ etiqueta, alCerrar }: { etiqueta: Etiqueta | n
                 {color === c && <Check size={14} className="text-white" />}
               </button>
             ))}
-            <label className="flex items-center gap-1 text-xs text-tenue" title="Otro color">
-              <input type="color" aria-label="Otro color" value={color} onChange={(e) => setColor(e.target.value)} className="h-7 w-9 cursor-pointer rounded border border-borde bg-transparent" />
-              Otro
-            </label>
+            <button
+              type="button"
+              aria-label="Otro color"
+              aria-expanded={otroAbierto}
+              aria-pressed={personalizado}
+              title="Otro color"
+              onClick={() => setOtroAbierto((a) => !a)}
+              className={`flex h-7 w-7 items-center justify-center rounded-full border border-borde ${personalizado ? "ring-2 ring-acento ring-offset-1 ring-offset-panel" : ""}`}
+              style={{ background: personalizado ? color : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
+            >
+              {personalizado && <Check size={14} className="text-white" />}
+            </button>
           </div>
+          {otroAbierto && <PanelColor valor={color} alCambiar={setColor} />}
         </div>
         {error && (
           <p role="alert" className="text-sm text-peligro">

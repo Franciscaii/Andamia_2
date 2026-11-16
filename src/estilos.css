@@ -170,3 +170,11 @@ html.modo-widget body {
 .barra-fina::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--tenue) 60%, transparent);
 }
+
+/* Ventanas emergentes: se pueden desplazar, pero sin barra a la vista (el contenido queda centrado). */
+.sin-barra {
+  scrollbar-width: none;
+}
+.sin-barra::-webkit-scrollbar {
+  display: none;
+}

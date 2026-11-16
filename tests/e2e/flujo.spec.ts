@@ -236,7 +236,10 @@ test("búsqueda sin acentos, filtros y tema oscuro", async ({ page }) => {
   await page.getByLabel("Filtrar por etiqueta").selectOption("trabajo");
   await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
 
-  await page.getByRole("button", { name: "Usar tema oscuro" }).click();
+  // La paleta del menú (donde estaba la luna) lleva a elegir el tema.
+  await page.getByRole("button", { name: "Elegir tema" }).click();
+  await expect(page).toHaveURL(/#\/tema$/);
+  await page.getByRole("radiogroup", { name: "Tema de la app" }).getByRole("radio", { name: "Noche", exact: true }).click();
   await expect(page.locator("html")).toHaveClass(/dark/);
   await page.reload();
   await expect(page.locator("html")).toHaveClass(/dark/);
@@ -552,11 +555,11 @@ test("temas de color y color de un evento", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-tema", "lavanda");
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector(".barra-lateral")!).backgroundColor)).toBe("rgb(18, 52, 86)");
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundImage)).toContain("linear-gradient");
-  // El sol y la luna pasan a un tema oscuro y vuelven.
-  await page.getByRole("button", { name: "Usar tema oscuro" }).first().click();
+  // Un tema oscuro y de vuelta.
+  await page.getByRole("radiogroup", { name: "Tema de la app" }).getByRole("radio", { name: "Noche", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-tema", "noche");
   await expect(page.locator("html")).toHaveClass(/dark/);
-  await page.getByRole("button", { name: "Usar tema claro" }).first().click();
+  await page.getByRole("radiogroup", { name: "Tema de la app" }).getByRole("radio", { name: "Lavanda" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-tema", "lavanda");
 
   await page.goto("/");
@@ -872,7 +875,7 @@ test.describe("celular", () => {
   }
 });
 
-test("detalle: se cierra tocando de nuevo, con Eliminar y Guardar; el hábito de la Semana también tiene el suyo", async ({ page }) => {
+test("detalle: ventana al medio con Eliminar y Guardar; el hábito de la Semana también tiene el suyo", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/#/habitos");
   await page.getByRole("button", { name: "Nuevo hábito" }).click();
@@ -896,7 +899,10 @@ test("detalle: se cierra tocando de nuevo, con Eliminar y Guardar; el hábito de
   const guardar = detalle.getByRole("button", { name: "Guardar" });
   await expect(eliminar).toHaveText(/Eliminar/);
   expect((await eliminar.boundingBox())!.x).toBeLessThan((await guardar.boundingBox())!.x);
-  await page.getByTestId("fila-evento").click();
+  // Es una ventana al medio y encima (como "Nueva tarea"): tocar fuera la cierra.
+  const caja = (await detalle.boundingBox())!;
+  expect(Math.abs(caja.x + caja.width / 2 - 640)).toBeLessThan(5);
+  await page.mouse.click(5, 5);
   await expect(detalle).toBeHidden();
 
   // Guardar conserva el cambio y cierra.
@@ -910,7 +916,7 @@ test("detalle: se cierra tocando de nuevo, con Eliminar y Guardar; el hábito de
   const habito = page.getByRole("complementary", { name: "Detalle del hábito" });
   await page.getByRole("button", { name: "Ver Leer", exact: true }).first().click();
   await expect(habito).toBeVisible();
-  await page.getByRole("button", { name: "Ver Leer", exact: true }).first().click();
+  await page.mouse.click(5, 5);
   await expect(habito).toBeHidden();
   await page.getByRole("button", { name: "Ver Leer", exact: true }).first().click();
   await habito.getByLabel("Nombre del hábito").fill("Leer mucho");
