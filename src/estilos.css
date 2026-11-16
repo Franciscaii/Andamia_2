@@ -102,6 +102,14 @@
   --sobre-acento: var(--lat-base, #ffffff);
 }
 
+/* En el celular el menú es un cajón sobre la página: lleva debajo el fondo del tema, para que no se
+   trasluzca lo que queda atrás aunque el color del menú sea transparente. */
+@media (max-width: 1023.98px) {
+  .cajon-menu {
+    background: var(--fondo-capa, var(--fondo));
+  }
+}
+
 /* Las ventanas que se abren desde el menú vuelven a los colores normales. */
 .ventana {
   color: var(--app-texto);

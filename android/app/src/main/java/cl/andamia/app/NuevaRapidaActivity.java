@@ -114,7 +114,13 @@ public class NuevaRapidaActivity extends Activity {
         lp.setMargins(px(12), px(24), px(12), px(24));
         raiz.addView(tarjeta, lp);
         setContentView(raiz);
-        mostrarMenu();
+        // Con un filtro puesto en el widget (Tareas, Eventos o Hábitos), el "+" abre directo ese formulario;
+        // con "Todos" se pregunta qué añadir.
+        String filtro = idWidget == AppWidgetManager.INVALID_APPWIDGET_ID ? "todos" : DatosWidget.filtro(this, idWidget);
+        if ("tareas".equals(filtro)) mostrarFormulario("tarea");
+        else if ("eventos".equals(filtro)) mostrarFormulario("evento");
+        else if ("habitos".equals(filtro)) mostrarFormulario("habito");
+        else mostrarMenu();
     }
 
     // ---------- Paso 1: qué crear ----------
