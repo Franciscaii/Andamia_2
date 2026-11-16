@@ -171,7 +171,9 @@ final class TemaWidget {
     static void barra(Context c, RemoteViews vista, int id) {
         if (Build.VERSION.SDK_INT >= 31) {
             vista.setColorStateList(id, "setProgressTintList", ColorStateList.valueOf(de(c, R.color.widget_acento)));
-            vista.setColorStateList(id, "setProgressBackgroundTintList", ColorStateList.valueOf(de(c, R.color.widget_barra_fondo)));
+            // La pista va en el gris del texto tenue, a medias: el color suave es el mismo de la tarjeta y la barra vacía no se veía.
+            int tenue = de(c, R.color.widget_texto_tenue);
+            vista.setColorStateList(id, "setProgressBackgroundTintList", ColorStateList.valueOf(Color.argb(95, Color.red(tenue), Color.green(tenue), Color.blue(tenue))));
         }
     }
 
