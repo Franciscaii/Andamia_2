@@ -17,6 +17,7 @@ import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes, VistaTema } from "./vistas/VistaAjustes";
 import { VistaWidgets } from "./vistas/VistaWidgets";
 import { VistaEtiquetas } from "./vistas/VistaEtiquetas";
+import { VistaConfiguracion } from "./vistas/VistaConfiguracion";
 import { BarraInferior } from "./componentes/BarraInferior";
 import { puenteEscritorio, useBarraVentana } from "./logica/puenteEscritorio";
 import { EnlaceAjustesWidget } from "./componentes/EnlaceAjustesWidget";
@@ -68,6 +69,8 @@ function Vista({ ruta }: { ruta: ReturnType<typeof useRuta> }) {
         <VistaTema />
       ) : ruta.seccion.tipo === "widgets" ? (
         <VistaWidgets />
+      ) : ruta.seccion.tipo === "configuracion" ? (
+        <VistaConfiguracion />
       ) : ruta.seccion.tipo === "etiquetas" ? (
         <VistaEtiquetas />
       ) : ruta.seccion.tipo === "vista" && ruta.seccion.vista === "semana" ? (

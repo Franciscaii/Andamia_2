@@ -4,7 +4,11 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.ComponentName;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Build;
+import android.view.Window;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -36,6 +40,33 @@ public class WidgetPlugin extends Plugin {
         JSObject respuesta = new JSObject();
         respuesta.put("items", TareaRapida.tomar(getContext()));
         call.resolve(respuesta);
+    }
+
+    /** Pinta la barra de estado y la de navegación del color de la app, con iconos claros u oscuros. */
+    @PluginMethod
+    public void barraSistema(PluginCall call) {
+        final String texto = call.getString("color", "");
+        final boolean oscuro = Boolean.TRUE.equals(call.getBoolean("oscuro", false));
+        if (getActivity() == null) {
+            call.resolve();
+            return;
+        }
+        getActivity().runOnUiThread(() -> {
+            try {
+                int color = Color.parseColor(texto);
+                Window ventana = getActivity().getWindow();
+                // Con la pantalla de borde a borde, lo que asoma bajo la barra es el fondo de la ventana.
+                ventana.getDecorView().setBackgroundColor(color);
+                ventana.setStatusBarColor(color);
+                ventana.setNavigationBarColor(color);
+                WindowInsetsControllerCompat control = WindowCompat.getInsetsController(ventana, ventana.getDecorView());
+                control.setAppearanceLightStatusBars(!oscuro);
+                control.setAppearanceLightNavigationBars(!oscuro);
+            } catch (Exception e) {
+                // Color que no se entiende: la barra queda como estaba.
+            }
+            call.resolve();
+        });
     }
 
     /** Devuelve (y olvida) los cambios y borrados hechos en la ventana del widget Semana, como JSON. */

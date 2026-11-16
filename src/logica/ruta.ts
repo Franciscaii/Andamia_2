@@ -13,6 +13,8 @@ export type Seccion =
   | { tipo: "habitos" }
   | { tipo: "ajustes" }
   | { tipo: "tema" }
+  /** Celular: la pantalla de la tuerca con Tema, Widgets, Cuenta y ajustes y Papelera. */
+  | { tipo: "configuracion" }
   | { tipo: "widgets" }
   | { tipo: "buscar" }
   | { tipo: "estadisticas"; de: "tareas" | "habitos" };
@@ -43,7 +45,7 @@ export function leerRuta(hash: string): Ruta {
   if (a === "etiquetas" && b) return { seccion: { tipo: "etiqueta", nombre: b }, tareaId, habitoId };
   if (a === "etiquetas") return { seccion: { tipo: "etiquetas" }, tareaId, habitoId };
   if (a === "calendario") return { seccion: { tipo: "calendario", modo: b === "semana" ? "semana" : "mes" }, tareaId, habitoId };
-  if (a === "matriz" || a === "enfoque" || a === "habitos" || a === "ajustes" || a === "tema" || a === "widgets") return { seccion: { tipo: a }, tareaId, habitoId };
+  if (a === "matriz" || a === "enfoque" || a === "habitos" || a === "ajustes" || a === "tema" || a === "widgets" || a === "configuracion") return { seccion: { tipo: a }, tareaId, habitoId };
   if (a === "buscar") return { seccion: { tipo: "buscar" }, tareaId, habitoId };
   if (a === "estadisticas") return { seccion: { tipo: "estadisticas", de: b === "habitos" ? "habitos" : "tareas" }, tareaId, habitoId };
   return { seccion: INICIO, tareaId, habitoId };
@@ -71,6 +73,7 @@ export function hashDe(seccion: Seccion, tareaId: string | null = null, habitoId
     case "ajustes":
     case "tema":
     case "widgets":
+    case "configuracion":
       base = `#/${seccion.tipo}`;
       break;
     case "buscar":
