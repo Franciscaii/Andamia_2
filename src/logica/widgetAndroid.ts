@@ -411,6 +411,9 @@ export interface NuevaDesdeWidget {
   color?: string;
   icono?: string;
   frecuencia?: FrecuenciaHabito;
+  /** Hábito: último día ("AAAA-MM-DD") y objetivo por día (desde la 1.26). */
+  fin?: string;
+  meta?: number;
 }
 
 const NIVELES_VALIDOS: Prioridad[] = ["alta", "media", "baja", "ninguna"];
@@ -437,9 +440,10 @@ async function crearDesdeWidget(n: NuevaDesdeWidget): Promise<string | null> {
       icono: typeof n.icono === "string" && n.icono ? n.icono : "estrella",
       color: typeof n.color === "string" && /^#[0-9a-f]{6}$/i.test(n.color) ? n.color : COLORES_LISTA[4],
       frecuencia: frecuenciaValida(n.frecuencia),
-      metaDiaria: 1,
+      metaDiaria: typeof n.meta === "number" && n.meta >= 1 ? Math.min(99, Math.round(n.meta)) : 1,
       unidad: "",
       inicio: n.fecha,
+      fin: typeof n.fin === "string" && /^\d{4}-\d{2}-\d{2}$/.test(n.fin) && n.fin >= n.fecha ? n.fin : null,
       recordatorioHora: null,
     });
   }

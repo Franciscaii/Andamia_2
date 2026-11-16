@@ -80,6 +80,10 @@ public class NuevaRapidaActivity extends Activity {
     private String frecuencia = "diaria";
     private final boolean[] diasHabito = new boolean[7];
     private int veces = 3;
+    private final Calendar inicioHabito = Calendar.getInstance();
+    /** Último día del hábito; null = no termina. */
+    private Calendar finHabito = null;
+    private int metaHabito = 1;
 
     @Override
     protected void onCreate(Bundle estado) {
@@ -201,6 +205,11 @@ public class NuevaRapidaActivity extends Activity {
             campos.addView(indoles());
         }
         if (esHabito) {
+            // Igual que en la app: bajo el nombre, la fecha de inicio y la de fin (opcional).
+            campos.addView(seccion("Fecha de inicio · Fecha de fin (opcional)"));
+            LinearLayout zonaFechas = new LinearLayout(this);
+            campos.addView(zonaFechas);
+            pintarFechasHabito(zonaFechas);
             campos.addView(seccion("Ícono"));
             campos.addView(iconos());
             campos.addView(seccion("Color"));
@@ -210,6 +219,11 @@ public class NuevaRapidaActivity extends Activity {
             zonaFrecuencia.setOrientation(LinearLayout.VERTICAL);
             campos.addView(zonaFrecuencia);
             pintarFrecuencia(zonaFrecuencia);
+            campos.addView(seccion("Objetivo por día"));
+            LinearLayout zonaMeta = new LinearLayout(this);
+            zonaMeta.setGravity(Gravity.CENTER_VERTICAL);
+            campos.addView(zonaMeta);
+            pintarMeta(zonaMeta);
         }
 
         // Cancelar y Añadir.
@@ -241,11 +255,67 @@ public class NuevaRapidaActivity extends Activity {
             @Override public void afterTextChanged(Editable s) { pintarBoton(); }
         });
         pintarBoton();
-        campo.requestFocus();
-        campo.postDelayed(() -> {
-            InputMethodManager teclado = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (teclado != null) teclado.showSoftInput(campo, InputMethodManager.SHOW_IMPLICIT);
-        }, 150);
+        // El teclado no se abre solo: así la tarjeta se ve completa; aparece al tocar el nombre.
+    }
+
+    /** Chips de fecha de inicio y de fin del hábito; la de fin se puede quitar. */
+    private void pintarFechasHabito(LinearLayout zona) {
+        zona.removeAllViews();
+        SimpleDateFormat formato = new SimpleDateFormat("d MMM yyyy", ES);
+        boolean oscuro = (Color.red(fondo) * 299 + Color.green(fondo) * 587 + Color.blue(fondo) * 114) / 1000 < 128;
+        int tema = oscuro ? android.R.style.Theme_DeviceDefault_Dialog_Alert : android.R.style.Theme_DeviceDefault_Light_Dialog_Alert;
+
+        TextView inicio = chip("📅  " + (mismoDia(inicioHabito, Calendar.getInstance()) ? "Hoy" : formato.format(inicioHabito.getTime()).replace(".", "")));
+        pintarChip(inicio, false);
+        inicio.setOnClickListener(v -> new DatePickerDialog(this, tema, (x, a, m, dia) -> {
+            inicioHabito.set(a, m, dia);
+            // La fecha de fin nunca queda antes del inicio.
+            if (finHabito != null && finHabito.before(inicioHabito)) finHabito = (Calendar) inicioHabito.clone();
+            pintarFechasHabito(zona);
+        }, inicioHabito.get(Calendar.YEAR), inicioHabito.get(Calendar.MONTH), inicioHabito.get(Calendar.DAY_OF_MONTH)).show());
+        zona.addView(inicio);
+
+        TextView fin = chip(finHabito == null ? "🏁  Sin fin" : "🏁  " + formato.format(finHabito.getTime()).replace(".", ""));
+        pintarChip(fin, finHabito != null);
+        fin.setOnClickListener(v -> {
+            Calendar base = finHabito != null ? finHabito : inicioHabito;
+            DatePickerDialog dialogo = new DatePickerDialog(this, tema, (x, a, m, dia) -> {
+                Calendar elegida = (Calendar) inicioHabito.clone();
+                elegida.set(a, m, dia);
+                finHabito = elegida.before(inicioHabito) ? (Calendar) inicioHabito.clone() : elegida;
+                pintarFechasHabito(zona);
+            }, base.get(Calendar.YEAR), base.get(Calendar.MONTH), base.get(Calendar.DAY_OF_MONTH));
+            dialogo.getDatePicker().setMinDate(inicioHabito.getTimeInMillis());
+            dialogo.show();
+        });
+        zona.addView(fin);
+
+        if (finHabito != null) {
+            TextView quitar = chip("✕");
+            pintarChip(quitar, false);
+            quitar.setContentDescription("Quitar la fecha de fin");
+            quitar.setOnClickListener(v -> { finHabito = null; pintarFechasHabito(zona); });
+            zona.addView(quitar);
+        }
+    }
+
+    /** Objetivo por día del hábito: menos, la cifra y más. */
+    private void pintarMeta(LinearLayout zona) {
+        zona.removeAllViews();
+        TextView menos = chip("−");
+        TextView cifra = new TextView(this);
+        cifra.setText(metaHabito + (metaHabito == 1 ? " vez al día" : " veces al día"));
+        cifra.setTextColor(texto);
+        cifra.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        cifra.setPadding(px(4), 0, px(10), 0);
+        TextView mas = chip("+");
+        pintarChip(menos, false);
+        pintarChip(mas, false);
+        menos.setOnClickListener(v -> { metaHabito = Math.max(1, metaHabito - 1); pintarMeta(zona); });
+        mas.setOnClickListener(v -> { metaHabito = Math.min(99, metaHabito + 1); pintarMeta(zona); });
+        zona.addView(menos);
+        zona.addView(cifra);
+        zona.addView(mas);
     }
 
     private View niveles(boolean importancia) {
@@ -776,7 +846,7 @@ public class NuevaRapidaActivity extends Activity {
         try {
             n.put("tipo", tipo);
             n.put("titulo", campo.getText().toString().trim());
-            n.put("fecha", new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(("habito".equals(tipo) ? Calendar.getInstance() : fecha).getTime()));
+            n.put("fecha", new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(("habito".equals(tipo) ? inicioHabito : fecha).getTime()));
             n.put("evento", "evento".equals(tipo));
             if ("tarea".equals(tipo)) {
                 n.put("prioridad", prioridad);
@@ -796,6 +866,8 @@ public class NuevaRapidaActivity extends Activity {
                 }
                 if ("semanal".equals(frecuencia)) f.put("veces", veces);
                 n.put("frecuencia", f);
+                if (finHabito != null) n.put("fin", new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(finHabito.getTime()));
+                n.put("meta", metaHabito);
             }
         } catch (Exception e) {
             return;
