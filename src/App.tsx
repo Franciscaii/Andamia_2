@@ -3,8 +3,8 @@ import { Menu, PanelLeftOpen, X } from "lucide-react";
 import { BarraLateral, Marca } from "./componentes/BarraLateral";
 import { DetalleTarea } from "./componentes/DetalleTarea";
 import { useTienda } from "./datos/tienda";
-import { irA, useRuta } from "./logica/ruta";
-import { WIDGET_ACTUAL } from "./logica/widgetEscritorio";
+import { irA, useRuta, type Seccion } from "./logica/ruta";
+import { WIDGET_ACTUAL, WIDGETS } from "./logica/widgetEscritorio";
 import { MarcoWidget } from "./componentes/MarcoWidget";
 import { PanelAvisos } from "./componentes/Avisos";
 import { DialogoMigracion } from "./componentes/DialogoMigracion";
@@ -16,7 +16,8 @@ const ANCHO_MENU_MAX = 420;
 import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes, VistaTema } from "./vistas/VistaAjustes";
 import { VistaWidgets } from "./vistas/VistaWidgets";
-import { useBarraVentana } from "./logica/puenteEscritorio";
+import { puenteEscritorio, useBarraVentana } from "./logica/puenteEscritorio";
+import { esAppNativa } from "./logica/plataforma";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
 import { VistaCalendario } from "./vistas/VistaCalendario";
 import { VistaEnfoque } from "./vistas/VistaEnfoque";
@@ -31,6 +32,33 @@ function MotorEnfoque() {
   // Espera a que los datos carguen para no perder la sesión al registrarla.
   useMotorEnfoque();
   return null;
+}
+
+/** El widget que muestra lo mismo que esta sección, si hay uno en este dispositivo. */
+function widgetDeSeccion(seccion: Seccion): string | null {
+  if (!puenteEscritorio() && !esAppNativa()) return null;
+  const w = WIDGETS.find((x) => {
+    if (x.seccion.tipo !== seccion.tipo) return false;
+    if (x.seccion.tipo === "vista") return seccion.tipo === "vista" && seccion.vista === x.seccion.vista;
+    if (x.seccion.tipo === "estadisticas") return seccion.tipo === "estadisticas" && seccion.de === x.seccion.de;
+    return true;
+  });
+  // En el celular no hay widget de Matriz.
+  if (!w || (esAppNativa() && w.id === "matriz")) return null;
+  return w.id;
+}
+
+/** Abajo de las vistas que tienen widget: lleva al apartado Widgets con los ajustes de ese widget abiertos. */
+function EnlaceAjustesWidget({ seccion }: { seccion: Seccion }) {
+  const id = widgetDeSeccion(seccion);
+  if (!id) return null;
+  return (
+    <div className="shrink-0 px-6 pt-1 pb-3">
+      <a href={`#/widgets/${encodeURIComponent(id)}`} className="text-sm font-medium text-texto underline-offset-2 hover:underline">
+        Ajustes del Widget
+      </a>
+    </div>
+  );
 }
 
 /** La vista de la sección actual. */
@@ -227,6 +255,7 @@ export default function App() {
           </div>
         )}
         <Vista ruta={ruta} />
+        <EnlaceAjustesWidget seccion={ruta.seccion} />
       </main>
 
       {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}

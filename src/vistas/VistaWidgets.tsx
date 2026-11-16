@@ -26,6 +26,26 @@ const WIDGETS_ANDROID: { tipo: string; nombre: string; icono: LucideIcon }[] = [
 /** Esquinas máximas en el celular (dp); se muestran como porcentaje de este máximo. */
 const MAX_ESQUINAS_ANDROID = 40;
 
+/** Widget pedido en la dirección ("#/widgets/semana"): llega desde "Ajustes del Widget". */
+const widgetPedido = () => decodeURIComponent(window.location.hash.replace(/^#\/?/, "").split("/")[1] ?? "");
+
+/** Tarjeta de un widget: parte desplegada (y a la vista) si la dirección pide ese widget. */
+function useTarjetaPedida(id: string) {
+  const [abierta, setAbierta] = useState(() => widgetPedido() === id);
+  const tarjeta = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    const alPedir = () => {
+      if (widgetPedido() !== id) return;
+      setAbierta(true);
+      tarjeta.current?.scrollIntoView({ block: "nearest" });
+    };
+    alPedir();
+    window.addEventListener("hashchange", alPedir);
+    return () => window.removeEventListener("hashchange", alPedir);
+  }, [id]);
+  return { abierta, setAbierta, tarjeta };
+}
+
 function Deslizador({ etiqueta, valor, min = 0, max, porcentaje, alCambiar }: { etiqueta: string; valor: number; min?: number; max: number; porcentaje: number; alCambiar: (v: number) => void }) {
   return (
     <label className="block">
@@ -54,7 +74,7 @@ function TarjetaWidget({
   alAnclar: () => void;
   alQuitar: () => void;
 }) {
-  const [abierta, setAbierta] = useState(false);
+  const { abierta, setAbierta, tarjeta } = useTarjetaPedida(w.tipo);
   const [config, setConfig] = useState<ConfigWidget>(configInicial);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Si los ajustes llegan del celular después de abrir el apartado, se muestran.
@@ -67,7 +87,7 @@ function TarjetaWidget({
   };
   const puesto = puestos > 0;
   return (
-    <li data-testid="widget-celular" className="rounded-2xl border border-borde bg-panel shadow-sm">
+    <li ref={tarjeta} data-testid="widget-celular" className="rounded-2xl border border-borde bg-panel shadow-sm">
       <div className="flex items-center gap-3 p-4">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-acento">
           <w.icono size={20} />
@@ -248,23 +268,8 @@ function AjustesWidgetEscritorio({ id, nombre }: { id: string; nombre: string })
   );
 }
 
-/** Widget pedido en la dirección ("#/widgets/semana"): llega desde "Ajustes del Widget" de su ventana. */
-const widgetPedido = () => decodeURIComponent(window.location.hash.replace(/^#\/?/, "").split("/")[1] ?? "");
-
 function TarjetaWidgetEscritorio({ w, puesto, alCambiarPuesto }: { w: (typeof WIDGETS)[number]; puesto: boolean; alCambiarPuesto: () => void }) {
-  const [abierta, setAbierta] = useState(() => widgetPedido() === w.id);
-  const tarjeta = useRef<HTMLLIElement>(null);
-  // Si se pide este widget (al entrar o estando ya en el apartado), se despliega y queda a la vista.
-  useEffect(() => {
-    const alPedir = () => {
-      if (widgetPedido() !== w.id) return;
-      setAbierta(true);
-      tarjeta.current?.scrollIntoView({ block: "nearest" });
-    };
-    alPedir();
-    window.addEventListener("hashchange", alPedir);
-    return () => window.removeEventListener("hashchange", alPedir);
-  }, [w.id]);
+  const { abierta, setAbierta, tarjeta } = useTarjetaPedida(w.id);
   const { icono: Icono, texto } = DETALLE[w.id];
   return (
     <li ref={tarjeta} data-testid="widget-disponible" className="rounded-2xl border border-borde bg-panel shadow-sm">
