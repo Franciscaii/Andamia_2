@@ -316,7 +316,11 @@ public class NuevaRapidaActivity extends Activity {
         JSONArray lista = formulario == null ? null : formulario.optJSONArray("coloresEvento");
         for (int i = 0; lista != null && i < lista.length(); i++) colores.add(lista.optString(i));
         if (lista == null) for (String c : COLORES_HABITO) colores.add(c);
-        return circulos(colores, true, null, null);
+        // Igual que en el hábito: el último círculo abre el selector de un color a elección.
+        final List<String> fijos = new ArrayList<>();
+        for (String c : colores) fijos.add(c == null ? "" : c);
+        colores.add(PERSONALIZADO);
+        return conSelector(colores, true, fijos);
     }
 
     private View coloresHabito() {
@@ -329,17 +333,32 @@ public class NuevaRapidaActivity extends Activity {
         // (barra de tonos a la izquierda y cuadro de intensidad y brillo a la derecha).
         final List<String> fijos = new ArrayList<>(colores);
         colores.add(PERSONALIZADO);
+        return conSelector(colores, false, fijos);
+    }
+
+    /** El color elegido del evento ("" si es el morado por defecto) o del hábito. */
+    private String elegido(boolean deEvento) {
+        return deEvento ? (colorEvento == null ? "" : colorEvento) : colorHabito;
+    }
+
+    private void elegir(boolean deEvento, String valor) {
+        if (deEvento) colorEvento = valor == null || valor.isEmpty() ? null : valor;
+        else colorHabito = valor;
+    }
+
+    /** La fila de círculos y, debajo, el selector de color a elección (oculto hasta tocar el último círculo). */
+    private View conSelector(List<String> colores, final boolean deEvento, final List<String> fijos) {
         LinearLayout zona = new LinearLayout(this);
         zona.setOrientation(LinearLayout.VERTICAL);
         final SelectorColor selector = new SelectorColor(this);
         selector.setVisibility(View.GONE);
-        final View fila = circulos(colores, false, fijos, () -> {
-            selector.poner(colorSeguro(colorHabito, acento));
+        final View fila = circulos(colores, deEvento, fijos, () -> {
+            selector.poner(colorSeguro(elegido(deEvento), acento));
             selector.setVisibility(View.VISIBLE);
         });
         selector.alCambiar = color -> {
-            colorHabito = String.format(Locale.US, "#%06x", 0xFFFFFF & color);
-            repintarCirculos(fila, fijos);
+            elegir(deEvento, String.format(Locale.US, "#%06x", 0xFFFFFF & color));
+            repintarCirculos(fila, deEvento, fijos);
         };
         zona.addView(fila, ancho());
         LinearLayout.LayoutParams ls = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(150));
@@ -471,13 +490,13 @@ public class NuevaRapidaActivity extends Activity {
     }
 
     /** Vuelve a pintar los círculos de una fila (están dentro de su desplazamiento horizontal). */
-    private void repintarCirculos(View fila, List<String> fijos) {
+    private void repintarCirculos(View fila, boolean deEvento, List<String> fijos) {
         if (!(fila instanceof ViewGroup)) return;
         ViewGroup g = (ViewGroup) fila;
         for (int i = 0; i < g.getChildCount(); i++) {
             View v = g.getChildAt(i);
-            if (v instanceof TextView && v.getTag() instanceof String) pintarCirculo((TextView) v, false, fijos);
-            else repintarCirculos(v, fijos);
+            if (v instanceof TextView && v.getTag() instanceof String) pintarCirculo((TextView) v, deEvento, fijos);
+            else repintarCirculos(v, deEvento, fijos);
         }
     }
 
@@ -496,10 +515,9 @@ public class NuevaRapidaActivity extends Activity {
             punto.setOnClickListener(v -> {
                 if (PERSONALIZADO.equals(valor)) {
                     // Parte de un tono propio y muestra la barra para cambiarlo.
-                    if (fijos != null && fijos.contains(colorHabito)) colorHabito = "#3d94cc";
+                    if (fijos != null && fijos.contains(elegido(deEvento))) elegir(deEvento, "#3d94cc");
                     if (alPersonalizar != null) alPersonalizar.run();
-                } else if (deEvento) colorEvento = valor;
-                else colorHabito = valor;
+                } else elegir(deEvento, valor);
                 for (TextView o : todos) pintarCirculo(o, deEvento, fijos);
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(px(30), px(30));
@@ -512,9 +530,9 @@ public class NuevaRapidaActivity extends Activity {
 
     private void pintarCirculo(TextView punto, boolean deEvento, List<String> fijos) {
         String valor = (String) punto.getTag();
-        String elegido = deEvento ? (colorEvento == null ? "" : colorEvento) : colorHabito;
+        String elegido = elegido(deEvento);
         boolean propio = PERSONALIZADO.equals(valor);
-        boolean es = propio ? fijos != null && !fijos.contains(colorHabito) : valor.equals(elegido);
+        boolean es = propio ? fijos != null && !fijos.contains(elegido) : valor.equals(elegido);
         GradientDrawable g = new GradientDrawable();
         g.setShape(GradientDrawable.OVAL);
         if (propio && !es) {
@@ -522,7 +540,7 @@ public class NuevaRapidaActivity extends Activity {
             g.setGradientType(GradientDrawable.SWEEP_GRADIENT);
             g.setColors(new int[] { 0xFFE5484D, 0xFFF5D90A, 0xFF30A46C, 0xFF00A2C7, 0xFF3E63DD, 0xFFD6409F, 0xFFE5484D });
         } else {
-            g.setColor(colorSeguro(propio ? colorHabito : valor.isEmpty() ? MORADO_EVENTO : valor, acento));
+            g.setColor(colorSeguro(propio ? elegido : valor.isEmpty() ? MORADO_EVENTO : valor, acento));
         }
         if (es) g.setStroke(px(2.5f), texto);
         punto.setBackground(g);

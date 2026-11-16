@@ -567,6 +567,15 @@ test("temas de color y color de un evento", async ({ page }) => {
   await dialogo.getByRole("radiogroup", { name: "Color del evento" }).getByRole("radio", { name: "#e0245e" }).click();
   await dialogo.getByRole("button", { name: "Crear evento" }).click();
   await expect(page.getByTestId("fila-evento")).toHaveAttribute("style", /border-color: rgb\(224, 36, 94\)/);
+
+  // Color a elección: el círculo arcoíris abre el mismo selector de los hábitos (barra de tonos y cuadro).
+  await page.getByTestId("fila-evento").click();
+  const colores = page.getByRole("radiogroup", { name: "Color del evento" });
+  await colores.getByRole("button", { name: "Otro color" }).click();
+  await expect(colores.getByTestId("panel-color")).toBeVisible();
+  await colores.getByRole("slider", { name: "Tono" }).press("ArrowUp");
+  await expect(colores.getByRole("button", { name: "Otro color" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("fila-evento").first()).not.toHaveAttribute("style", /border-color: rgb\(224, 36, 94\)/);
 });
 
 async function arrastrar(page: Page, desde: import("@playwright/test").Locator, hasta: import("@playwright/test").Locator) {
