@@ -1,22 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dos hábitos del día lado a lado en el widget Semana: cada mitad recibe un widget_habito. -->
+<!-- Dos hábitos del día lado a lado en el widget Semana. Las dos mitades van escritas aquí (sin RemoteViews anidados), para que cada toque llegue a su propio hábito. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/par_fila"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:baselineAligned="false"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:paddingBottom="4dp">
 
-    <FrameLayout
-        android:id="@+id/par_izq"
+    <LinearLayout
+        android:id="@+id/a_fila"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:background="@drawable/widget_oval"
+        android:gravity="center_vertical"
+        android:minHeight="46dp"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="6dp"
+        android:paddingBottom="8dp">
 
-    <FrameLayout
-        android:id="@+id/par_der"
+        <TextView
+            android:id="@+id/a_titulo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_texto"
+            android:textSize="14sp" />
+
+        <FrameLayout
+            android:id="@+id/a_marca"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="8dp"
+            android:layout_weight="3"
+            android:background="@drawable/widget_riel"
+            android:contentDescription="Marcar el hábito">
+
+            <ImageView
+                android:id="@+id/a_perilla_izq"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="start|center_vertical"
+                android:importantForAccessibility="no"
+                android:scaleType="fitCenter" />
+
+            <ImageView
+                android:id="@+id/a_perilla_der"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="end|center_vertical"
+                android:importantForAccessibility="no"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/b_fila"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:background="@drawable/widget_oval"
+        android:gravity="center_vertical"
+        android:minHeight="46dp"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="6dp"
+        android:paddingBottom="8dp"
+        android:layout_marginStart="4dp">
+
+        <TextView
+            android:id="@+id/b_titulo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_texto"
+            android:textSize="14sp" />
+
+        <FrameLayout
+            android:id="@+id/b_marca"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="8dp"
+            android:layout_weight="3"
+            android:background="@drawable/widget_riel"
+            android:contentDescription="Marcar el hábito">
+
+            <ImageView
+                android:id="@+id/b_perilla_izq"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="start|center_vertical"
+                android:importantForAccessibility="no"
+                android:scaleType="fitCenter" />
+
+            <ImageView
+                android:id="@+id/b_perilla_der"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="end|center_vertical"
+                android:importantForAccessibility="no"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+        </FrameLayout>
+    </LinearLayout>
 </LinearLayout>

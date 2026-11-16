@@ -21,6 +21,8 @@ interface PluginWidget {
   rapidas(): Promise<{ items: string }>;
   /** Cambios y borrados hechos en la ventana del widget Semana, como JSON (ver EdicionRapida.java). */
   ediciones(): Promise<{ items: string }>;
+  /** Pinta la barra de arriba (y la de abajo) del teléfono del color de la app. */
+  barraSistema(opciones: { color: string; oscuro: boolean }): Promise<void>;
   /** Hábitos marcados en el widget Semana, como JSON {"idHabito|AAAA-MM-DD": hecho}. */
   habitosMarcados(): Promise<{ marcas: string }>;
   addListener(evento: "rapida", alAvisar: () => void): Promise<PluginListenerHandle>;
@@ -32,6 +34,15 @@ interface PluginWidget {
 }
 
 const widget = registerPlugin<PluginWidget>("AndamiaWidget");
+
+/** La barra de estado y la de navegación del teléfono toman el color de la app (como TikTok); `oscuro` pone sus iconos claros. */
+export async function pintarBarraSistema(color: string, oscuro: boolean): Promise<void> {
+  try {
+    await widget.barraSistema({ color, oscuro });
+  } catch {
+    // Una versión anterior de la app no trae este método: la barra queda como estaba.
+  }
+}
 
 const MAX_TAREAS = 30;
 const NIVEL: Record<Prioridad, number> = { ninguna: 0, baja: 1, media: 2, alta: 3 };

@@ -3,6 +3,8 @@
  * (menú de color, fondo sólido/degradado/imagen, tarjetas, esquinas y tamaño del texto)
  * y se puede personalizar. Se guarda en este dispositivo.
  */
+import { esAppNativa } from "./plataforma";
+
 export type TipoFondo = "solido" | "degradado" | "imagen";
 
 export interface Tema {
@@ -173,6 +175,10 @@ export function aplicarTema(e: EleccionTema) {
   raiz.classList.toggle("dark", t.oscuro);
   raiz.dataset.tema = t.id;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t.lateral);
+  if (esAppNativa()) {
+    // El color de arriba es el del fondo de la página: la franja del teléfono queda igual a lo que se ve.
+    void import("./widgetAndroid").then((m) => m.pintarBarraSistema(t.fondo, luminancia(t.fondo) <= 0.45));
+  }
   guardarLocal(CLAVE_TEMA, JSON.stringify(e));
   guardarLocal(t.oscuro ? CLAVE_ULTIMO.oscuro : CLAVE_ULTIMO.claro, t.id);
   guardarLocal("andamia-tema", t.oscuro ? "oscuro" : "claro");

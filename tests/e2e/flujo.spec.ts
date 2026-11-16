@@ -358,29 +358,41 @@ test("widget Semana del PC: un solo + junto a los filtros que añade en el día 
   await expect(dias.nth(otro)).toContainText("En el día marcado");
 });
 
-test("celular: el menú va abajo con 7 iconos y el engranaje abre lo demás", async ({ page }) => {
+test("celular: el menú va abajo con 8 iconos y la tuerca abre la pantalla Configuración", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 780 });
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Abrir menú" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Navegación" })).toBeHidden();
   const barra = page.getByTestId("menu-abajo");
-  await expect(barra.locator(":scope > a, :scope > div > button")).toHaveCount(7);
+  await expect(barra.locator(":scope > a")).toHaveCount(8);
+  await expect(barra.locator(":scope > a")).toHaveText(["", "", "", "", "", "", "", ""]);
+  const nombres = await barra.locator(":scope > a").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+  expect(nombres).toEqual(["Configuración", "Etiquetas", "Semana", "Calendario", "Hábitos", "Matriz", "Estadística Tareas", "Estadística Hábitos"]);
   const caja = (await barra.boundingBox())!;
   expect(caja.y + caja.height).toBeGreaterThan(779);
   await expect(barra.getByRole("link", { name: "Semana" })).toHaveAttribute("aria-current", "page");
-  for (const [nombre, direccion] of [["Calendario", /#\/calendario/], ["Estadística Tareas", /#\/estadisticas\/tareas/], ["Hábitos", /#\/habitos/], ["Estadística Hábitos", /#\/estadisticas\/habitos/], ["Etiquetas", /#\/etiquetas$/]] as const) {
+  for (const [nombre, direccion] of [["Calendario", /#\/calendario/], ["Matriz", /#\/matriz/], ["Estadística Tareas", /#\/estadisticas\/tareas/], ["Hábitos", /#\/habitos/], ["Estadística Hábitos", /#\/estadisticas\/habitos/], ["Etiquetas", /#\/etiquetas$/]] as const) {
     await barra.getByRole("link", { name: nombre, exact: true }).click();
     await expect(page).toHaveURL(direccion);
     const desborde = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(desborde, `desborde en ${nombre}`).toBeLessThanOrEqual(0);
   }
-  await expect(page.getByTestId("tarjeta-etiqueta")).toHaveCount(8);
-  await barra.getByRole("button", { name: "Más opciones" }).click();
-  const mas = page.getByRole("menu", { name: "Más opciones" });
-  await expect(mas.getByRole("menuitem")).toHaveText(["Papelera", "Cuenta y ajustes", "Tema"]);
-  await mas.getByRole("menuitem", { name: "Tema" }).click();
+  // Etiquetas: una por fila, con Editar y Eliminar a la vista.
+  const tarjetas = page.getByTestId("tarjeta-etiqueta");
+  await expect(tarjetas).toHaveCount(8);
+  const a = (await tarjetas.nth(0).boundingBox())!;
+  const b = (await tarjetas.nth(1).boundingBox())!;
+  expect(b.y).toBeGreaterThan(a.y + a.height - 1);
+  await expect(tarjetas.nth(0).getByRole("button", { name: /^Editar etiqueta/ })).toBeVisible();
+  await expect(tarjetas.nth(0).getByRole("button", { name: /^Eliminar etiqueta/ })).toBeVisible();
+  // La tuerca muestra la pantalla Configuración.
+  await barra.getByRole("link", { name: "Configuración" }).click();
+  await expect(page).toHaveURL(/#\/configuracion$/);
+  await expect(page.getByRole("heading", { name: "Configuración" })).toBeVisible();
+  const filas = page.locator("main ul a");
+  await expect(filas).toHaveText(["Tema", "Cuenta y ajustes", "Papelera"]);
+  await filas.filter({ hasText: "Tema" }).click();
   await expect(page).toHaveURL(/#\/tema$/);
-  await expect(mas).toHaveCount(0);
 });
 
 test("estadística de tareas: por etiqueta, circular y en el tiempo; tocar una etiqueta atenúa las demás", async ({ page }) => {

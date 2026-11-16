@@ -289,25 +289,23 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         return vista;
     }
 
-    /** Un hábito del día: su nombre y la píldora que lo marca hecho (o lo desmarca) sin abrir la app. */
+    /** Dos hábitos del día: su nombre y la píldora que lo marca hecho (o lo desmarca) sin abrir la app. */
     private RemoteViews filaHabitos(Fila f) {
         RemoteViews fila = new RemoteViews(contexto.getPackageName(), R.layout.widget_habitos_par);
-        fila.removeAllViews(R.id.par_izq);
-        fila.removeAllViews(R.id.par_der);
-        fila.addView(R.id.par_izq, celdaHabito(f));
-        if (f.par != null) fila.addView(R.id.par_der, celdaHabito(f.par));
-        // El hueco de la derecha (cuando sobra uno) también abre el día.
-        fila.setOnClickFillInIntent(R.id.par_fila, abrirDia());
+        celdaHabito(fila, f, R.id.a_fila, R.id.a_titulo, R.id.a_marca, R.id.a_perilla_izq, R.id.a_perilla_der);
+        if (f.par != null) {
+            fila.setViewVisibility(R.id.b_fila, View.VISIBLE);
+            celdaHabito(fila, f.par, R.id.b_fila, R.id.b_titulo, R.id.b_marca, R.id.b_perilla_izq, R.id.b_perilla_der);
+        } else {
+            // Sobra un hueco: queda vacío (invisible), sin tapar el toque de la otra mitad.
+            fila.setViewVisibility(R.id.b_fila, View.INVISIBLE);
+        }
         return fila;
     }
 
-    /** La mitad de una fila de hábitos: un hábito con su interruptor. */
-    private RemoteViews celdaHabito(Fila f) {
-        RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_habito);
-        // Más angosto que antes: menos borde para que quepa el nombre.
-        float d = contexto.getResources().getDisplayMetrics().density;
-        vista.setViewPadding(R.id.habito_fila, Math.round(10 * d), Math.round(8 * d), Math.round(6 * d), Math.round(8 * d));
-        TemaWidget.letra(vista, R.id.habito_titulo, 14);
+    /** Una mitad de la fila de hábitos: un hábito con su interruptor. */
+    private void celdaHabito(RemoteViews vista, Fila f, int idFila, int idTitulo, int idMarca, int idIzq, int idDer) {
+        TemaWidget.letra(vista, idTitulo, 14);
         int propio = color(contexto, R.color.widget_acento);
         try {
             if (!f.color.isEmpty()) propio = Color.parseColor(f.color);
@@ -315,24 +313,23 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             // Color desconocido: queda el acento.
         }
         int tenue = color(contexto, R.color.widget_texto_tenue);
-        vista.setTextViewText(R.id.habito_titulo, f.titulo);
-        vista.setTextColor(R.id.habito_titulo, color(contexto, R.color.widget_texto));
-        TemaWidget.tenirFondo(vista, R.id.habito_fila, color(contexto, R.color.widget_evento_suave));
+        vista.setTextViewText(idTitulo, f.titulo);
+        vista.setTextColor(idTitulo, color(contexto, R.color.widget_texto));
+        TemaWidget.tenirFondo(vista, idFila, color(contexto, R.color.widget_evento_suave));
         // Interruptor: hecho = riel del color del hábito y la perilla con su ✓ a la derecha; sin marcar = riel apagado y perilla a la izquierda.
         float densidad = contexto.getResources().getDisplayMetrics().density;
-        int perilla = f.hecha ? R.id.habito_perilla_der : R.id.habito_perilla_izq;
-        vista.setViewVisibility(R.id.habito_perilla_izq, f.hecha ? View.GONE : View.VISIBLE);
-        vista.setViewVisibility(R.id.habito_perilla_der, f.hecha ? View.VISIBLE : View.GONE);
+        int perilla = f.hecha ? idDer : idIzq;
+        vista.setViewVisibility(idIzq, f.hecha ? View.GONE : View.VISIBLE);
+        vista.setViewVisibility(idDer, f.hecha ? View.VISIBLE : View.GONE);
         vista.setImageViewBitmap(perilla, Dibujos.perilla(densidad, f.hecha, propio));
         if (!f.marcable) vista.setInt(perilla, "setImageAlpha", 120);
-        TemaWidget.tenirFondo(vista, R.id.habito_marca, f.hecha ? propio : Color.argb(f.marcable ? 60 : 30, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
+        TemaWidget.tenirFondo(vista, idMarca, f.hecha ? propio : Color.argb(f.marcable ? 60 : 30, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
         if (f.marcable) {
             Intent marcar = new Intent();
             marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")));
-            vista.setOnClickFillInIntent(R.id.habito_marca, marcar);
+            vista.setOnClickFillInIntent(idMarca, marcar);
         }
-        vista.setOnClickFillInIntent(R.id.habito_fila, semana ? editar("habito", f.id) : abrirDia());
-        return vista;
+        vista.setOnClickFillInIntent(idFila, semana ? editar("habito", f.id) : abrirDia());
     }
 
     /** En el widget Semana, tocar una tarea, un evento o un hábito abre su ventana para editarlo o borrarlo. */

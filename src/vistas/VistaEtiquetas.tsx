@@ -36,7 +36,7 @@ export function VistaEtiquetas() {
           </button>
         </div>
         {!etiquetas.length && <p className="mt-10 text-center text-sm text-tenue">Aún no tienes etiquetas. Crea una con el +.</p>}
-        <ul className="grid grid-cols-2 items-start gap-2">
+        <ul className="grid grid-cols-1 items-start gap-2 lg:grid-cols-2">
           {etiquetas.map((e) => {
             const n = pendientes.get(e.nombre) ?? 0;
             return (
@@ -45,10 +45,10 @@ export function VistaEtiquetas() {
                 <span className="min-w-0 flex-1 truncate text-sm font-medium" title={e.nombreVisible}>{e.nombreVisible}</span>
                 {n > 0 && <span className="shrink-0 text-xs text-tenue tabular-nums">{n}</span>}
                 <button type="button" aria-label={`Editar etiqueta ${e.nombreVisible}`} title="Editar" className={claseAccion} onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
-                  <Pencil size={14} /> <span className="hidden sm:inline">Editar</span>
+                  <Pencil size={14} /> <span>Editar</span>
                 </button>
                 <button type="button" aria-label={`Eliminar etiqueta ${e.nombreVisible}`} title="Eliminar" className={`${claseAccion} text-peligro`} onClick={() => setDialogo({ tipo: "borrar", etiqueta: e })}>
-                  <Trash2 size={14} /> <span className="hidden sm:inline">Eliminar</span>
+                  <Trash2 size={14} /> <span>Eliminar</span>
                 </button>
               </li>
             );
