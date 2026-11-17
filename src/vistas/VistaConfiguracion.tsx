@@ -1,5 +1,6 @@
 import { ChevronRight, LayoutDashboard, Palette, Settings, Trash2, UserCog } from "lucide-react";
 import type { ReactNode } from "react";
+import { Marca } from "../componentes/BarraLateral";
 import { esAppNativa } from "../logica/plataforma";
 import { hashDe, type Seccion } from "../logica/ruta";
 
@@ -15,7 +16,13 @@ export function VistaConfiguracion() {
     </li>
   );
   return (
-    <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto pb-16">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      {/* Arriba: el logo y el nombre de la app. */}
+      <div className="flex shrink-0 items-center gap-2 px-5 pt-10">
+        <Marca clase="h-8 w-8" />
+        <span className="text-xl font-semibold">Andamia</span>
+      </div>
+      <div className="my-auto pb-16 pt-6">
       {/* Título y tarjetas van juntos y centrados: el título queda a poca distancia de las tarjetas. */}
       <header className="flex items-center gap-2 px-4 pb-4 sm:px-6">
         <Settings size={22} />
@@ -27,6 +34,7 @@ export function VistaConfiguracion() {
         {fila("Cuenta y ajustes", { tipo: "ajustes" }, <UserCog size={24} />)}
         {fila("Papelera", { tipo: "vista", vista: "papelera" }, <Trash2 size={24} />)}
       </ul>
+      </div>
     </div>
   );
 }
