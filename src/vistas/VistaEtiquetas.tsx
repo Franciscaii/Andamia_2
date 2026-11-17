@@ -18,9 +18,9 @@ export function VistaEtiquetas() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Celular: un solo encabezado, "Etiquetas" con el + azul como el de Semana. */}
-      <header className="flex items-center justify-between px-4 pt-4 pb-2 sm:px-6 lg:hidden">
-        <h1 className="text-lg font-semibold">Etiquetas</h1>
-        <button type="button" aria-label="Nueva etiqueta" title="Nueva etiqueta" className="flex h-8 w-8 items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90" onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
+      <header className="flex items-center justify-between px-5 pt-10 pb-4 lg:hidden">
+        <h1 className="text-xl font-semibold">Etiquetas</h1>
+        <button type="button" aria-label="Nueva etiqueta" title="Nueva etiqueta" className="flex h-9 w-9 items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90" onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
           <Plus size={18} />
         </button>
       </header>

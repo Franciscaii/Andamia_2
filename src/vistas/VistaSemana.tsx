@@ -457,9 +457,9 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
       {delDia.map(({ habito: h, estado, marcable }) => {
         const hecho = estado === "hecho";
         return (
-          <li key={h.id} data-testid="habito-semana" style={{ backgroundColor: `color-mix(in srgb, ${h.color} 20%, var(--panel))` }} className={`flex min-w-0 items-center rounded-lg [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-2 py-1.5 sm:px-3"}`}>
+          <li key={h.id} data-testid="habito-semana" style={{ backgroundColor: `color-mix(in srgb, ${h.color} 20%, var(--panel))`, borderColor: `color-mix(in srgb, ${h.color} 70%, var(--panel))` }} className={`flex min-w-0 items-center rounded-lg border-2 [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-2 py-1.5 sm:px-3"}`}>
             {/* Tocar el nombre abre el detalle del hábito al costado; tocarlo de nuevo lo cierra. */}
-            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-1/2 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho ? "text-tenue" : ""}`}>
+            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate font-bold ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-1/2 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
             </button>
             <DeslizadorHabito
@@ -476,19 +476,20 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
     </ul>
   );
   if (!conDesplegable) return lista;
+  // Como en su dibujo: cerrado es una barra "Hábitos" con ▵; abierto es un marco con "Hábitos" y ▿ y los hábitos dentro.
   return (
-    <div className="mb-3">
+    <div className="mb-3 rounded-xl border-2 border-borde bg-[color-mix(in_srgb,var(--panel)_55%,transparent)]">
       <button
         type="button"
         aria-expanded={abierto}
         aria-label="Hábitos"
         onClick={() => setAbierto(!abierto)}
-        className="flex w-full items-center justify-between rounded-lg border border-borde bg-panel px-3 py-1.5 text-sm font-medium"
+        className="flex w-full items-center justify-between px-3 py-1.5 text-sm font-bold"
       >
         Hábitos
-        {abierto ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        {abierto ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
       </button>
-      {abierto && lista}
+      {abierto && <div className="px-2 pb-2">{lista}</div>}
     </div>
   );
 }

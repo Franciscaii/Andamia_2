@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, type CSSProperties, type FormEvent, type Key
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus } from "lucide-react";
+import { Check, ChevronDown, Plus, Tag } from "lucide-react";
 import { colisionTareasEnZonas } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
 import { COLOR_PRIORIDAD, FilaTarea } from "../componentes/FilaTarea";
@@ -13,7 +13,8 @@ import { ordenEntre } from "../logica/vistas";
 import { CUADRANTES, prioridadDeCuadrante, repartirEnCuadrantes, type Cuadrante, type IdCuadrante } from "../logica/matriz";
 import { irA } from "../logica/ruta";
 import { acotar, guardarDivision, leerDivision, type DivisionMatriz } from "../logica/divisionMatriz";
-import { LISTA_BANDEJA, type Tarea } from "../modelos/tipos";
+import { LISTA_BANDEJA, type Etiqueta, type Tarea } from "../modelos/tipos";
+import { esAppNativa } from "../logica/plataforma";
 import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 
 /** Widget Matriz del PC: siempre los 4 cuadrantes a la vista (2×2), cada uno con su propio desplazamiento. */
@@ -36,6 +37,54 @@ function TarjetaMatriz({ tarea, abierta, cuadrante }: { tarea: Tarea; abierta: b
       estilo={{ opacity: isDragging ? 0.35 : 1, transform: CSS.Translate.toString(transform), transition }}
       asaProps={{ ...attributes, ...listeners }}
     />
+  );
+}
+
+/** Selector de etiqueta del celular: en vez de la ventana del sistema, una lista propia debajo del botón. */
+function SelectorEtiqueta({ etiquetas, valor, alElegir }: { etiquetas: Etiqueta[]; valor: string | null; alElegir: (nombre: string | null) => void }) {
+  const [abierto, setAbierto] = useState(false);
+  const actual = etiquetas.find((e) => e.nombre === valor);
+  const opcion = (nombre: string | null, texto: string) => (
+    <button
+      key={nombre ?? "todas"}
+      type="button"
+      role="option"
+      aria-selected={nombre === valor}
+      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${nombre === valor ? "bg-acento-suave font-semibold" : "hover:bg-suave"}`}
+      onClick={() => {
+        alElegir(nombre);
+        setAbierto(false);
+      }}
+    >
+      <Tag size={16} className="shrink-0 text-tenue" />
+      <span className="min-w-0 flex-1 truncate">{texto}</span>
+      {nombre === valor && <Check size={16} className="shrink-0 text-acento" />}
+    </button>
+  );
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label="Filtrar por etiqueta"
+        aria-haspopup="listbox"
+        aria-expanded={abierto}
+        onClick={() => setAbierto(!abierto)}
+        className="flex items-center gap-2 rounded-xl border border-borde bg-panel px-3 py-2 text-sm font-medium shadow-sm"
+      >
+        <Tag size={16} className="text-tenue" />
+        <span className="max-w-40 truncate">{actual ? actual.nombreVisible : "Todas las etiquetas"}</span>
+        <ChevronDown size={16} className={`text-tenue transition-transform ${abierto ? "rotate-180" : ""}`} />
+      </button>
+      {abierto && (
+        <>
+          <button type="button" aria-label="Cerrar lista de etiquetas" tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setAbierto(false)} />
+          <div role="listbox" aria-label="Etiquetas" className="absolute right-0 z-40 mt-2 max-h-72 w-64 max-w-[80vw] overflow-y-auto rounded-2xl border border-borde bg-panel p-1.5 shadow-xl">
+            {opcion(null, "Todas las etiquetas")}
+            {etiquetas.map((e) => opcion(e.nombre, e.nombreVisible))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -212,14 +261,18 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
       <header className={EN_WIDGET ? "flex items-center gap-2 pt-1 pr-12 pb-1.5 pl-3" : "flex flex-wrap items-center gap-2 px-5 pt-5 pb-3"}>
         <h1 className={EN_WIDGET ? "truncate text-base font-semibold" : "text-xl font-semibold"}>Matriz de Eisenhower</h1>
         <div className={EN_WIDGET ? "ml-auto flex shrink-0" : "flex flex-wrap gap-2 sm:ml-auto"}>
-          <select aria-label="Filtrar por etiqueta" className={`${claseCampo} !w-auto`} value={etiqueta ?? ""} onChange={(e) => setEtiqueta(e.target.value || null)}>
-            <option value="">Todas las etiquetas</option>
-            {etiquetas.map((e) => (
-              <option key={e.nombre} value={e.nombre}>
-                {e.nombreVisible}
-              </option>
-            ))}
-          </select>
+          {esAppNativa() ? (
+            <SelectorEtiqueta etiquetas={etiquetas} valor={etiqueta} alElegir={setEtiqueta} />
+          ) : (
+            <select aria-label="Filtrar por etiqueta" className={`${claseCampo} !w-auto`} value={etiqueta ?? ""} onChange={(e) => setEtiqueta(e.target.value || null)}>
+              <option value="">Todas las etiquetas</option>
+              {etiquetas.map((e) => (
+                <option key={e.nombre} value={e.nombre}>
+                  {e.nombreVisible}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </header>
       <DndContext
