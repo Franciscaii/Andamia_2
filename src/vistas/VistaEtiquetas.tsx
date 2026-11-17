@@ -35,7 +35,7 @@ export function VistaEtiquetas() {
         <ul className="grid grid-cols-1 items-start gap-2 lg:grid-cols-2 lg:gap-4 lg:rounded-2xl lg:border lg:border-borde lg:bg-panel lg:p-6 lg:shadow-sm">
           {etiquetas.map((e) => {
             return (
-              <li key={e.nombre} data-testid="tarjeta-etiqueta" className="flex min-w-0 items-center gap-2 rounded-xl border border-borde bg-panel p-2.5 pl-3 lg:gap-3 lg:rounded-2xl lg:bg-suave lg:p-4 lg:pl-5">
+              <li key={e.nombre} data-testid="tarjeta-etiqueta" className="flex min-w-0 items-center gap-2 rounded-xl border border-borde bg-panel p-2.5 pl-3 lg:border-[color-mix(in_srgb,var(--texto)_70%,transparent)] lg:gap-3 lg:rounded-2xl lg:bg-suave lg:p-4 lg:pl-5">
                 <Tag size={17} className="shrink-0 lg:h-6 lg:w-6" style={{ color: e.color }} />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium lg:text-lg" title={e.nombreVisible}>{e.nombreVisible}</span>
                 <button type="button" aria-label={`Editar etiqueta ${e.nombreVisible}`} title="Editar" className={claseAccion} onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
