@@ -233,7 +233,7 @@ test("Calendario: arrastrar cambia la fecha, clic crea y no hay panel sin fecha"
   await navegar(page, "Calendario");
   // Toda tarea tiene fecha: no hay panel "Sin fecha".
   await expect(page.locator('[data-zona="sin-fecha"]')).toHaveCount(0);
-  await expect(page.getByTestId("titulo-calendario")).toHaveText("Nov");
+  await expect(page.getByTestId("titulo-calendario")).toHaveText(/^Nov \d{4}$/);
   const dia = (clave: string) => page.locator(`[data-zona="dia:${clave}"]`);
   const chip = (texto: string) => page.getByTestId("chip-tarea").filter({ hasText: texto });
 

@@ -12,6 +12,7 @@ import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes, diasDeSemana, entradasDelDia, entradasEnRango, venceEnDia, venceEnHora, type EntradaCalendario } from "../logica/calendario";
 import { interpretarEntrada } from "../logica/entradaRapida";
 import { habitosDelDia, type HabitoDelDia } from "../logica/habitos";
+import { esAppNativa } from "../logica/plataforma";
 import { hashDe, irA, type ModoCalendario } from "../logica/ruta";
 import type { FiltroSemana } from "../logica/semana";
 import { DialogoHabito } from "./VistaHabitos";
@@ -203,7 +204,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const [fecha, setFecha] = useState(() => new Date());
   const [creacion, setCreacion] = useState<Creacion | null>(null);
   const [activa, setActiva] = useState<Tarea | null>(null);
-  const [filtro, setFiltro] = useState<FiltroSemana>("todos");
+  const [filtro, setFiltro] = useState<FiltroSemana>(esAppNativa() ? "eventos" : "todos");
   const [nuevo, setNuevo] = useState<TipoNuevo | "habito" | null>(null);
   const rejilla = useRef<HTMLDivElement>(null);
   // Alto real de una celda del mes, para mostrar tantas entradas como quepan.
@@ -268,7 +269,8 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     : `${format(dias[0], "d MMM", { locale: es })} – ${format(dias[6], "d MMM yyyy", { locale: es })}`;
   const crearEnDia = (dia: Date) => setCreacion({ vence: claveDia(dia), todoElDia: true, etiqueta: format(dia, "EEEE d 'de' MMMM", { locale: es }), esEvento: filtro === "eventos" });
   const mesCorto = format(fecha, "MMM", { locale: es }).replace(".", "");
-  const tituloMes = mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1) + (fecha.getFullYear() !== hoy.getFullYear() ? ` ${fecha.getFullYear()}` : "");
+  const tituloMes = mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1);
+  const anioMes = fecha.getFullYear();
   // El + crea para hoy si se ve este mes; si no, para el primer día del mes visible.
   const diaParaNuevo = isSameMonth(fecha, hoy) ? hoy : startOfMonth(fecha);
   const claseModo = (activo: boolean) => `rounded px-2.5 py-1 text-xs ${activo ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`;
@@ -280,13 +282,14 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
       {modo === "mes" ? (
         <header className={`flex items-center gap-2 px-4 sm:px-5 ${EN_WIDGET ? "pt-1 pb-1.5 pr-12 sm:pr-12" : "pt-4 pb-2"}`}>
           <div className="flex shrink-0 items-center">
-            <button type="button" aria-label="Periodo anterior" className="rounded-md p-1 border border-borde bg-panel text-texto hover:bg-suave" onClick={() => mover(-1)}>
+            <button type="button" aria-label="Periodo anterior" className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
-            <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className="px-0.5 text-lg font-semibold sm:px-1.5">
-              {tituloMes}
+            <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className="px-0.5 text-base font-semibold min-[450px]:text-lg sm:px-1.5">
+              {tituloMes}{" "}
+              <span className="text-[10px] font-medium text-tenue min-[450px]:text-sm">{anioMes}</span>
             </h1>
-            <button type="button" aria-label="Periodo siguiente" className="rounded-md p-1 border border-borde bg-panel text-texto hover:bg-suave" onClick={() => mover(1)}>
+            <button type="button" aria-label="Periodo siguiente" className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(1)}>
               <ChevronRight size={18} />
             </button>
           </div>
@@ -297,7 +300,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                 type="button"
                 aria-pressed={filtro === f.id}
                 onClick={() => setFiltro(f.id)}
-                className={`rounded px-1 py-1 text-[11px] whitespace-nowrap min-[400px]:px-2 min-[400px]:text-xs sm:px-2.5 ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+                className={`rounded px-1 py-1 text-[11px] whitespace-nowrap min-[450px]:px-2 min-[450px]:text-xs sm:px-2.5 ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
               >
                 {f.nombre}
               </button>

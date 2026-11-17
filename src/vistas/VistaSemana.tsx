@@ -454,7 +454,7 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
       {delDia.map(({ habito: h, estado, marcable }) => {
         const hecho = estado === "hecho";
         return (
-          <li key={h.id} data-testid="habito-semana" className={`flex min-w-0 items-center rounded-lg bg-panel ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-2 py-1.5 sm:px-3"}`}>
+          <li key={h.id} data-testid="habito-semana" className={`flex min-w-0 items-center rounded-lg bg-panel [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-2 py-1.5 sm:px-3"}`}>
             {/* Tocar el nombre abre el detalle del hábito al costado; tocarlo de nuevo lo cierra. */}
             <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-1/2 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
@@ -764,7 +764,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const verTareas = filtro === "tareas" || filtro === "todos";
   const verHabitos = filtro === "habitos" || filtro === "todos";
   const mesCorto = format(elegido, "MMM", { locale: es }).replace(".", "");
-  const mes = (mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1)) + (elegido.getFullYear() !== ahora.getFullYear() ? ` ${elegido.getFullYear()}` : "");
+  const mes = (mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1));
+  const anio = elegido.getFullYear();
 
   const tareasTodas = useTienda((s) => s.tareas);
   const listasTodas = useTienda((s) => s.listas);
@@ -807,15 +808,16 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
     <div className="flex min-h-0 flex-1 flex-col">
       <ArrastreSemana ahora={ahora}>
       <header data-widget-cabecera className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
-        <div className={`flex items-center ${esEscritorio ? "gap-2" : "gap-1 min-[400px]:gap-2"}`}>
+        <div className={`flex items-center ${esEscritorio ? "gap-2" : "gap-1 min-[450px]:gap-2"}`}>
           <div className="flex shrink-0 items-center">
-            <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md p-1 border border-borde bg-panel text-texto hover:bg-suave" onClick={() => mover(-1)}>
+            <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
-            <h1 className="px-0.5 text-center text-lg font-semibold sm:px-1.5" title={format(elegido, "MMMM yyyy", { locale: es })}>
-              {mes}
+            <h1 className="px-0 text-center text-base font-semibold min-[450px]:text-lg sm:px-1.5" title={format(elegido, "MMMM yyyy", { locale: es })}>
+              {mes}{" "}
+              <span className="text-[10px] font-medium text-tenue min-[450px]:text-sm">{anio}</span>
             </h1>
-            <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md p-1 border border-borde bg-panel text-texto hover:bg-suave" onClick={() => mover(1)}>
+            <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(1)}>
               <ChevronRight size={18} />
             </button>
           </div>
@@ -846,7 +848,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                 type="button"
                 aria-pressed={filtro === f.id}
                 onClick={() => setFiltro(f.id)}
-                className={`rounded py-1 whitespace-nowrap ${esEscritorio ? "px-2.5 text-xs" : "px-1 text-[11px] min-[400px]:px-2 min-[400px]:text-xs"} ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+                className={`rounded py-1 whitespace-nowrap ${esEscritorio ? "px-2.5 text-xs" : "px-1 text-[11px] min-[450px]:px-2 min-[450px]:text-xs"} ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
               >
                 {f.nombre}
               </button>
@@ -891,7 +893,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                 className="mx-auto flex h-4 w-16 items-center justify-center"
                 onClick={() => setMesAbierto(!verMes)}
               >
-                <span className="h-1 w-8 rounded-full bg-borde" />
+                <span className="h-1 w-8 rounded-full bg-acento" />
               </button>
             )}
           </div>

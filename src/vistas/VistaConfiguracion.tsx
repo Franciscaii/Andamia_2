@@ -16,7 +16,7 @@ export function VistaConfiguracion() {
   );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center gap-2 px-4 pt-4 pb-3 sm:px-6">
+      <header className="flex items-center gap-2 px-4 pt-20 pb-3 sm:px-6">
         <Settings size={22} />
         <h1 className="text-lg font-semibold">Configuración</h1>
       </header>

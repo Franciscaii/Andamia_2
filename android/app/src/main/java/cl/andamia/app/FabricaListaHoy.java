@@ -297,8 +297,8 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             fila.setViewVisibility(R.id.b_fila, View.VISIBLE);
             celdaHabito(fila, f.par, R.id.b_fila, R.id.b_titulo, R.id.b_marca, R.id.b_perilla_izq, R.id.b_perilla_der);
         } else {
-            // Sobra un hueco: queda vacío (invisible), sin tapar el toque de la otra mitad.
-            fila.setViewVisibility(R.id.b_fila, View.INVISIBLE);
+            // Un hábito solo en la fila ocupa todo el ancho.
+            fila.setViewVisibility(R.id.b_fila, View.GONE);
         }
         return fila;
     }
