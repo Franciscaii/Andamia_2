@@ -494,20 +494,26 @@ export function VistaHabitos() {
         {activos.length > 0 && (
           <section aria-label="Hábitos por día" data-testid="tabla-habitos" className="mb-6 hidden rounded-xl border border-borde bg-[color-mix(in_srgb,var(--panel)_55%,transparent)] p-3 lg:block">
             {/* En el computador, en la misma fila y dentro del recuadro: título, < mes >, Semana | Mes y el +. */}
-            <div className="mb-3 flex items-center gap-2">
-              <h1 className="text-xl font-semibold">Hábitos</h1>
-              <div className="ml-4 flex items-center rounded-lg border border-borde bg-panel p-0.5">
-                <button type="button" aria-label={alcanceTabla === "semana" ? "Semana anterior" : "Mes anterior de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(-1)}>
-                  <ChevronLeft size={18} />
-                </button>
-                <span data-testid="titulo-tabla-habitos" title={format(baseTabla, "MMMM yyyy", { locale: es })} className="min-w-12 px-2 text-center text-lg font-semibold first-letter:uppercase">
-                  {tituloTabla}
-                </span>
-                <button type="button" aria-label={alcanceTabla === "semana" ? "Semana siguiente" : "Mes siguiente de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(1)}>
-                  <ChevronRight size={18} />
-                </button>
+            <div className="relative mb-3">
+              {/* Mismas columnas que la tabla: "Hábitos" centrado sobre los nombres y el mes centrado sobre el primer día. */}
+              <div
+                className="grid items-center gap-x-1"
+                style={{ gridTemplateColumns: alcanceTabla === "semana" ? "minmax(6.5rem, 9rem) repeat(7, minmax(3.5rem, 1fr))" : `minmax(6rem, 8rem) repeat(${diasTabla.length}, minmax(1.5rem, 1fr))` }}
+              >
+                <h1 className="text-center text-xl font-semibold">Hábitos</h1>
+                <div className={`relative flex items-center justify-center ${alcanceTabla === "semana" ? "" : "col-span-7"}`}>
+                  <button type="button" aria-label={alcanceTabla === "semana" ? "Semana anterior" : "Mes anterior de la tabla"} className="absolute right-full mr-1 rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(-1)}>
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span data-testid="titulo-tabla-habitos" title={format(baseTabla, "MMMM yyyy", { locale: es })} className="whitespace-nowrap text-center text-lg font-semibold first-letter:uppercase">
+                    {tituloTabla}
+                  </span>
+                  <button type="button" aria-label={alcanceTabla === "semana" ? "Semana siguiente" : "Mes siguiente de la tabla"} className="absolute left-full ml-1 rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(1)}>
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
               </div>
-              <div role="group" aria-label="Ver por" className="ml-auto flex gap-1">
+              <div className="absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-2"><div role="group" aria-label="Ver por" className="flex gap-1">
                 {(["semana", "mes"] as const).map((a) => (
                   <button key={a} type="button" aria-pressed={alcanceTabla === a} className={`rounded-md border px-3 py-1.5 text-xs first-letter:uppercase ${alcanceTabla === a ? "border-acento bg-panel font-medium shadow-sm" : "border-borde bg-panel text-tenue hover:text-texto"}`} onClick={() => setAlcanceTabla(a)}>
                     {a === "semana" ? "Semana" : "Mes"}
@@ -517,6 +523,7 @@ export function VistaHabitos() {
               <button type="button" aria-label="Nuevo hábito" title="Nuevo hábito" className="flex h-8 w-8 items-center justify-center rounded-md border border-borde bg-panel text-texto hover:bg-suave" onClick={() => setDialogo({ habito: null })}>
                 <Plus size={18} />
               </button>
+              </div>
             </div>
             <div className="overflow-x-auto pb-1">
               <div
