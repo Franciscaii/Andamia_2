@@ -1120,12 +1120,13 @@ test("hábitos: de a dos en la Semana y tabla por día en el computador", async 
   await hoy.click();
   await expect(hoy).toHaveAttribute("data-estado", "hecho");
   // Semana: "Hábitos" queda centrado sobre la columna de nombres y el mes sobre el primer día.
-  const cx = async (l: ReturnType<typeof tabla.locator>) => { const c = (await l.boundingBox())!; return c.x + c.width / 2; };
   const nombreCol = (await tabla.getByTestId("fila-tabla-habito").first().boundingBox())!;
   const titulo = (await tabla.getByRole("heading", { name: "Hábitos" }).boundingBox())!;
   expect(Math.abs(titulo.x + titulo.width / 2 - (nombreCol.x + nombreCol.width / 2))).toBeLessThan(3);
-  const primerDia = (await tabla.locator("button[aria-label^='Marcar Agua el ']").first().boundingBox())!;
-  expect(Math.abs((await cx(tabla.getByTestId("titulo-tabla-habitos"))) - (primerDia.x + primerDia.width / 2))).toBeLessThan(3);
+  const nav = (await tabla.getByTestId("nav-tabla-habitos").boundingBox())!;
+  const colDia = (await tabla.locator("button[aria-label^='Marcar Agua el ']").first().locator("xpath=..").boundingBox())!;
+  expect(Math.abs(nav.x - colDia.x)).toBeLessThan(3);
+
   // Por mes: una columna por cada día del mes.
   await page.getByRole("group", { name: "Ver por" }).getByRole("button", { name: "Mes", exact: true }).click();
   expect(await tabla.getByRole("button", { name: /^Marcar Agua el / }).count()).toBeGreaterThanOrEqual(28);
