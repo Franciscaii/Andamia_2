@@ -470,7 +470,7 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
         const oscuro = colorOscuro(h.color);
         const [fuerte, suave] = oscuro ? [85, 70] : [24, 8];
         return (
-          <li key={h.id} data-testid="habito-semana" style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${h.color} ${fuerte}%, var(--panel)), color-mix(in srgb, ${h.color} ${suave}%, var(--panel)))`, color: oscuro ? "#ffffff" : undefined, borderColor: `color-mix(in srgb, ${h.color} 55%, var(--panel))`, boxShadow: `0 2px 6px -2px color-mix(in srgb, ${h.color} 45%, transparent)` }} className={`flex min-w-0 items-center rounded-2xl border-[1.5px] [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-1" : "gap-2 px-3 py-2 lg:py-0.5"}`}>
+          <li key={h.id} data-testid="habito-semana" style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${h.color} ${fuerte}%, var(--panel)), color-mix(in srgb, ${h.color} ${suave}%, var(--panel)))`, color: oscuro ? "#ffffff" : undefined, borderColor: `color-mix(in srgb, ${h.color} 55%, var(--panel))`, boxShadow: `0 2px 6px -2px color-mix(in srgb, ${h.color} 45%, transparent)` }} className={`flex min-w-0 items-center rounded-2xl border-[1.5px] [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-1" : `gap-2 px-3 ${EN_WIDGET ? "py-0.5" : "py-2 lg:py-0.5"}`}`}>
             
             {/* Tocar el nombre abre el detalle del hábito al costado; tocarlo de nuevo lo cierra. */}
             <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate font-bold ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"}`}>
@@ -501,9 +501,9 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
         aria-expanded={abierto}
         aria-label="Hábitos"
         onClick={() => setAbierto(!abierto)}
-        className="flex w-full items-center gap-2 px-3 py-2 text-sm font-bold lg:px-4 lg:py-1"
+        className={`flex w-full items-center gap-2 text-sm font-bold ${EN_WIDGET ? "px-4 py-1" : "px-3 py-2 lg:px-4 lg:py-1"}`}
       >
-        <Flame size={16} className="text-acento lg:text-texto" />
+        <Flame size={16} className={EN_WIDGET ? "text-texto" : "text-acento lg:text-texto"} />
         Hábitos
         <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-suave">{abierto ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</span>
       </button>
@@ -541,7 +541,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, verHabitos, tareaAbie
 
       {verTareas && (!compacto || contenido.tareas.length > 0) && (
         <div data-testid="tarjeta-tareas" className="overflow-hidden rounded-xl border border-borde bg-panel">
-          <section aria-label="Tareas del día" className="px-2 pt-3 pb-2 lg:pt-2 lg:pb-1">
+          <section aria-label="Tareas del día" className={`px-2 ${EN_WIDGET ? "pt-2 pb-1" : "pt-3 pb-2 lg:pt-2 lg:pb-1"}`}>
             <div className="px-2">
               <h2 className="flex items-center gap-1.5 text-sm font-semibold"><ClipboardCheck size={16} aria-hidden className="text-texto" />{esHoy ? "Tareas hoy" : "Tareas del día"}</h2>
               <BarraProgreso {...contenido.progreso} />
