@@ -813,9 +813,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
             <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
-            <h1 className="px-0 text-center text-base font-semibold min-[450px]:text-lg sm:px-1.5" title={format(elegido, "MMMM yyyy", { locale: es })}>
-              {mes}{" "}
-              <span className="text-[10px] font-medium text-tenue min-[450px]:text-sm">{anio}</span>
+            <h1 className="px-0 text-center text-sm font-semibold min-[450px]:text-lg sm:px-1.5" title={format(elegido, "MMMM yyyy", { locale: es })}>
+              {mes} {anio}
             </h1>
             <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(1)}>
               <ChevronRight size={18} />
@@ -848,7 +847,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                 type="button"
                 aria-pressed={filtro === f.id}
                 onClick={() => setFiltro(f.id)}
-                className={`rounded py-1 whitespace-nowrap ${esEscritorio ? "px-2.5 text-xs" : "px-1 text-[11px] min-[450px]:px-2 min-[450px]:text-xs"} ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
+                className={`rounded py-1 whitespace-nowrap ${esEscritorio ? "px-2.5 text-xs" : "px-0.5 text-[11px] min-[450px]:px-2 min-[450px]:text-xs"} ${filtro === f.id ? "bg-panel font-medium shadow-sm" : "text-tenue hover:text-texto"}`}
               >
                 {f.nombre}
               </button>
