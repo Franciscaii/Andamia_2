@@ -941,6 +941,9 @@ test("menú Widgets (app de PC): añadir y quitar widgets del escritorio", async
   const tarjeta = (await page.getByTestId("tarjeta-tareas").boundingBox())!;
   const enlace = (await page.getByRole("link", { name: "Ajustes del Widget" }).boundingBox())!;
   expect(enlace.y - (tarjeta.y + tarjeta.height)).toBeLessThan(16);
+  // Con los 7 días a la vista, el enlace también se ve sin tener que bajar.
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 Días" }).click();
+  await expect(page.getByRole("link", { name: "Ajustes del Widget" })).toBeInViewport({ ratio: 1 });
   await page.getByRole("link", { name: "Ajustes del Widget" }).click();
   await expect(page).toHaveURL(/#\/widgets\/semana$/);
   await expect(page.getByRole("button", { name: "Ajustes de Semana" })).toHaveAttribute("aria-expanded", "true");

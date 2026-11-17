@@ -909,8 +909,8 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
         </div>
       ) : (
         // En el computador: los 7 días uno al lado del otro, cada uno en su columna.
-        <div data-widget-desplazable className={`min-h-0 flex-1 overflow-auto px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-3" : "pt-2 pb-6"}`}>
-          <div className="flex min-h-full">
+        <div data-widget-desplazable className={`min-h-0 flex-1 overflow-auto px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-3" : "pt-2 pb-2"}`}>
+          <div className={`flex ${EN_WIDGET ? "min-h-full" : "min-h-[calc(100%-2.25rem)]"}`}>
             {dias.map((d, i) => {
               const esHoy = isSameDay(d, ahora);
               const angosta = anchos.angosta(i);
