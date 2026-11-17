@@ -286,9 +286,8 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
             <button type="button" aria-label="Periodo anterior" className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
-            <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className="px-0.5 text-base font-semibold min-[450px]:text-lg sm:px-1.5">
-              {tituloMes}{" "}
-              <span className="text-[10px] font-medium text-tenue min-[450px]:text-sm">{anioMes}</span>
+            <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className="px-0.5 text-sm font-semibold min-[450px]:text-lg sm:px-1.5">
+              {tituloMes} {anioMes}
             </h1>
             <button type="button" aria-label="Periodo siguiente" className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(1)}>
               <ChevronRight size={18} />
