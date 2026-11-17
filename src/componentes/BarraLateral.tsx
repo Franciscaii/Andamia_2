@@ -162,7 +162,7 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
         <span className="shrink-0">
           <Marca />
         </span>
-        <span className="min-w-0 flex-1 truncate text-base font-semibold">Andamia</span>
+        <span className="contorno-blanco min-w-0 flex-1 text-base font-semibold">Andamia</span>
         {/* Donde estaba la luna: la paleta, que lleva a elegir el tema. */}
         <button type="button" aria-label="Elegir tema" title="Elegir tema" className="shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave" onClick={() => irA({ tipo: "tema" })}>
           <Palette size={17} />

@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
 import { addDays, addMonths, format, isSameDay, isSameMonth, parseISO, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
+import { lanzarConfeti } from "../logica/confeti";
 import { CalendarClock, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, GripVertical, Plus } from "lucide-react";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { DialogoHabito } from "./VistaHabitos";
@@ -469,7 +470,10 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
               hecho={hecho}
               marcable={marcable}
               clase={estrecha ? "w-full shrink-0" : celular ? "min-w-0 flex-1" : "max-w-64 min-w-0 flex-1"}
-              alCambiar={(v) => void registrarHabito(h.id, fecha, v ? { estado: "hecho", valor: h.metaDiaria } : null)}
+              alCambiar={(v) => {
+                if (v) lanzarConfeti();
+                void registrarHabito(h.id, fecha, v ? { estado: "hecho", valor: h.metaDiaria } : null);
+              }}
             />
           </li>
         );

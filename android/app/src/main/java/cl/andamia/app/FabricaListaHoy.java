@@ -32,6 +32,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     private static final int TIPO_ESPACIO = 4;
     private static final int TIPO_HABITO = 5;
     private static final int TIPO_RELLENO = 6;
+    private static final int TIPO_DESPLEGABLE = 7;
 
     /** Lugar de una fila dentro de su tarjeta (solo en el widget Semana). */
     private static final int SIN_TARJETA = 0, ARRIBA = 1, MEDIO = 2, ABAJO = 3, SOLA = 4;
@@ -118,7 +119,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             JSONArray habitos = conHabitos ? datos.optJSONArray("habitos") : null;
             if (habitos != null) {
                 JSONObject marcas = DatosWidget.habitosMarcados(contexto);
-                Fila izquierda = null;
+                List<Fila> lista = new ArrayList<>();
                 for (int i = 0; i < habitos.length(); i++) {
                     JSONObject h = habitos.getJSONObject(i);
                     Fila f = new Fila();
@@ -130,13 +131,30 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                     f.fecha = fechaDia;
                     f.marcable = h.optBoolean("marcable");
                     f.hecha = marcas.optBoolean(f.id + "|" + fechaDia, h.optBoolean("hecho"));
+                    lista.add(f);
+                }
+                // Con "Todos", dos o más eventos y más de dos filas de hábitos, van en un desplegable.
+                boolean desplegable = semana && "todos".equals(filtro) && filas.size() >= 2 && lista.size() > 4;
+                boolean abierto = !desplegable || DatosWidget.habitosAbiertos(contexto, idWidget);
+                if (desplegable) {
+                    Fila cab = new Fila();
+                    cab.tipo = TIPO_DESPLEGABLE;
+                    cab.titulo = "Hábitos";
+                    cab.detalle = String.valueOf(lista.size());
+                    cab.hecha = abierto;
+                    filas.add(cab);
+                }
+                if (abierto) {
                     // De a dos por fila, como en la Semana de la app.
-                    if (izquierda == null) {
-                        filas.add(f);
-                        izquierda = f;
-                    } else {
-                        izquierda.par = f;
-                        izquierda = null;
+                    Fila izquierda = null;
+                    for (Fila f : lista) {
+                        if (izquierda == null) {
+                            filas.add(f);
+                            izquierda = f;
+                        } else {
+                            izquierda.par = f;
+                            izquierda = null;
+                        }
                     }
                 }
             }
@@ -245,7 +263,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     @Override public void onDestroy() { filas.clear(); }
     @Override public int getCount() { return filas.size(); }
     @Override public RemoteViews getLoadingView() { return null; }
-    @Override public int getViewTypeCount() { return 7; }
+    @Override public int getViewTypeCount() { return 8; }
     @Override public long getItemId(int posicion) { return posicion; }
     @Override public boolean hasStableIds() { return false; }
 
@@ -441,6 +459,19 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                 return vista;
             }
             case TIPO_HABITO: return filaHabitos(f);
+            case TIPO_DESPLEGABLE: {
+                RemoteViews cab = new RemoteViews(contexto.getPackageName(), R.layout.widget_habitos_cab);
+                TemaWidget.letra(cab, R.id.cab_titulo, 14);
+                cab.setTextViewText(R.id.cab_titulo, f.titulo + "  " + f.detalle);
+                cab.setTextColor(R.id.cab_titulo, color(contexto, R.color.widget_texto));
+                cab.setTextViewText(R.id.cab_flecha, f.hecha ? "▾" : "▴");
+                cab.setTextColor(R.id.cab_flecha, color(contexto, R.color.widget_texto));
+                TemaWidget.tenirFondo(cab, R.id.cab_fila, color(contexto, R.color.widget_evento_suave));
+                Intent alternar = new Intent();
+                alternar.setData(Uri.parse("andamia://desplegar/habitos/" + idWidget));
+                cab.setOnClickFillInIntent(R.id.cab_fila, alternar);
+                return cab;
+            }
             case TIPO_ESPACIO: {
                 RemoteViews espacio = new RemoteViews(contexto.getPackageName(), R.layout.widget_espacio);
                 espacio.setOnClickFillInIntent(R.id.espacio_fila, abrirDia());

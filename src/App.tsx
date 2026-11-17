@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties, type PointerEvent as PunteroReact } from "react";
-import { Menu, PanelLeftOpen, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { BarraIconos } from "./componentes/BarraIconos";
 import { BarraLateral, Marca } from "./componentes/BarraLateral";
 import { DetalleTarea } from "./componentes/DetalleTarea";
 import { useTienda } from "./datos/tienda";
@@ -224,13 +225,7 @@ export default function App() {
           onPointerMove={ajustarMenu}
         />
       </div>
-      {menuOculto && (
-        <div className="barra-lateral hidden shrink-0 border-r border-borde px-1.5 pt-4 lg:block">
-          <button type="button" aria-label="Mostrar menú" title="Mostrar menú" className="rounded-md p-1.5 text-tenue hover:bg-suave" onClick={() => setMenuOculto(false)}>
-            <PanelLeftOpen size={18} />
-          </button>
-        </div>
-      )}
+      {menuOculto && <BarraIconos seccion={ruta.seccion} alMostrar={() => setMenuOculto(false)} />}
 
       <main className="flex min-w-0 flex-1 flex-col">
         {/* App de PC: franja para mover la ventana; a la derecha quedan los botones de Windows. */}

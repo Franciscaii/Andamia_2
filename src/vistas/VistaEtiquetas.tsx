@@ -24,16 +24,13 @@ export function VistaEtiquetas() {
           <Plus size={18} />
         </button>
       </header>
-      <header className="hidden px-4 pt-4 pb-2 sm:px-6 lg:block">
+      <header className="hidden items-center justify-between px-4 pt-4 pb-3 sm:px-6 lg:flex">
         <h1 className="text-lg font-semibold">Etiquetas</h1>
+        <button type="button" aria-label="Nueva etiqueta" title="Nueva etiqueta" className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
+          <Plus size={18} />
+        </button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
-        <div className="mb-3 hidden items-center justify-between border-b border-borde pb-1 lg:flex">
-          <h2 className="text-base font-semibold">Configuración</h2>
-          <button type="button" aria-label="Nueva etiqueta" title="Nueva etiqueta" className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
-            <Plus size={18} />
-          </button>
-        </div>
         {!etiquetas.length && <p className="mt-10 text-center text-sm text-tenue">Aún no tienes etiquetas. Crea una con el +.</p>}
         <ul className="grid grid-cols-1 items-start gap-2 lg:grid-cols-2">
           {etiquetas.map((e) => {

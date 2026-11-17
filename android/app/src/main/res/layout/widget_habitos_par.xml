@@ -30,7 +30,8 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/widget_texto"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
         <FrameLayout
             android:id="@+id/a_marca"
@@ -84,7 +85,8 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/widget_texto"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
         <FrameLayout
             android:id="@+id/b_marca"

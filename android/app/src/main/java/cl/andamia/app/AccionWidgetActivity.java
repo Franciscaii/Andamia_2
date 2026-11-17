@@ -26,9 +26,27 @@ public class AccionWidgetActivity extends Activity {
             // sin abrir nada (dentro de un widget Android solo deja tocar, no arrastrar).
             java.util.List<String> partes = datos.getPathSegments();
             if (partes.size() == 3) {
-                DatosWidget.marcarHabito(this, partes.get(0), partes.get(1), "1".equals(partes.get(2)));
+                boolean hecho = "1".equals(partes.get(2));
+                DatosWidget.marcarHabito(this, partes.get(0), partes.get(1), hecho);
                 Widgets.redibujarTodo(this);
                 WidgetPlugin.avisarRapida();
+                // Al completar un hábito, confeti sobre la pantalla de inicio.
+                if (hecho) {
+                    Intent confeti = new Intent(this, ConfetiActivity.class);
+                    confeti.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    startActivity(confeti);
+                }
+            }
+        } else if (datos != null && "desplegar".equals(datos.getHost())) {
+            // andamia://desplegar/habitos/ID_WIDGET: abre o cierra el desplegable de hábitos del widget Semana.
+            java.util.List<String> partes = datos.getPathSegments();
+            if (partes.size() == 2) {
+                try {
+                    DatosWidget.alternarHabitos(this, Integer.parseInt(partes.get(1)));
+                    Widgets.redibujarTodo(this);
+                } catch (NumberFormatException e) {
+                    // Dirección mal formada: no se hace nada.
+                }
             }
         } else if (datos != null && "editar".equals(datos.getHost())) {
             // andamia://editar/tarea|evento|habito/ID: la ventana para cambiarlo o borrarlo, sin abrir Andamia.

@@ -596,6 +596,13 @@ test("en el computador el menú se oculta y se vuelve a mostrar", async ({ page 
   await expect(menu).toBeHidden();
   await page.reload();
   await expect(menu).toBeHidden();
+  // Retraído: quedan solo los iconos (sin texto), el botón para traer el menú y la tuerca.
+  const iconos = page.getByTestId("menu-iconos");
+  await expect(iconos).toBeVisible();
+  await expect(iconos.getByRole("link")).toHaveCount(8);
+  await expect(iconos.getByRole("link", { name: "Matriz" })).toHaveText("");
+  await iconos.getByRole("link", { name: "Configuración" }).click();
+  await expect(page.getByRole("heading", { name: "Configuración" })).toBeVisible();
   // "Completadas" ya no está en el menú.
   await page.getByRole("button", { name: "Mostrar menú" }).click();
   await expect(menu.getByRole("link", { name: /^Completadas/ })).toHaveCount(0);
