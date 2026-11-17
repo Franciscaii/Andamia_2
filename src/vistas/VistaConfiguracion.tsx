@@ -2,6 +2,7 @@ import { ChevronRight, LayoutDashboard, Palette, Settings, Trash2, UserCog } fro
 import type { ReactNode } from "react";
 import { Marca } from "../componentes/BarraLateral";
 import { esAppNativa } from "../logica/plataforma";
+import { puenteEscritorio } from "../logica/puenteEscritorio";
 import { hashDe, type Seccion } from "../logica/ruta";
 
 /** Celular: la pantalla de la tuerca, con cada ajuste en su propia fila con borde. */
@@ -18,7 +19,7 @@ export function VistaConfiguracion() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       {/* Arriba: el logo y el nombre de la app. */}
-      <div className="flex shrink-0 items-center gap-2 px-5 pt-10">
+      <div className="flex shrink-0 items-center gap-2 px-5 pt-10 lg:hidden">
         <Marca clase="h-8 w-8" />
         <span className="contorno-blanco text-xl font-semibold">Andamia</span>
       </div>
@@ -30,7 +31,7 @@ export function VistaConfiguracion() {
       </header>
       <ul className="flex flex-col gap-4 px-4 sm:px-6">
         {fila("Tema", { tipo: "tema" }, <Palette size={24} />)}
-        {esAppNativa() && fila("Widgets", { tipo: "widgets" }, <LayoutDashboard size={24} />)}
+        {(esAppNativa() || puenteEscritorio()) && fila("Widgets", { tipo: "widgets" }, <LayoutDashboard size={24} />)}
         {fila("Cuenta y ajustes", { tipo: "ajustes" }, <UserCog size={24} />)}
         {fila("Papelera", { tipo: "vista", vista: "papelera" }, <Trash2 size={24} />)}
       </ul>

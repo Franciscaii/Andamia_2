@@ -26,7 +26,8 @@ async function crearEnSemana(page: Page, tipo: "Tarea" | "Evento", texto: string
   await expect(page.getByRole("dialog")).toHaveCount(0);
 }
 
-const navegar = (page: Page, nombre: string) => page.getByRole("navigation").getByRole("link", { name: new RegExp(`^${nombre}`) }).click();
+const irAHash = (page: Page, hash: string) => page.evaluate((h) => { location.hash = h; }, hash);
+const navegar = (page: Page, nombre: string) => nombre === "Papelera" ? irAHash(page, "#/tareas/papelera") : page.getByRole("navigation").getByRole("link", { name: new RegExp(`^${nombre}`) }).click();
 
 test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y completarla", async ({ page }) => {
   await page.goto("/");
@@ -232,8 +233,9 @@ test("búsqueda sin acentos, filtros y tema oscuro", async ({ page }) => {
   await page.getByLabel("Filtrar por etiqueta").selectOption("trabajo");
   await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
 
-  // La paleta del menú (donde estaba la luna) lleva a elegir el tema.
-  await page.getByRole("button", { name: "Elegir tema" }).click();
+  // El tema se elige desde Configuración.
+  await page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Configuración" }).click();
+  await page.getByRole("link", { name: "Tema" }).click();
   await expect(page).toHaveURL(/#\/tema$/);
   await page.getByRole("radiogroup", { name: "Tema de la app" }).getByRole("radio", { name: "Noche", exact: true }).click();
   await expect(page.locator("html")).toHaveClass(/dark/);
@@ -600,6 +602,7 @@ test("en el computador el menú se oculta y se vuelve a mostrar", async ({ page 
   const iconos = page.getByTestId("menu-iconos");
   await expect(iconos).toBeVisible();
   await expect(iconos.getByRole("link")).toHaveCount(8);
+  await expect(iconos.getByRole("link").first()).toHaveAttribute("aria-label", "Semana");
   await expect(iconos.getByRole("link", { name: "Matriz" })).toHaveText("");
   await iconos.getByRole("link", { name: "Configuración" }).click();
   await expect(page.getByRole("heading", { name: "Configuración" })).toBeVisible();
@@ -643,7 +646,8 @@ test("temas de color y color de un evento", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-tema", "clasico");
   // El tema está en su propia entrada del menú, no en Cuenta y ajustes.
   await expect(page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Tema" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Elegir tema" }).first().click();
+  await page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Configuración" }).click();
+  await page.getByRole("link", { name: "Tema" }).click();
   await expect(page).toHaveURL(/#\/tema$/);
   await page.goto("/#/ajustes");
   await expect(page.getByRole("radiogroup", { name: "Tema de la app" })).toHaveCount(0);
@@ -831,7 +835,7 @@ test("menú: el orden de las vistas", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Matriz" })).toBeVisible();
   const nombres = await page.getByRole("navigation", { name: "Navegación" }).getByRole("link").allTextContents();
-  const vistas = ["Semana", "Calendario", "Estadística Tareas", "Hábitos", "Estadística Hábitos", "Matriz"];
+  const vistas = ["Semana", "Calendario", "Hábitos", "Matriz", "Estadística Tareas", "Estadística Hábitos"];
   expect(nombres.map((n) => n.replace(/\d+$/, "").trim()).filter((n) => vistas.includes(n))).toEqual(vistas);
 });
 
@@ -914,7 +918,8 @@ test("widget Matriz del escritorio: los 4 cuadrantes a la vista, sin desplazar e
 test("menú Widgets (app de PC): añadir y quitar widgets del escritorio", async ({ page }) => {
   // Sin la app de PC, el apartado no aparece.
   await page.goto("/");
-  await expect(page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Widgets" })).toHaveCount(0);
+  await irAHash(page, "#/configuracion");
+  await expect(page.getByRole("link", { name: "Widgets" })).toHaveCount(0);
 
   // Puente falso de la app de PC.
   await page.addInitScript(() => {
@@ -929,7 +934,8 @@ test("menú Widgets (app de PC): añadir y quitar widgets del escritorio", async
     };
   });
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Widgets" }).click();
+  await page.getByRole("navigation", { name: "Navegación" }).getByRole("link", { name: "Configuración" }).click();
+  await page.getByRole("link", { name: "Widgets" }).click();
   await expect(page).toHaveURL(/#\/widgets$/);
   await expect(page.getByTestId("widget-disponible")).toHaveCount(5);
   await expect(page.getByRole("button", { name: "Quitar del escritorio: Semana" })).toBeVisible();

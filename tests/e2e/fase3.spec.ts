@@ -137,7 +137,7 @@ test("el permiso se pide con un botón, no al cargar", async ({ page }) => {
     }
     (window as unknown as { Notification: unknown }).Notification = Falsa;
   });
-  await page.goto("/");
+  await page.goto("/#/ajustes");
   const boton = page.getByRole("button", { name: "Activar avisos del navegador" });
   await expect(boton).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { estado: { pedidos: number } }).estado.pedidos)).toBe(0);

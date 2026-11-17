@@ -229,7 +229,12 @@ export default function App() {
 
       <main className="flex min-w-0 flex-1 flex-col">
         {/* App de PC: franja para mover la ventana; a la derecha quedan los botones de Windows. */}
-        {altoBarra > 0 && <div data-testid="barra-ventana" aria-hidden className="shrink-0 [-webkit-app-region:drag]" style={{ height: altoBarra }} />}
+        {altoBarra > 0 && (
+          <div data-testid="barra-ventana" className="flex shrink-0 items-center gap-2 px-4 [-webkit-app-region:drag]" style={{ height: altoBarra }}>
+            <Marca clase="h-6 w-6" />
+            <span className="contorno-blanco text-base font-semibold">Andamia</span>
+          </div>
+        )}
         {!menuAbajo && (
           <div className="barra-lateral flex items-center gap-2 border-b border-borde px-3 py-2 lg:hidden">
             <button type="button" aria-label="Abrir menú" className="rounded-md p-1.5 hover:bg-suave" onClick={() => setLateralAbierta(true)}>
