@@ -1,3 +1,4 @@
+import { EnlaceAjustesWidget } from "../componentes/EnlaceAjustesWidget";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
@@ -297,7 +298,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   // Como el boceto: arriba el período; abajo una tarjeta con el anillo, la leyenda y las ondas.
   // La tarjeta se reparte en cuadrados (en el celular y en el computador): anillo y etiquetas arriba (una mitad cada uno) y las ondas en la mitad de abajo.
   return (
-    <div className={`flex min-h-0 flex-1 flex-col gap-3 ${EN_WIDGET ? "p-3" : "p-4 lg:px-20 lg:py-5"}`}>
+    <div className={`flex min-h-0 flex-1 flex-col gap-3 ${EN_WIDGET ? "p-3" : "p-4 lg:px-20 lg:pt-5 lg:pb-2"}`}>
       {!EN_WIDGET && <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>}
       {tarjetaPeriodo ? (
         <header className="shrink-0 rounded-2xl border border-borde bg-panel px-6 py-3 shadow-sm">
@@ -379,6 +380,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
           </>
         )}
       </section>
+      {!EN_WIDGET && <EnlaceAjustesWidget id={esTareas ? "estadistica-tareas" : "estadistica-habitos"} clase="hidden lg:block " />}
     </div>
   );
 }

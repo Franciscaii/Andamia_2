@@ -1,3 +1,4 @@
+import { FlechaVolver } from "../componentes/FlechaVolver";
 import { useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, Columns3, List, RotateCcw, Trash2 } from "lucide-react";
 import { EntradaRapida } from "../componentes/EntradaRapida";
@@ -90,6 +91,7 @@ export function VistaTareas({ seccion, tareaAbierta }: { seccion: SeccionTareas;
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex items-center gap-2 px-6 pt-5 pb-3">
         {color && <span className="h-3.5 w-3.5 rounded-full" style={{ background: color }} />}
+        {esPapelera && <FlechaVolver />}
         <h1 className="truncate text-xl font-semibold">{titulo}</h1>
         {listaActual && (
           <div role="group" aria-label="Modo de la lista" className="ml-auto flex shrink-0 gap-0.5 rounded-md bg-suave p-0.5">

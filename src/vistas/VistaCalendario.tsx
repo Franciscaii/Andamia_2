@@ -1,3 +1,4 @@
+import { EnlaceAjustesWidget } from "../componentes/EnlaceAjustesWidget";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { addMonths, addWeeks, format, isSameDay, isSameMonth, parseISO, startOfDay, startOfMonth } from "date-fns";
@@ -346,7 +347,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
           announcements: { onDragStart: () => "Tarea tomada.", onDragOver: () => "", onDragEnd: () => "Tarea soltada.", onDragCancel: () => "Movimiento cancelado." },
         }}
       >
-        <div className={`flex min-h-0 flex-1 gap-3 ${EN_WIDGET ? "pb-3" : "pb-5"} ${modo === "mes" ? "px-4 sm:px-5" : "px-5"}`}>
+        <div className={`flex min-h-0 flex-1 gap-3 ${EN_WIDGET ? "pb-3" : "pb-5 lg:pb-1"} ${modo === "mes" ? "px-4 sm:px-5" : "px-5"}`}>
           {modo === "mes" ? (
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-borde bg-panel">
               <div className="grid grid-cols-7 border-b border-borde">
@@ -445,6 +446,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
           {activa && <div className="flex w-44 items-center gap-1 rounded border border-acento bg-panel px-1.5 py-0.5 text-xs shadow-lg">{contenidoChip(activa, activa.vence ? parseISO(activa.vence) : null, false)}</div>}
         </DragOverlay>
       </DndContext>
+      {!EN_WIDGET && <EnlaceAjustesWidget id="calendario" clase="hidden lg:block px-5 pt-1 pb-2" />}
 
       {creacion && <DialogoNuevaTarea creacion={creacion} alCerrar={() => setCreacion(null)} />}
       {(nuevo === "tarea" || nuevo === "evento") && <DialogoNuevo tipo={nuevo} dia={diaParaNuevo} alCerrar={() => setNuevo(null)} />}

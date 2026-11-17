@@ -1,3 +1,4 @@
+import { FlechaVolver } from "../componentes/FlechaVolver";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Cloud, CloudOff, Download, MonitorDown, RefreshCw, Upload } from "lucide-react";
 import { BotonAvisos } from "../componentes/Avisos";
@@ -464,7 +465,7 @@ export function VistaTema() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl space-y-4 p-5 lg:max-w-5xl lg:px-10 lg:py-8">
-        <h1 className="text-xl font-semibold lg:text-2xl">Tema</h1>
+        <div className="flex items-center"><FlechaVolver /><h1 className="text-xl font-semibold lg:text-2xl">Tema</h1></div>
         <Seccion titulo="Elige un tema">
           <Apariencia />
         </Seccion>
@@ -479,7 +480,7 @@ export function VistaAjustes() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl space-y-4 p-5 lg:my-auto lg:max-w-3xl">
-        <h1 className="text-xl font-semibold">Cuenta y ajustes</h1>
+        <div className="flex items-center"><FlechaVolver /><h1 className="text-xl font-semibold">Cuenta y ajustes</h1></div>
         <Seccion titulo="Cuenta">
           {!configurada ? (
             <p data-testid="sin-firebase" className="text-sm text-tenue">Las cuentas aún no están configuradas en esta instalación. Tus datos se guardan solo en este navegador. La guía está en docs/firebase-paso-a-paso.md.</p>
