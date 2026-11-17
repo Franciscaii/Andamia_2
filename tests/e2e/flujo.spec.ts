@@ -43,7 +43,7 @@ test("crear lista, añadir tarea en lenguaje natural, verla en Mañana y complet
   await expect(fila).not.toContainText("#trabajo");
   await expect(fila).not.toContainText("propuesta mañana");
   await page.getByRole("button", { name: "Ver etiquetas" }).click();
-  await expect(page.getByRole("navigation").getByRole("link", { name: /^trabajo/ })).toBeVisible();
+  await expect(page.getByRole("navigation").getByText("trabajo", { exact: true })).toBeVisible();
 
   // Mañana ya no está en el menú, pero su dirección sigue funcionando.
   await page.goto("/#/tareas/manana");
@@ -276,13 +276,14 @@ test("reordenar con el teclado y borrar una lista con sus tareas", async ({ page
 test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, editar y borrar", async ({ page }) => {
   await page.goto("/");
   const menu = page.getByRole("navigation", { name: "Navegación" });
-  // En el menú parten plegadas: la flecha las despliega solo para verlas, sin lápiz ni +.
-  await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
+  // En el menú parten plegadas: la flecha las despliega solo para verlas (sin enlace, sin números, sin lápiz ni +).
+  await expect(menu.getByText("Otro", { exact: true })).toHaveCount(0);
   await menu.getByRole("button", { name: "Ver etiquetas" }).click();
   for (const nombre of ["Otro", "Vinculos", "Universidad", "NecesidadBiologica", "CuidadoPersonal", "DisfrutePersonal", "VidaCotidiana", "DesarrolloProfesional"]) {
-    await expect(menu.getByRole("link", { name: new RegExp(`^${nombre}`) })).toBeVisible();
+    await expect(menu.getByText(nombre, { exact: true })).toBeVisible();
   }
-  await menu.getByRole("link", { name: /^Otro/ }).hover();
+  await expect(menu.getByRole("link", { name: /^Otro/ })).toHaveCount(0);
+  await menu.getByText("Otro", { exact: true }).hover();
   await expect(page.getByRole("button", { name: "Editar etiqueta Otro" })).toHaveCount(0);
   await expect(menu.getByRole("button", { name: "Nueva etiqueta" })).toHaveCount(0);
 
@@ -303,7 +304,7 @@ test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, edi
   await dialogo.getByLabel("Nombre").fill("Deporte");
   await dialogo.getByRole("button", { name: "Crear etiqueta" }).click();
   await expect(tarjetas).toHaveCount(9);
-  await expect(menu.getByRole("link", { name: /^Deporte/ })).toBeVisible();
+  await expect(menu.getByText("Deporte", { exact: true })).toBeVisible();
 
   // Renombrar mantiene la etiqueta en las tareas.
   await expect(page.getByRole("link", { name: "Ver tareas" })).toHaveCount(0);
@@ -314,9 +315,11 @@ test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, edi
   await expect(edicion.getByRole("alert")).toContainText("Ya existe");
   await edicion.getByLabel("Nombre").fill("Ejercicio");
   await edicion.getByRole("button", { name: "Guardar" }).click();
-  await expect(menu.getByRole("link", { name: /^Ejercicio/ })).toBeVisible();
-  await menu.getByRole("link", { name: /^Ejercicio/ }).click();
+  await expect(menu.getByText("Ejercicio", { exact: true })).toBeVisible();
+  // El nombre nuevo se ve también en la tarea.
+  await page.goto("/#/tareas/semana");
   await expect(page.getByTestId("fila-tarea").filter({ hasText: "Correr" })).toContainText("Ejercicio");
+  await menu.getByRole("link", { name: "Etiquetas", exact: true }).click();
 
   // Se elimina desde su tarjeta, o desde Editar, que trae Eliminar, Cancelar y Guardar.
   await menu.getByRole("link", { name: "Etiquetas", exact: true }).click();
@@ -325,14 +328,14 @@ test("etiquetas iniciales del ámbito: vienen por defecto y se pueden crear, edi
   await expect(page.getByRole("dialog").getByRole("button", { name: "Guardar" })).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "Eliminar", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Borrar etiqueta" }).click();
-  await expect(menu.getByRole("link", { name: /^Deporte/ })).toHaveCount(0);
+  await expect(menu.getByText("Deporte", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Eliminar etiqueta Vinculos" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Borrar etiqueta" }).click();
   await expect(tarjetas).toHaveCount(7);
   // Al recargar no vuelven, y el menú recuerda que las etiquetas quedaron a la vista.
   await page.reload();
-  await expect(menu.getByRole("link", { name: /^Universidad/ })).toBeVisible();
-  await expect(menu.getByRole("link", { name: /^Vinculos/ })).toHaveCount(0);
+  await expect(menu.getByText("Universidad", { exact: true })).toBeVisible();
+  await expect(menu.getByText("Vinculos", { exact: true })).toHaveCount(0);
 });
 
 test("widget Semana del PC: un solo + junto a los filtros que añade en el día marcado", async ({ page }) => {
@@ -435,6 +438,7 @@ test("calendario mes: eventos y tareas con casilla en cada día, filtros y +", a
   await crearEnSemana(page, "Tarea", "Estudiar cálculo");
   await crearEnSemana(page, "Evento", "Doctor");
   await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
+  await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Todos" }).click();
 
   const hoy = page.locator(`[data-zona="dia:${hoyEnSantiago()}"]`);
   await expect(hoy).toContainText("Estudiar cálculo");
@@ -618,6 +622,7 @@ test("calendario mes: 'n más' lleva a la Semana en Hoy con ese día elegido", a
     await d.getByRole("button", { name: "Crear tarea" }).click();
   }
   await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
+  await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Todos" }).click();
   const celda = page.locator(`[data-zona="dia:${clave}"]`);
   await celda.getByRole("link", { name: /más$/ }).click();
   await expect(page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -875,6 +880,7 @@ test("widget Calendario: el mes entero cabe sin barra y '+n más' abre el día e
   await page.setViewportSize({ width: 520, height: 520 });
   await page.goto("/?widget=calendario");
   await expect(page.getByTestId("titulo-calendario")).toBeVisible();
+  await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Todos" }).click();
   const rejilla = page.locator(".auto-rows-fr");
   await expect.poll(() => rejilla.evaluate((e) => e.scrollHeight - e.clientHeight)).toBeLessThanOrEqual(1);
   const mas = page.getByRole("link", { name: /más$/ });
@@ -1116,7 +1122,12 @@ test("hábitos: de a dos en la Semana y tabla por día en el computador", async 
   // Por mes: una columna por cada día del mes.
   await page.getByRole("group", { name: "Ver por" }).getByRole("button", { name: "Mes", exact: true }).click();
   expect(await tabla.getByRole("button", { name: /^Marcar Agua el / }).count()).toBeGreaterThanOrEqual(28);
-  await expect(page.getByRole("heading", { name: "Configuración" })).toBeVisible();
+  // Título, mes y botones van dentro del recuadro de la tabla; ya no hay línea "Configuración".
+  await expect(tabla.getByRole("heading", { name: "Hábitos" })).toBeVisible();
+  await expect(tabla.getByRole("group", { name: "Ver por" })).toBeVisible();
+  await expect(tabla.getByRole("button", { name: "Nuevo hábito" })).toBeVisible();
+  await expect(tabla.getByTestId("titulo-tabla-habitos")).toHaveText(/^\S+ \d{4}$/);
+  await expect(page.getByRole("heading", { name: "Configuración" })).toHaveCount(0);
 
   // En la Semana (vista de un día) los hábitos van de a dos por fila; el marcado en la tabla se ve aquí.
   await page.goto("/#/tareas/semana");

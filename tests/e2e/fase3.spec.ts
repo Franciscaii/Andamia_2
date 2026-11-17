@@ -8,7 +8,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 const entrada = (page: Page) => page.getByRole("textbox", { name: "Añadir tarea" });
-const navegar = (page: Page, nombre: string) => page.getByRole("navigation").getByRole("link", { name: new RegExp(`^${nombre}`) }).click();
+const navegar = async (page: Page, nombre: string) => {
+  await page.getByRole("navigation").getByRole("link", { name: new RegExp(`^${nombre}`) }).click();
+  // El Calendario parte en "Eventos": estas pruebas miran todo.
+  if (nombre === "Calendario") await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Todos" }).click();
+};
 const fila = (page: Page, texto: string) => page.getByTestId("fila-tarea").filter({ hasText: texto });
 
 async function agregar(page: Page, texto: string) {
@@ -259,6 +263,7 @@ test("Calendario: arrastrar cambia la fecha, clic crea y no hay panel sin fecha"
 
   // Persiste tras recargar.
   await page.reload();
+  await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Todos" }).click();
   await expect(dia("2026-11-18")).toContainText("Dentista");
 });
 
@@ -292,7 +297,7 @@ test("los datos de la fase 2 sobreviven a la actualización", async ({ page }) =
   await page.goto("/");
   // Espera a que la app termine de agregar las etiquetas iniciales antes de borrar su base.
   await page.getByRole("button", { name: "Ver etiquetas" }).click();
-  await expect(page.getByRole("navigation").getByRole("link", { name: /^Otro/ })).toBeVisible();
+  await expect(page.getByRole("navigation").getByText("Otro", { exact: true })).toBeVisible();
   // Reemplaza la base por una de la versión anterior antes de que la app la abra.
   await page.evaluate(async () => {
     await new Promise<void>((ok, mal) => {

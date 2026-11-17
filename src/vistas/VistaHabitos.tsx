@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Settings, Trash2, X } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { IconoHabito, ICONOS_HABITO } from "../componentes/IconoHabito";
 import { claseBotonEliminar, clasePanelDetalle, FondoDetalle } from "../componentes/DetalleTarea";
 import { PanelColor } from "../componentes/PanelColor";
@@ -387,7 +387,7 @@ export function VistaHabitos() {
   const hoy = startOfDay(new Date());
   const diasTabla = alcanceTabla === "semana" ? Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(baseTabla, { weekStartsOn: 1 }), i)) : eachDayOfInterval({ start: startOfMonth(baseTabla), end: endOfMonth(baseTabla) });
   const moverTabla = (pasos: number) => setBaseTabla(alcanceTabla === "semana" ? addDays(baseTabla, 7 * pasos) : addMonths(baseTabla, pasos));
-  const tituloTabla = format(alcanceTabla === "semana" ? diasTabla[0] : baseTabla, "MMM", { locale: es }).replace(".", "");
+  const tituloTabla = format(alcanceTabla === "semana" ? diasTabla[0] : baseTabla, "MMM yyyy", { locale: es }).replace(".", "");
   const semana = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(hoy, i - 6)), [hoy.getTime()]);
   // Todos en una sola lista: primero los activos y al final los que están apagados.
   const visibles = [...habitos].sort((a, b) => Number(a.archivado) - Number(b.archivado) || a.orden - b.orden);
@@ -482,39 +482,42 @@ export function VistaHabitos() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-6xl p-5">
-        <header className="mb-4 flex items-center gap-2">
+        {/* Celular: título y +. En el computador van dentro del recuadro de la tabla. */}
+        <header className={`mb-4 flex items-center gap-2 ${activos.length > 0 ? "lg:hidden" : ""}`}>
           <h1 className="text-xl font-semibold">Hábitos</h1>
-          {/* En el computador, en la misma fila: < mes >, Semana | Mes y el +, todos con borde. */}
-          {activos.length > 0 && (
-            <div className="ml-4 hidden items-center rounded-lg border border-borde bg-panel p-0.5 lg:flex">
-              <button type="button" aria-label={alcanceTabla === "semana" ? "Semana anterior" : "Mes anterior de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(-1)}>
-                <ChevronLeft size={18} />
-              </button>
-              <span data-testid="titulo-tabla-habitos" title={format(baseTabla, "MMMM yyyy", { locale: es })} className="min-w-12 px-2 text-center text-lg font-semibold first-letter:uppercase">
-                {tituloTabla}
-              </span>
-              <button type="button" aria-label={alcanceTabla === "semana" ? "Semana siguiente" : "Mes siguiente de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(1)}>
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          )}
-          {activos.length > 0 && (
-            <div role="group" aria-label="Ver por" className="ml-auto hidden gap-1 lg:flex">
-              {(["semana", "mes"] as const).map((a) => (
-                <button key={a} type="button" aria-pressed={alcanceTabla === a} className={`rounded-md border px-3 py-1.5 text-xs first-letter:uppercase ${alcanceTabla === a ? "border-acento bg-panel font-medium shadow-sm" : "border-borde bg-panel text-tenue hover:text-texto"}`} onClick={() => setAlcanceTabla(a)}>
-                  {a === "semana" ? "Semana" : "Mes"}
-                </button>
-              ))}
-            </div>
-          )}
-          <button type="button" aria-label="Nuevo hábito" title="Nuevo hábito" className={`flex h-9 w-9 items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90 lg:h-8 lg:w-8 lg:rounded-md lg:border lg:border-borde lg:bg-panel lg:text-texto lg:hover:bg-suave ${activos.length > 0 ? "ml-auto lg:ml-0" : "ml-auto"}`} onClick={() => setDialogo({ habito: null })}>
+          <button type="button" aria-label="Nuevo hábito" title="Nuevo hábito" className="ml-auto flex h-9 w-9 items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90 lg:h-8 lg:w-8 lg:rounded-md lg:border lg:border-borde lg:bg-panel lg:text-texto lg:hover:bg-suave" onClick={() => setDialogo({ habito: null })}>
             <Plus size={18} />
           </button>
         </header>
 
         {/* Solo en el computador: los hábitos activos contra los días, para marcarlos de un vistazo. */}
         {activos.length > 0 && (
-          <section aria-label="Hábitos por día" data-testid="tabla-habitos" className="mb-6 hidden rounded-xl border border-borde p-3 lg:block">
+          <section aria-label="Hábitos por día" data-testid="tabla-habitos" className="mb-6 hidden rounded-xl border border-borde bg-[color-mix(in_srgb,var(--panel)_55%,transparent)] p-3 lg:block">
+            {/* En el computador, en la misma fila y dentro del recuadro: título, < mes >, Semana | Mes y el +. */}
+            <div className="mb-3 flex items-center gap-2">
+              <h1 className="text-xl font-semibold">Hábitos</h1>
+              <div className="ml-4 flex items-center rounded-lg border border-borde bg-panel p-0.5">
+                <button type="button" aria-label={alcanceTabla === "semana" ? "Semana anterior" : "Mes anterior de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(-1)}>
+                  <ChevronLeft size={18} />
+                </button>
+                <span data-testid="titulo-tabla-habitos" title={format(baseTabla, "MMMM yyyy", { locale: es })} className="min-w-12 px-2 text-center text-lg font-semibold first-letter:uppercase">
+                  {tituloTabla}
+                </span>
+                <button type="button" aria-label={alcanceTabla === "semana" ? "Semana siguiente" : "Mes siguiente de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(1)}>
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+              <div role="group" aria-label="Ver por" className="ml-auto flex gap-1">
+                {(["semana", "mes"] as const).map((a) => (
+                  <button key={a} type="button" aria-pressed={alcanceTabla === a} className={`rounded-md border px-3 py-1.5 text-xs first-letter:uppercase ${alcanceTabla === a ? "border-acento bg-panel font-medium shadow-sm" : "border-borde bg-panel text-tenue hover:text-texto"}`} onClick={() => setAlcanceTabla(a)}>
+                    {a === "semana" ? "Semana" : "Mes"}
+                  </button>
+                ))}
+              </div>
+              <button type="button" aria-label="Nuevo hábito" title="Nuevo hábito" className="flex h-8 w-8 items-center justify-center rounded-md border border-borde bg-panel text-texto hover:bg-suave" onClick={() => setDialogo({ habito: null })}>
+                <Plus size={18} />
+              </button>
+            </div>
             <div className="overflow-x-auto pb-1">
               <div
                 className={`grid items-stretch gap-y-1.5 ${alcanceTabla === "semana" ? "gap-x-1" : "gap-x-0.5"}`}
@@ -564,12 +567,7 @@ export function VistaHabitos() {
           </section>
         )}
 
-        <div className="lg:rounded-xl lg:border lg:border-borde lg:p-3">
-        {visibles.length > 0 && (
-          <h2 className="mb-3 hidden items-center gap-2 border-b border-borde pb-1 text-base font-semibold lg:flex">
-            <Settings size={17} className="text-tenue" /> Configuración
-          </h2>
-        )}
+        <div className="lg:rounded-xl lg:border lg:border-borde lg:bg-[color-mix(in_srgb,var(--panel)_55%,transparent)] lg:p-3">
         <div className={`grid items-start gap-4 ${seleccionado ? "lg:grid-cols-[minmax(0,1fr)_22rem]" : ""}`}>
           <div className="min-w-0">
             {!visibles.length && (

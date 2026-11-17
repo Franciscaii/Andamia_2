@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Pencil, Plus, Tag, Trash2 } from "lucide-react";
 import { DialogoEtiqueta } from "../componentes/Dialogos";
 import { Confirmar } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
-import { estaPendiente } from "../logica/vistas";
 import type { Etiqueta } from "../modelos/tipos";
 
 type Dialogo = { tipo: "etiqueta"; etiqueta: Etiqueta | null } | { tipo: "borrar"; etiqueta: Etiqueta };
@@ -11,15 +10,8 @@ type Dialogo = { tipo: "etiqueta"; etiqueta: Etiqueta | null } | { tipo: "borrar
 /** Todas las etiquetas en tarjetas: el único lugar donde se crean, editan y eliminan. */
 export function VistaEtiquetas() {
   const etiquetas = useTienda((s) => s.etiquetas);
-  const tareas = useTienda((s) => s.tareas);
   const borrarEtiqueta = useTienda((s) => s.borrarEtiqueta);
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
-
-  const pendientes = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const t of tareas) if (estaPendiente(t)) for (const e of t.etiquetas) m.set(e, (m.get(e) ?? 0) + 1);
-    return m;
-  }, [tareas]);
 
   const claseAccion = "flex items-center gap-1.5 rounded-md border border-borde bg-panel px-2 py-1 text-xs hover:bg-suave";
 
@@ -45,12 +37,10 @@ export function VistaEtiquetas() {
         {!etiquetas.length && <p className="mt-10 text-center text-sm text-tenue">Aún no tienes etiquetas. Crea una con el +.</p>}
         <ul className="grid grid-cols-1 items-start gap-2 lg:grid-cols-2">
           {etiquetas.map((e) => {
-            const n = pendientes.get(e.nombre) ?? 0;
             return (
               <li key={e.nombre} data-testid="tarjeta-etiqueta" className="flex min-w-0 items-center gap-2 rounded-xl border border-borde bg-panel p-2.5 pl-3">
                 <Tag size={17} className="shrink-0" style={{ color: e.color }} />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium" title={e.nombreVisible}>{e.nombreVisible}</span>
-                {n > 0 && <span className="hidden shrink-0 text-xs text-tenue tabular-nums lg:inline">{n}</span>}
                 <button type="button" aria-label={`Editar etiqueta ${e.nombreVisible}`} title="Editar" className={claseAccion} onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
                   <Pencil size={14} /> <span>Editar</span>
                 </button>

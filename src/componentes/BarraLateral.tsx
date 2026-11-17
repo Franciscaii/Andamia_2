@@ -128,12 +128,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
     return m;
   }, [tareas]);
 
-  const pendientesPorEtiqueta = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const t of tareas) if (estaPendiente(t)) for (const e of t.etiquetas) m.set(e, (m.get(e) ?? 0) + 1);
-    return m;
-  }, [tareas]);
-
   const filaLista = (l: Lista) => (
     <Fila
       key={l.id}
@@ -226,15 +220,12 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
         {etiquetasAbiertas && (
           <div className="ml-4 border-l border-borde pl-1">
             {!etiquetas.length && <p className="px-2 py-1 text-xs text-tenue">Aún no hay etiquetas.</p>}
+            {/* Solo se ven: editarlas y borrarlas se hace en la vista Etiquetas. */}
             {etiquetas.map((e) => (
-              <Fila
-                key={e.nombre}
-                href={hashDe({ tipo: "etiqueta", nombre: e.nombre })}
-                activa={seccion.tipo === "etiqueta" && seccion.nombre === e.nombre}
-                icono={<Tag size={16} style={{ color: e.color }} />}
-                nombre={e.nombreVisible}
-                contador={pendientesPorEtiqueta.get(e.nombre)}
-              />
+              <div key={e.nombre} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm">
+                <span className="shrink-0 text-tenue"><Tag size={16} style={{ color: e.color }} /></span>
+                <span className="truncate">{e.nombreVisible}</span>
+              </div>
             ))}
           </div>
         )}

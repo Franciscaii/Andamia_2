@@ -12,7 +12,6 @@ import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes, diasDeSemana, entradasDelDia, entradasEnRango, venceEnDia, venceEnHora, type EntradaCalendario } from "../logica/calendario";
 import { interpretarEntrada } from "../logica/entradaRapida";
 import { habitosDelDia, type HabitoDelDia } from "../logica/habitos";
-import { esAppNativa } from "../logica/plataforma";
 import { hashDe, irA, type ModoCalendario } from "../logica/ruta";
 import type { FiltroSemana } from "../logica/semana";
 import { DialogoHabito } from "./VistaHabitos";
@@ -204,7 +203,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const [fecha, setFecha] = useState(() => new Date());
   const [creacion, setCreacion] = useState<Creacion | null>(null);
   const [activa, setActiva] = useState<Tarea | null>(null);
-  const [filtro, setFiltro] = useState<FiltroSemana>(esAppNativa() ? "eventos" : "todos");
+  const [filtro, setFiltro] = useState<FiltroSemana>("eventos");
   const [nuevo, setNuevo] = useState<TipoNuevo | "habito" | null>(null);
   const rejilla = useRef<HTMLDivElement>(null);
   // Alto real de una celda del mes, para mostrar tantas entradas como quepan.
@@ -236,9 +235,11 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
 
   const dias = useMemo(() => (modo === "mes" ? diasDeMes(fecha) : diasDeSemana(fecha)), [modo, fecha]);
   const entradas = useMemo(() => {
-    const filtradas = visibles.filter((t) => (filtro === "todos" ? true : filtro === "habitos" ? false : filtro === "eventos" ? t.esEvento === true : t.esEvento !== true));
+    // La vista semanal no tiene filtros: muestra todo. Los filtros son del mes.
+    const f = modo === "mes" ? filtro : "todos";
+    const filtradas = visibles.filter((t) => (f === "todos" ? true : f === "habitos" ? false : f === "eventos" ? t.esEvento === true : t.esEvento !== true));
     return entradasEnRango(filtradas, dias[0], dias[dias.length - 1]);
-  }, [visibles, dias, filtro]);
+  }, [visibles, dias, filtro, modo]);
 
   // La semana arranca mostrando la mañana, no la madrugada.
   useEffect(() => {
@@ -267,7 +268,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const titulo = modo === "mes"
     ? format(fecha, "MMMM yyyy", { locale: es })
     : `${format(dias[0], "d MMM", { locale: es })} – ${format(dias[6], "d MMM yyyy", { locale: es })}`;
-  const crearEnDia = (dia: Date) => setCreacion({ vence: claveDia(dia), todoElDia: true, etiqueta: format(dia, "EEEE d 'de' MMMM", { locale: es }), esEvento: filtro === "eventos" });
+  const crearEnDia = (dia: Date) => setCreacion({ vence: claveDia(dia), todoElDia: true, etiqueta: format(dia, "EEEE d 'de' MMMM", { locale: es }), esEvento: modo === "mes" && filtro === "eventos" });
   const mesCorto = format(fecha, "MMM", { locale: es }).replace(".", "");
   const tituloMes = mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1);
   const anioMes = fecha.getFullYear();
