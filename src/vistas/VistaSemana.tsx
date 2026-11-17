@@ -7,7 +7,7 @@ import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFI
 import { addDays, addMonths, format, isSameDay, isSameMonth, parseISO, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
 import { lanzarConfeti } from "../logica/confeti";
-import { CalendarClock, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, GripVertical, Plus } from "lucide-react";
+import { CalendarClock, Check, CheckSquare, ClipboardCheck, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, GripVertical, Plus } from "lucide-react";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { DialogoHabito } from "./VistaHabitos";
 import { COLOR_HECHA, COLOR_NIVEL } from "../componentes/FilaTarea";
@@ -495,7 +495,7 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
   if (!conDesplegable) return lista;
   // Como en su dibujo: cerrado es una barra "Hábitos" con ▵; abierto es un marco con "Hábitos" y ▿ y los hábitos dentro.
   return (
-    <div className="mb-3 overflow-hidden rounded-xl border border-borde bg-[color-mix(in_srgb,var(--panel)_60%,transparent)] shadow-sm backdrop-blur-sm">
+    <div className="mb-1 overflow-hidden rounded-xl border border-borde bg-[color-mix(in_srgb,var(--panel)_60%,transparent)] shadow-sm backdrop-blur-sm">
       <button
         type="button"
         aria-expanded={abierto}
@@ -529,7 +529,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, verHabitos, tareaAbie
   return (
     <>
       {verEventos && contenido.eventos.length > 0 && (
-        <ul aria-label="Eventos" className="mb-3 space-y-1">
+        <ul aria-label="Eventos" className="mb-1 space-y-1">
           {contenido.eventos.map((e) => (
             <EventoArrastrable key={e.id} evento={e} abierta={e.id === tareaAbierta} dia={claveDia(dia)} />
           ))}
@@ -543,7 +543,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, verHabitos, tareaAbie
         <div data-testid="tarjeta-tareas" className="overflow-hidden rounded-xl border border-borde bg-panel">
           <section aria-label="Tareas del día" className="px-2 pt-3 pb-2">
             <div className="px-2">
-              <h2 className="text-sm font-semibold">{esHoy ? "Tareas hoy" : "Tareas del día"}</h2>
+              <h2 className="flex items-center gap-1.5 text-sm font-semibold"><ClipboardCheck size={16} aria-hidden className="text-texto" />{esHoy ? "Tareas hoy" : "Tareas del día"}</h2>
               <BarraProgreso {...contenido.progreso} />
             </div>
             {pendientes.length > 0 ? (

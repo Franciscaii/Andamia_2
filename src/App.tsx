@@ -255,7 +255,7 @@ export default function App() {
           </div>
         )}
         <Vista ruta={ruta} />
-        {widgetDeSeccion(ruta.seccion) && <EnlaceAjustesWidget id={widgetDeSeccion(ruta.seccion)!} clase="shrink-0 px-6 pt-1 pb-3" />}
+        {widgetDeSeccion(ruta.seccion) && <EnlaceAjustesWidget id={widgetDeSeccion(ruta.seccion)!} clase="shrink-0 px-6 pt-1 pb-3 lg:hidden" />}
         {menuAbajo && <BarraInferior seccion={ruta.seccion} />}
       </main>
 

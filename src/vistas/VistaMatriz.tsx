@@ -1,3 +1,4 @@
+import { EnlaceAjustesWidget } from "../componentes/EnlaceAjustesWidget";
 import { useMemo, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as EventoTeclado, type PointerEvent as EventoPuntero } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -286,7 +287,7 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
           className={
             EN_WIDGET
               ? "grid min-h-0 flex-1 grid-cols-[minmax(0,var(--mc1))_8px_minmax(0,var(--mc2))] grid-rows-[minmax(0,var(--mf1))_8px_minmax(0,var(--mf2))] overflow-hidden px-2 pb-2"
-              : "grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-5 pb-5 lg:grid-cols-[minmax(0,var(--mc1))_12px_minmax(0,var(--mc2))] lg:grid-rows-[minmax(0,var(--mf1))_12px_minmax(0,var(--mf2))] lg:gap-0"
+              : "grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto px-5 pb-5 lg:pb-1 lg:grid-cols-[minmax(0,var(--mc1))_12px_minmax(0,var(--mc2))] lg:grid-rows-[minmax(0,var(--mf1))_12px_minmax(0,var(--mf2))] lg:gap-0"
           }
         >
           {CUADRANTES.map((c, i) => (
@@ -303,6 +304,7 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
           )}
         </DragOverlay>
       </DndContext>
+      {!EN_WIDGET && <EnlaceAjustesWidget id="matriz" clase="hidden lg:block px-5 pt-1 pb-2" />}
     </div>
   );
 }

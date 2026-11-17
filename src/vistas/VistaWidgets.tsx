@@ -1,3 +1,4 @@
+import { FlechaVolver } from "../componentes/FlechaVolver";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarDays, CalendarRange, ChartArea, ChartPie, ChevronDown, Grid2x2, Monitor, type LucideIcon } from "lucide-react";
 import { puenteEscritorio, useWidgetsAbiertos } from "../logica/puenteEscritorio";
@@ -303,14 +304,14 @@ function WidgetsEscritorio() {
   const puente = puenteEscritorio();
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-8 lg:px-8 lg:pt-12">
-      <h1 className="text-xl font-semibold lg:text-2xl">Widgets</h1>
-      <p className="mt-1 text-sm text-tenue lg:text-base lg:text-white">Ponlos en el escritorio de Windows. Quedan detrás de las ventanas y vuelven al iniciar. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
+      <div className="flex items-center"><FlechaVolver /><h1 className="text-xl font-semibold lg:text-2xl">Widgets</h1></div>
+      <p style={{ color: "#ffffff" }} className="mt-1 text-sm lg:text-base">Ponlos en el escritorio de Windows. Quedan detrás de las ventanas y vuelven al iniciar. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
       {!puente ? (
         <p className="mt-6 flex items-center gap-2 rounded-lg border border-borde bg-panel p-4 text-sm text-tenue">
           <Monitor size={18} /> Los widgets están disponibles en la app de Andamia para Windows.
         </p>
       ) : (
-        <ul className="mt-5 grid items-start gap-3 sm:grid-cols-2 lg:mt-6 lg:gap-5" aria-label="Widgets del escritorio">
+        <ul className="mt-5 grid grid-cols-1 items-start gap-3 lg:mt-6 lg:gap-5" aria-label="Widgets del escritorio">
           {WIDGETS.map((w) => {
             const puesto = abiertos.includes(w.id);
             return <TarjetaWidgetEscritorio key={w.id} w={w} puesto={puesto} alCambiarPuesto={() => (puesto ? puente.cerrarWidget(w.id) : puente.abrirWidget(w.id))} />;
