@@ -439,6 +439,15 @@ function leerAlcance(): Alcance {
   }
 }
 
+/** Si un color (#rrggbb) es oscuro, para elegir una letra clara encima. */
+function colorOscuro(color: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(color.trim());
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5;
+}
+
 /** Los hábitos que tocan un día: el nombre y su interruptor. Se completa arrastrando el círculo, en el celular y en el computador. */
 function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: Date; estrecha?: boolean; desplegable?: boolean }) {
   const [abierto, setAbierto] = useState(false);
@@ -457,11 +466,14 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
     <ul aria-label="Hábitos" className={estrecha ? "space-y-1" : conDesplegable ? "mt-1 grid grid-cols-2 gap-1" : "mb-3 grid grid-cols-2 gap-1"}>
       {delDia.map(({ habito: h, estado, marcable }) => {
         const hecho = estado === "hecho";
+        // Letra negra (la del tema); si el color elegido es oscuro, el fondo toma ese color y la letra va clara.
+        const oscuro = colorOscuro(h.color);
+        const [fuerte, suave] = oscuro ? [85, 70] : [24, 8];
         return (
-          <li key={h.id} data-testid="habito-semana" style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${h.color} 24%, var(--panel)), color-mix(in srgb, ${h.color} 8%, var(--panel)))`, borderColor: `color-mix(in srgb, ${h.color} 55%, var(--panel))`, boxShadow: `0 2px 6px -2px color-mix(in srgb, ${h.color} 45%, transparent)` }} className={`flex min-w-0 items-center rounded-2xl border-[1.5px] [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-2" : "gap-2 px-3 py-2"}`}>
-            {!estrecha && <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: h.color, boxShadow: `0 0 0 3px color-mix(in srgb, ${h.color} 25%, transparent)` }} />}
+          <li key={h.id} data-testid="habito-semana" style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${h.color} ${fuerte}%, var(--panel)), color-mix(in srgb, ${h.color} ${suave}%, var(--panel)))`, color: oscuro ? "#ffffff" : undefined, borderColor: `color-mix(in srgb, ${h.color} 55%, var(--panel))`, boxShadow: `0 2px 6px -2px color-mix(in srgb, ${h.color} 45%, transparent)` }} className={`flex min-w-0 items-center rounded-2xl border-[1.5px] [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-2" : "gap-2 px-3 py-2"}`}>
+            
             {/* Tocar el nombre abre el detalle del hábito al costado; tocarlo de nuevo lo cierra. */}
-            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate font-bold ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho ? "text-tenue" : ""}`}>
+            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate font-bold ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho && !oscuro ? "text-tenue" : ""}`}>
               {h.nombre}
             </button>
             <DeslizadorHabito
@@ -483,7 +495,7 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
   if (!conDesplegable) return lista;
   // Como en su dibujo: cerrado es una barra "Hábitos" con ▵; abierto es un marco con "Hábitos" y ▿ y los hábitos dentro.
   return (
-    <div className="mb-3 overflow-hidden rounded-2xl border border-borde bg-[color-mix(in_srgb,var(--panel)_60%,transparent)] shadow-sm backdrop-blur-sm">
+    <div className="mb-3 overflow-hidden rounded-xl border border-borde bg-[color-mix(in_srgb,var(--panel)_60%,transparent)] shadow-sm backdrop-blur-sm">
       <button
         type="button"
         aria-expanded={abierto}
@@ -493,7 +505,6 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
       >
         <Flame size={16} className="text-acento" />
         Hábitos
-        <span className="rounded-full bg-acento-suave px-2 text-xs font-semibold tabular-nums">{delDia.length}</span>
         <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-suave">{abierto ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</span>
       </button>
       {abierto && <div className="px-2 pb-2">{lista}</div>}

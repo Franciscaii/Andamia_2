@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { format, startOfWeek, endOfWeek } from "date-fns";
+import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTienda } from "../datos/tienda";
 import {
@@ -235,6 +237,35 @@ function Areas({ resumen, elegido, alElegir, llenar = false }: { resumen: Resume
 
 // ---------- Vista ----------
 
+/** Computador (1024 px o más), fuera del widget: ahí el período se elige en una tarjeta con los cuatro. */
+function useEscritorio(): boolean {
+  const consulta = "(min-width: 1024px)";
+  const [esc, setEsc] = useState(() => typeof window !== "undefined" && window.matchMedia(consulta).matches);
+  useEffect(() => {
+    const m = window.matchMedia(consulta);
+    const alCambiar = () => setEsc(m.matches);
+    m.addEventListener("change", alCambiar);
+    return () => m.removeEventListener("change", alCambiar);
+  }, []);
+  return esc;
+}
+
+/** Lo que muestra cada fila de la tarjeta de período: 17/11/2026, 16/11 – 22/11, Nov 2026 o 2026. */
+function valorDePeriodo(p: Periodo, ref: Date): string {
+  switch (p) {
+    case "dia":
+      return format(ref, "dd/MM/yyyy");
+    case "semana":
+      return `${format(startOfWeek(ref, { weekStartsOn: 1 }), "dd/MM")} – ${format(endOfWeek(ref, { weekStartsOn: 1 }), "dd/MM")}`;
+    case "mes": {
+      const t = format(ref, "MMM yyyy", { locale: es }).replace(".", "");
+      return t.charAt(0).toUpperCase() + t.slice(1);
+    }
+    case "anio":
+      return format(ref, "yyyy");
+  }
+}
+
 export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   const tareas = useTienda((s) => s.tareas);
   const etiquetas = useTienda((s) => s.etiquetas);
@@ -244,6 +275,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   const [referencia, setReferencia] = useState(() => new Date());
   const [elegido, setElegido] = useState<string | null>(null);
   const esTareas = tipo === "tareas";
+  const tarjetaPeriodo = useEscritorio() && !EN_WIDGET;
 
   const resumen = useMemo(() => {
     const hechos = esTareas ? hechosDeTareas(tareas) : hechosDeHabitos(habitos, registros);
@@ -263,6 +295,36 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   return (
     <div className={`flex min-h-0 flex-1 flex-col gap-3 ${EN_WIDGET ? "p-3" : "p-4 lg:px-20 lg:py-5"}`}>
       {!EN_WIDGET && <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>}
+      {tarjetaPeriodo ? (
+        <header className="shrink-0 rounded-2xl border border-borde bg-panel px-6 py-3 shadow-sm">
+          <div role="group" aria-label="Período" className="mx-auto grid w-fit grid-cols-[6rem_auto_13rem_auto] items-center gap-x-3 gap-y-1.5">
+            {PERIODOS.map((p) => {
+              const activo = periodo === p.id;
+              const nombre = activo ? "Período" : p.nombre;
+              const flecha = (paso: number) => () => {
+                setPeriodo(p.id);
+                setReferencia((r) => moverPeriodo(p.id, r, paso));
+              };
+              return (
+                <div key={p.id} className="contents">
+                  <button type="button" aria-pressed={activo} onClick={() => setPeriodo(p.id)} className={`rounded-full px-3 py-1 text-left text-sm transition-colors ${activo ? "bg-acento font-medium text-sobre-acento shadow-sm" : "text-tenue hover:text-texto"}`}>
+                    {p.nombre}
+                  </button>
+                  <button type="button" aria-label={`${nombre} anterior`} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={flecha(-1)}>
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span data-testid={activo ? "titulo-periodo" : undefined} className={`text-center text-base ${activo ? "font-semibold" : ""}`}>
+                    {valorDePeriodo(p.id, referencia)}
+                  </span>
+                  <button type="button" aria-label={`${nombre} siguiente`} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={flecha(1)}>
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </header>
+      ) : (
       <header className="shrink-0 rounded-2xl border border-borde bg-panel px-3 py-2.5 shadow-sm">
         <div role="group" aria-label="Período" className="mx-auto flex max-w-md gap-1 rounded-full bg-suave p-1">
           {PERIODOS.map((p) => (
@@ -283,6 +345,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
           </button>
         </div>
       </header>
+      )}
 
       <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-borde bg-panel p-3 shadow-sm">
         {resumen.total === 0 ? (
@@ -292,10 +355,10 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
             <div className={`flex shrink-0 items-center gap-3 h-[calc(50%-0.25rem)]`}>
               <Circular clase="aspect-square max-h-full w-full" claseCaja="h-full w-1/2 items-center" filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={esTareas ? (resumen.total === 1 ? "tarea" : "tareas") : resumen.total === 1 ? "día" : "días"} />
               <div className={`flex max-h-full min-w-0 flex-1 self-center ${EN_WIDGET ? "" : "lg:rounded-2xl lg:border lg:border-borde lg:bg-suave lg:p-4"}`}>
-              <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className={`barra-fina max-h-full w-full space-y-1 overflow-y-auto py-1 pr-1 ${EN_WIDGET ? "" : "lg:space-y-2"}`}>
+              <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className={`barra-fina max-h-full w-full space-y-1 overflow-y-auto py-1 pr-1 ${EN_WIDGET ? "" : `lg:grid lg:gap-x-8 lg:gap-y-2 lg:space-y-0 ${resumen.filas.length > 12 ? "lg:grid-cols-3" : resumen.filas.length > 4 ? "lg:grid-cols-2" : ""}`}`}>
                 {resumen.filas.map((f) => (
                   <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
-                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className={`flex w-full items-center gap-2 text-left text-xs ${EN_WIDGET ? "" : "lg:text-base"}`}>
+                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className={`flex w-full items-center gap-2 text-left text-xs ${EN_WIDGET ? "" : "lg:justify-start lg:text-base"}`}>
                       {/* Como en el widget del celular: píldora con borde y punto del color del grupo. */}
                       <span
                         title={f.nombre}
@@ -305,7 +368,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
                         <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${EN_WIDGET ? "" : "lg:h-3 lg:w-3"}`} style={{ background: f.color }} />
                         <span className="truncate">{f.nombre}</span>
                       </span>
-                      <span className="ml-auto shrink-0 text-tenue tabular-nums">
+                      <span className={`ml-auto shrink-0 text-tenue tabular-nums ${EN_WIDGET ? "" : "lg:ml-3"}`}>
                         {f.cantidad} · {f.porcentaje}%
                       </span>
                     </button>
