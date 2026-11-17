@@ -125,7 +125,7 @@ function TarjetaWidget({
                     aria-label={tema.nombre}
                     title={tema.nombre}
                     onClick={() => cambiar({ ...config, temaId: tema.id })}
-                    className={`h-8 w-8 rounded-full border border-black/10 ${elegido ? "ring-2 ring-acento ring-offset-2 ring-offset-[var(--panel)]" : ""}`}
+                    className={`h-8 w-8 rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.12)] ${elegido ? "ring-2 ring-acento ring-offset-2 ring-offset-[var(--panel)]" : ""}`}
                     style={{ background: `linear-gradient(135deg, ${tema.panel} 50%, ${tema.acento} 50%)` }}
                   />
                 );
@@ -232,7 +232,7 @@ function ElegirTema({ nombre, valor, comoApp, alElegir }: { nombre: string; valo
               aria-label={tema.nombre}
               title={tema.nombre}
               onClick={() => alElegir(tema.id)}
-              className={`h-8 w-8 rounded-full border border-black/10 ${elegido ? "ring-2 ring-acento ring-offset-2 ring-offset-[var(--panel)]" : ""} ${tema.id ? "" : "outline-2 outline-dashed outline-offset-1 outline-borde"}`}
+              className={`h-8 w-8 rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.12)] ${elegido ? "ring-2 ring-acento ring-offset-2 ring-offset-[var(--panel)]" : ""} ${tema.id ? "" : "outline-2 outline-dashed outline-offset-1 outline-borde"}`}
               style={{ background: `linear-gradient(135deg, ${tema.panel} 50%, ${tema.acento} 50%)` }}
             />
           );
@@ -259,12 +259,37 @@ function AjustesWidgetEscritorio({ id, nombre }: { id: string; nombre: string })
   };
   const letra = a.letra ?? 100;
   return (
-    <div className="mx-3 mb-3 space-y-4 rounded-xl border border-borde p-3">
+    <div className="mx-3 mb-3 flex flex-col gap-4 rounded-xl border border-borde p-3 lg:mx-6 lg:mb-6 lg:flex-row lg:gap-8 lg:p-5">
+      <div className="min-w-0 flex-1 space-y-4">
       <ElegirTema nombre={nombre} valor={a.temaId ?? ""} comoApp alElegir={(temaId) => cambiar({ temaId })} />
       <Deslizador etiqueta="Transparencia" valor={a.transparencia} max={MAX_TRANSPARENCIA} porcentaje={a.transparencia} alCambiar={(v) => cambiar({ transparencia: v })} />
       <Deslizador etiqueta="Transparencia de tarjetas" valor={transparenciaTarjetas(a)} max={MAX_TRANSPARENCIA} porcentaje={transparenciaTarjetas(a)} alCambiar={(v) => cambiar({ tarjetas: v })} />
       <Deslizador etiqueta="Esquinas" valor={a.esquinas} max={MAX_ESQUINAS} porcentaje={Math.round((a.esquinas / MAX_ESQUINAS) * 100)} alCambiar={(v) => cambiar({ esquinas: v })} />
       <Deslizador etiqueta="Tamaño de letra" valor={letra} min={LETRA_MIN_ESCRITORIO} max={LETRA_MAX_ESCRITORIO} porcentaje={letra} alCambiar={(v) => cambiar({ letra: v })} />
+      </div>
+      <MiniaturaWidget id={id} nombre={nombre} />
+    </div>
+  );
+}
+
+/** El widget en chiquito, dentro de su tarjeta: se actualiza solo con cada cambio de tema, transparencia, esquinas o letra. */
+function MiniaturaWidget({ id, nombre }: { id: string; nombre: string }) {
+  const base = WIDGETS.find((x) => x.id === id)!;
+  const ancho = 440;
+  const escala = ancho / base.ancho;
+  const alto = Math.min(Math.round(base.alto * escala), 420);
+  return (
+    <div data-testid="miniatura-widget" className="shrink-0 self-start">
+      <p className="mb-2 text-sm">Vista previa</p>
+      <div className="relative overflow-hidden rounded-xl bg-suave" style={{ width: ancho, height: alto }}>
+        <iframe
+          title={`Vista previa de ${nombre}`}
+          src={`${window.location.pathname}?widget=${id}`}
+          tabIndex={-1}
+          className="pointer-events-none absolute top-0 left-0 border-0"
+          style={{ width: base.ancho, height: base.alto, transform: `scale(${escala})`, transformOrigin: "top left" }}
+        />
+      </div>
     </div>
   );
 }
@@ -305,7 +330,7 @@ function WidgetsEscritorio() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-8 lg:px-8 lg:pt-12">
       <div className="flex items-center"><FlechaVolver /><h1 className="text-xl font-semibold lg:text-2xl">Widgets</h1></div>
-      <p style={{ color: "#ffffff" }} className="mt-1 text-sm lg:text-base">Ponlos en el escritorio de Windows. Quedan detrás de las ventanas y vuelven al iniciar. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
+      <p className="mt-1 text-sm text-texto lg:text-base">Ponlos en el escritorio de Windows. Quedan detrás de las ventanas y vuelven al iniciar. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
       {!puente ? (
         <p className="mt-6 flex items-center gap-2 rounded-lg border border-borde bg-panel p-4 text-sm text-tenue">
           <Monitor size={18} /> Los widgets están disponibles en la app de Andamia para Windows.
