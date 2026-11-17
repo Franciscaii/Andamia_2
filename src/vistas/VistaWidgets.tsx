@@ -273,18 +273,18 @@ function TarjetaWidgetEscritorio({ w, puesto, alCambiarPuesto }: { w: (typeof WI
   const { icono: Icono, texto } = DETALLE[w.id];
   return (
     <li ref={tarjeta} data-testid="widget-disponible" className="rounded-2xl border border-borde bg-panel shadow-sm">
-      <div className="flex items-center gap-3 p-4">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-acento">
-          <Icono size={20} />
+      <div className="flex items-center gap-3 p-4 lg:gap-4 lg:p-6">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-acento lg:h-14 lg:w-14 lg:rounded-xl">
+          <Icono size={20} className="lg:h-7 lg:w-7" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">{w.nombre}</p>
-          <p className="text-xs text-tenue">{texto}</p>
+          <p className="text-sm font-semibold lg:text-lg">{w.nombre}</p>
+          <p className="text-xs text-tenue lg:text-base">{texto}</p>
         </div>
         <button
           type="button"
           aria-label={`${puesto ? "Quitar del escritorio" : "Añadir al escritorio"}: ${w.nombre}`}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${puesto ? "border border-borde text-tenue hover:text-texto" : "bg-acento text-sobre-acento hover:opacity-90"}`}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium lg:px-5 lg:py-2 lg:text-base ${puesto ? "border border-borde text-tenue hover:text-texto" : "bg-acento text-sobre-acento hover:opacity-90"}`}
           onClick={alCambiarPuesto}
         >
           {puesto ? "Quitar" : "Añadir"}
@@ -302,15 +302,15 @@ function WidgetsEscritorio() {
   const abiertos = useWidgetsAbiertos();
   const puente = puenteEscritorio();
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-8">
-      <h1 className="text-xl font-semibold">Widgets</h1>
-      <p className="mt-1 text-sm text-tenue">Ponlos en el escritorio de Windows. Quedan detrás de las ventanas y vuelven al iniciar. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-8 lg:px-8">
+      <h1 className="text-xl font-semibold lg:text-2xl">Widgets</h1>
+      <p className="mt-1 text-sm text-tenue lg:text-base lg:text-white">Ponlos en el escritorio de Windows. Quedan detrás de las ventanas y vuelven al iniciar. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
       {!puente ? (
         <p className="mt-6 flex items-center gap-2 rounded-lg border border-borde bg-panel p-4 text-sm text-tenue">
           <Monitor size={18} /> Los widgets están disponibles en la app de Andamia para Windows.
         </p>
       ) : (
-        <ul className="mt-5 grid items-start gap-3 sm:grid-cols-2" aria-label="Widgets del escritorio">
+        <ul className="mt-5 grid items-start gap-3 sm:grid-cols-2 lg:mt-6 lg:gap-5" aria-label="Widgets del escritorio">
           {WIDGETS.map((w) => {
             const puesto = abiertos.includes(w.id);
             return <TarjetaWidgetEscritorio key={w.id} w={w} puesto={puesto} alCambiarPuesto={() => (puesto ? puente.cerrarWidget(w.id) : puente.abrirWidget(w.id))} />;

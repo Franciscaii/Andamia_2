@@ -15,8 +15,8 @@ import { capaFondo, leerImagenFondo, TEMAS, temaEfectivo, type Tema, type TipoFo
 
 function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <section aria-label={titulo} className="rounded-xl border border-borde bg-panel p-4">
-      <h2 className="mb-3 font-semibold">{titulo}</h2>
+    <section aria-label={titulo} className="rounded-xl border border-borde bg-panel p-4 lg:rounded-2xl lg:p-6">
+      <h2 className="mb-3 font-semibold lg:text-lg">{titulo}</h2>
       {children}
     </section>
   );
@@ -25,7 +25,7 @@ function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) 
 /** Miniatura de un tema: menú de color, fondo y una tarjeta con el acento. */
 function MiniaturaTema({ tema }: { tema: Tema }) {
   return (
-    <span aria-hidden="true" className="flex h-14 w-20 overflow-hidden rounded-md border border-borde" style={{ background: capaFondo(tema) }}>
+    <span aria-hidden="true" className="flex h-14 w-20 overflow-hidden rounded-md border border-borde lg:h-24 lg:w-36" style={{ background: capaFondo(tema) }}>
       <span className="flex w-5 flex-col items-center gap-1 pt-1.5" style={{ background: tema.lateral }}>
         <span className="h-1 w-3 rounded-sm" style={{ background: tema.lateralTexto }} />
         <span className="h-1 w-3 rounded-sm opacity-60" style={{ background: tema.lateralTexto }} />
@@ -151,7 +151,7 @@ function Apariencia() {
   const elegirTema = useTienda((s) => s.elegirTema);
   return (
     <div className="space-y-4">
-      <div role="radiogroup" aria-label="Tema de la app" className="flex flex-wrap gap-2">
+      <div role="radiogroup" aria-label="Tema de la app" className="flex flex-wrap gap-2 lg:grid lg:grid-cols-5 lg:gap-4">
         {TEMAS.map((t) => (
           <button
             key={t.id}
@@ -159,7 +159,7 @@ function Apariencia() {
             role="radio"
             aria-checked={eleccion.id === t.id}
             onClick={() => elegirTema(t.id)}
-            className={`flex flex-col items-center gap-1 rounded-lg border p-2 text-xs ${eleccion.id === t.id ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
+            className={`flex flex-col items-center gap-1 rounded-lg border p-2 text-xs lg:gap-2 lg:rounded-xl lg:p-4 lg:text-base ${eleccion.id === t.id ? "border-acento bg-acento-suave font-medium" : "border-borde hover:bg-suave"}`}
           >
             <MiniaturaTema tema={t} />
             {t.nombre}
@@ -462,9 +462,9 @@ function Instalacion() {
 /** Vista "Tema" del menú: elegir y personalizar el tema de la app. */
 export function VistaTema() {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-2xl space-y-4 p-5">
-        <h1 className="text-xl font-semibold">Tema</h1>
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto w-full max-w-2xl space-y-4 p-5 lg:max-w-5xl lg:px-10 lg:py-8">
+        <h1 className="text-xl font-semibold lg:text-2xl">Tema</h1>
         <Seccion titulo="Elige un tema">
           <Apariencia />
         </Seccion>
@@ -477,8 +477,8 @@ export function VistaAjustes() {
   const configurada = useCuenta((s) => s.configurada);
   const usuario = useCuenta((s) => s.usuario);
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-2xl space-y-4 p-5">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto w-full max-w-2xl space-y-4 p-5 lg:my-auto lg:max-w-3xl">
         <h1 className="text-xl font-semibold">Cuenta y ajustes</h1>
         <Seccion titulo="Cuenta">
           {!configurada ? (
