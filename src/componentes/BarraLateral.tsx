@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Flame, Grid2x2, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Pencil, Plus, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
 import { listasActivas } from "../config";
-import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
 import { type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
 import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
@@ -10,25 +9,25 @@ import { DialogoCarpeta, DialogoLista } from "./Dialogos";
 import { Confirmar } from "./Modal";
 
 const ICONOS: Record<VistaInteligente, ReactNode> = {
-  todas: <Layers size={17} />,
-  hoy: <CalendarClock size={17} />,
-  manana: <Sunrise size={17} />,
-  semana: <CalendarDays size={17} />,
-  bandeja: <Inbox size={17} />,
-  completadas: <CheckCheck size={17} />,
-  papelera: <Trash2 size={17} />,
+  todas: <Layers size={22} />,
+  hoy: <CalendarClock size={22} />,
+  manana: <Sunrise size={22} />,
+  semana: <CalendarDays size={22} />,
+  bandeja: <Inbox size={22} />,
+  completadas: <CheckCheck size={22} />,
+  papelera: <Trash2 size={22} />,
 };
 
 /** Francisca pidió quitar Todas, Hoy, Mañana y Bandeja de entrada del menú. */
 const VISTAS_EN_MENU: VistaInteligente[] = ["semana"];
 
 const claseFila = (activa: boolean) =>
-  `group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${activa ? "bg-acento-suave font-medium" : "hover:bg-suave"}`;
+  `group flex items-center gap-3 rounded-lg px-3 py-3 text-base ${activa ? "bg-acento-suave font-medium" : "hover:bg-suave"}`;
 
 function Fila({ href, activa, icono, nombre, acciones }: { href: string; activa: boolean; icono: ReactNode; nombre: string; acciones?: ReactNode }) {
   return (
     <div className={claseFila(activa)}>
-      <a href={href} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
+      <a href={href} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-3">
         <span className="shrink-0 text-tenue">{icono}</span>
         <span className="truncate">{nombre}</span>
       </a>
@@ -46,7 +45,7 @@ function BotonIcono({ etiqueta, alPulsar, children }: { etiqueta: string; alPuls
 }
 
 function Punto({ color }: { color: string | null }) {
-  return color ? <span className="block h-3 w-3 rounded-full" style={{ background: color }} /> : <ListTodo size={17} />;
+  return color ? <span className="block h-3 w-3 rounded-full" style={{ background: color }} /> : <ListTodo size={22} />;
 }
 
 /** Logo de Andamia (hexágono con check), el mismo ícono de la app. */
@@ -54,19 +53,13 @@ export function Marca({ clase = "h-7 w-7" }: { clase?: string }) {
   return <img src={`${import.meta.env.BASE_URL}iconos/icono-64.png`} alt="" aria-hidden="true" className={`${clase} shrink-0`} />;
 }
 
-/** Abajo del menú: Configuración (tema, widgets, cuenta y ajustes, papelera), con el estado de la sincronización. */
+/** Abajo del menú: Configuración (tema, widgets, cuenta y ajustes, papelera). */
 function FilaConfiguracion({ activa }: { activa: boolean }) {
-  const usuario = useCuenta((s) => s.usuario);
-  const enLinea = useCuenta((s) => s.enLinea);
-  const sinConfirmar = useCuenta((s) => s.sinConfirmar);
-  let estado = "";
-  if (usuario) estado = !enLinea ? "Sin conexión" : sinConfirmar ? "Sincronizando" : "Sincronizado";
   return (
     <div className={claseFila(activa)}>
-      <a href={hashDe({ tipo: "configuracion" })} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="shrink-0 text-tenue"><Settings size={17} /></span>
+      <a href={hashDe({ tipo: "configuracion" })} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-3">
+        <span className="shrink-0 text-tenue"><Settings size={22} /></span>
         <span className="truncate">Configuración</span>
-        {estado && <span data-testid="estado-sync" className="ml-auto pl-1 text-xs text-tenue">{estado}</span>}
       </a>
     </div>
   );
@@ -163,16 +156,16 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
             nombre={v.nombre}
           />
         ))}
-        <Fila href={hashDe({ tipo: "calendario", modo: seccion.tipo === "calendario" ? seccion.modo : "mes" })} activa={seccion.tipo === "calendario"} icono={<CalendarRange size={17} />} nombre="Calendario" />
-        <Fila href={hashDe({ tipo: "habitos" })} activa={seccion.tipo === "habitos"} icono={<Flame size={17} />} nombre="Hábitos" />
-        <Fila href={hashDe({ tipo: "matriz" })} activa={seccion.tipo === "matriz"} icono={<Grid2x2 size={17} />} nombre="Matriz" />
-        <Fila href={hashDe({ tipo: "estadisticas", de: "tareas" })} activa={seccion.tipo === "estadisticas" && seccion.de === "tareas"} icono={<ChartPie size={17} />} nombre="Estadística Tareas" />
-        <Fila href={hashDe({ tipo: "estadisticas", de: "habitos" })} activa={seccion.tipo === "estadisticas" && seccion.de === "habitos"} icono={<ChartArea size={17} />} nombre="Estadística Hábitos" />
+        <Fila href={hashDe({ tipo: "calendario", modo: seccion.tipo === "calendario" ? seccion.modo : "mes" })} activa={seccion.tipo === "calendario"} icono={<CalendarRange size={22} />} nombre="Calendario" />
+        <Fila href={hashDe({ tipo: "habitos" })} activa={seccion.tipo === "habitos"} icono={<Flame size={22} />} nombre="Hábitos" />
+        <Fila href={hashDe({ tipo: "matriz" })} activa={seccion.tipo === "matriz"} icono={<Grid2x2 size={22} />} nombre="Matriz" />
+        <Fila href={hashDe({ tipo: "estadisticas", de: "tareas" })} activa={seccion.tipo === "estadisticas" && seccion.de === "tareas"} icono={<ChartPie size={22} />} nombre="Estadística Tareas" />
+        <Fila href={hashDe({ tipo: "estadisticas", de: "habitos" })} activa={seccion.tipo === "estadisticas" && seccion.de === "habitos"} icono={<ChartArea size={22} />} nombre="Estadística Hábitos" />
 
         {/* Etiquetas: el nombre abre su vista (donde se editan); la flecha solo las despliega para verlas. */}
         <div className={claseFila(seccion.tipo === "etiquetas")}>
-          <a href={hashDe({ tipo: "etiquetas" })} aria-current={seccion.tipo === "etiquetas" ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
-            <span className="shrink-0 text-tenue"><Tag size={17} /></span>
+          <a href={hashDe({ tipo: "etiquetas" })} aria-current={seccion.tipo === "etiquetas" ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="shrink-0 text-tenue"><Tag size={22} /></span>
             <span className="truncate">Etiquetas</span>
           </a>
           <button
@@ -236,7 +229,7 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
         })}
         {listas.filter((l) => !l.carpetaId || !carpetas.some((c) => c.id === l.carpetaId)).map(filaLista)}
 
-        <div className="mt-auto border-t border-borde pt-2">
+        <div className="mt-auto pt-2">
           <FilaConfiguracion activa={enConfiguracion} />
         </div>
       </nav>

@@ -3,15 +3,21 @@ import type { ReactNode } from "react";
 import { Marca } from "../componentes/BarraLateral";
 import { esAppNativa } from "../logica/plataforma";
 import { puenteEscritorio } from "../logica/puenteEscritorio";
+import { useCuenta } from "../datos/cuenta";
 import { hashDe, type Seccion } from "../logica/ruta";
 
 /** Celular: la pantalla de la tuerca, con cada ajuste en su propia fila con borde. */
 export function VistaConfiguracion() {
+  const usuario = useCuenta((s) => s.usuario);
+  const enLinea = useCuenta((s) => s.enLinea);
+  const sinConfirmar = useCuenta((s) => s.sinConfirmar);
+  const estado = usuario ? (!enLinea ? "Sin conexión" : sinConfirmar ? "Sincronizando" : "Sincronizado") : "";
   const fila = (nombre: string, destino: Seccion, dibujo: ReactNode) => (
     <li key={nombre}>
       <a href={hashDe(destino)} className="flex items-center gap-4 rounded-2xl border border-borde bg-panel px-5 py-6 text-base font-medium hover:bg-suave">
         <span className="text-tenue">{dibujo}</span>
         <span className="flex-1">{nombre}</span>
+        {destino.tipo === "ajustes" && estado && <span data-testid="estado-sync" className="text-xs font-normal text-tenue">{estado}</span>}
         <ChevronRight size={16} className="text-tenue" />
       </a>
     </li>

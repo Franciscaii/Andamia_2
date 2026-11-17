@@ -78,7 +78,9 @@ test("sin conexión sigue funcionando y sincroniza al volver", async ({ browser 
   await a.contexto.setOffline(true);
   await agregar(a.page, "Escrita sin conexión");
   await expect(fila(a.page, "Escrita sin conexión")).toBeVisible();
+  await a.page.evaluate(() => { location.hash = "#/configuracion"; });
   await expect(a.page.getByTestId("estado-sync")).toHaveText("Sin conexión");
+  await a.page.evaluate(() => { location.hash = "#/tareas/bandeja"; });
 
   // Lo escrito sin conexión sobrevive a recargar.
   await a.page.reload().catch(() => undefined);
