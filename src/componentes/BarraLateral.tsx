@@ -1,14 +1,11 @@
 import { useState, type ReactNode } from "react";
-import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, LayoutDashboard, Layers, ListTodo, Palette, Pencil, Plus, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
+import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Flame, Grid2x2, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, Layers, ListTodo, Pencil, Plus, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
 import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
 import { type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
 import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
-import { esAppNativa } from "../logica/plataforma";
-import { puenteEscritorio } from "../logica/puenteEscritorio";
 import type { Carpeta, Lista } from "../modelos/tipos";
-import { BotonAvisos } from "./Avisos";
 import { DialogoCarpeta, DialogoLista } from "./Dialogos";
 import { Confirmar } from "./Modal";
 
@@ -57,29 +54,18 @@ export function Marca({ clase = "h-7 w-7" }: { clase?: string }) {
   return <img src={`${import.meta.env.BASE_URL}iconos/icono-64.png`} alt="" aria-hidden="true" className={`${clase} shrink-0`} />;
 }
 
-function FilaAjustes({ activa }: { activa: boolean }) {
+/** Abajo del menú: Configuración (tema, widgets, cuenta y ajustes, papelera), con el estado de la sincronización. */
+function FilaConfiguracion({ activa }: { activa: boolean }) {
   const usuario = useCuenta((s) => s.usuario);
   const enLinea = useCuenta((s) => s.enLinea);
   const sinConfirmar = useCuenta((s) => s.sinConfirmar);
-  let icono = <Settings size={17} />;
   let estado = "";
-  if (usuario) {
-    if (!enLinea) {
-      icono = <CloudOff size={17} />;
-      estado = "Sin conexión";
-    } else if (sinConfirmar) {
-      icono = <RefreshCw size={17} className="animate-spin" />;
-      estado = "Sincronizando";
-    } else {
-      icono = <Cloud size={17} />;
-      estado = "Sincronizado";
-    }
-  }
+  if (usuario) estado = !enLinea ? "Sin conexión" : sinConfirmar ? "Sincronizando" : "Sincronizado";
   return (
     <div className={claseFila(activa)}>
-      <a href={hashDe({ tipo: "ajustes" })} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="shrink-0 text-tenue">{icono}</span>
-        <span className="truncate">Cuenta y ajustes</span>
+      <a href={hashDe({ tipo: "configuracion" })} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="shrink-0 text-tenue"><Settings size={17} /></span>
+        <span className="truncate">Configuración</span>
         {estado && <span data-testid="estado-sync" className="ml-auto pl-1 text-xs text-tenue">{estado}</span>}
       </a>
     </div>
@@ -98,6 +84,7 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
   const etiquetas = useTienda((s) => s.etiquetas);
   const borrarLista = useTienda((s) => s.borrarLista);
   const borrarCarpeta = useTienda((s) => s.borrarCarpeta);
+  const enConfiguracion = (seccion.tipo === "vista" && seccion.vista === "papelera") || seccion.tipo === "configuracion" || seccion.tipo === "ajustes" || seccion.tipo === "widgets" || seccion.tipo === "tema";
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const [plegadas, setPlegadas] = useState<Set<string>>(new Set());
   // Las etiquetas del menú parten plegadas; se recuerda si se dejaron a la vista.
@@ -157,24 +144,16 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
 
   return (
     <aside className="barra-lateral flex h-full flex-col border-r border-borde">
-      {/* En la app de PC esta fila también sirve para mover la ventana (no tiene barra de título). */}
-      <div className="flex min-w-0 items-center gap-2 px-4 pt-4 pb-3 [-webkit-app-region:drag] [&_button]:[-webkit-app-region:no-drag]">
-        <span className="shrink-0">
-          <Marca />
-        </span>
-        <span className="contorno-blanco min-w-0 flex-1 text-base font-semibold">Andamia</span>
-        {/* Donde estaba la luna: la paleta, que lleva a elegir el tema. */}
-        <button type="button" aria-label="Elegir tema" title="Elegir tema" className="shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave" onClick={() => irA({ tipo: "tema" })}>
-          <Palette size={17} />
-        </button>
+      {/* Arriba a la izquierda, solo el botón para retraer el menú (el logo y el nombre van arriba de la ventana). En la app de PC esta fila también sirve para mover la ventana. */}
+      <div className="flex min-w-0 items-center gap-2 px-3 pt-4 pb-3 [-webkit-app-region:drag] [&_button]:[-webkit-app-region:no-drag]">
         {alOcultar && (
           <button type="button" aria-label="Ocultar menú" title="Ocultar menú" className="shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave" onClick={alOcultar}>
-            <PanelLeftClose size={17} />
+            <PanelLeftClose size={20} />
           </button>
         )}
       </div>
 
-      <nav aria-label="Navegación" className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+      <nav aria-label="Navegación" className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-3">
         {VISTAS_INTELIGENTES.filter((v) => VISTAS_EN_MENU.includes(v.id)).map((v) => (
           <Fila
             key={v.id}
@@ -185,10 +164,10 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
           />
         ))}
         <Fila href={hashDe({ tipo: "calendario", modo: seccion.tipo === "calendario" ? seccion.modo : "mes" })} activa={seccion.tipo === "calendario"} icono={<CalendarRange size={17} />} nombre="Calendario" />
-        <Fila href={hashDe({ tipo: "estadisticas", de: "tareas" })} activa={seccion.tipo === "estadisticas" && seccion.de === "tareas"} icono={<ChartPie size={17} />} nombre="Estadística Tareas" />
         <Fila href={hashDe({ tipo: "habitos" })} activa={seccion.tipo === "habitos"} icono={<Flame size={17} />} nombre="Hábitos" />
-        <Fila href={hashDe({ tipo: "estadisticas", de: "habitos" })} activa={seccion.tipo === "estadisticas" && seccion.de === "habitos"} icono={<ChartArea size={17} />} nombre="Estadística Hábitos" />
         <Fila href={hashDe({ tipo: "matriz" })} activa={seccion.tipo === "matriz"} icono={<Grid2x2 size={17} />} nombre="Matriz" />
+        <Fila href={hashDe({ tipo: "estadisticas", de: "tareas" })} activa={seccion.tipo === "estadisticas" && seccion.de === "tareas"} icono={<ChartPie size={17} />} nombre="Estadística Tareas" />
+        <Fila href={hashDe({ tipo: "estadisticas", de: "habitos" })} activa={seccion.tipo === "estadisticas" && seccion.de === "habitos"} icono={<ChartArea size={17} />} nombre="Estadística Hábitos" />
 
         {/* Etiquetas: el nombre abre su vista (donde se editan); la flecha solo las despliega para verlas. */}
         <div className={claseFila(seccion.tipo === "etiquetas")}>
@@ -257,19 +236,8 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
         })}
         {listas.filter((l) => !l.carpetaId || !carpetas.some((c) => c.id === l.carpetaId)).map(filaLista)}
 
-        <div className="mt-4">
-          {/* El tema se elige con la paleta de arriba, junto al nombre de la app. */}
-          {/* En la app de PC (escritorio de Windows) y en la del celular (pantalla de inicio). */}
-          {(puenteEscritorio() || esAppNativa()) && <Fila href={hashDe({ tipo: "widgets" })} activa={seccion.tipo === "widgets"} icono={<LayoutDashboard size={17} />} nombre="Widgets" />}
-        </div>
-
-        <div className="mt-5 border-t border-borde pt-2">
-          {/* "Completadas" salió del menú a pedido de Francisca; su dirección (#/tareas/completadas) sigue funcionando. */}
-          {VISTAS_INTELIGENTES.filter((v) => v.id === "papelera").map((v) => (
-            <Fila key={v.id} href={hashDe({ tipo: "vista", vista: v.id })} activa={seccion.tipo === "vista" && seccion.vista === v.id} icono={ICONOS[v.id]} nombre={v.nombre} />
-          ))}
-          <BotonAvisos />
-          <FilaAjustes activa={seccion.tipo === "ajustes"} />
+        <div className="mt-auto border-t border-borde pt-2">
+          <FilaConfiguracion activa={enConfiguracion} />
         </div>
       </nav>
 
