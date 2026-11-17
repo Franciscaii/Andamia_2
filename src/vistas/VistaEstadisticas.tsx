@@ -260,7 +260,7 @@ function valorDePeriodo(p: Periodo, ref: Date): string {
     {
       const i = startOfWeek(ref, { weekStartsOn: 1 });
       const f = endOfWeek(ref, { weekStartsOn: 1 });
-      return i.getMonth() === f.getMonth() ? `${format(i, "dd")} – ${format(f, "dd/MM/yy")}` : `${format(i, "dd/MM")} – ${format(f, "dd/MM/yy")}`;
+      return `${format(i, "dd/MM")} - ${format(f, "dd/MM")}`;
     }
     case "mes": {
       const t = format(ref, "MMM yyyy", { locale: es }).replace(".", "");
@@ -304,7 +304,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
         <header className="shrink-0 rounded-2xl border border-borde bg-panel px-6 py-3 shadow-sm">
           <div role="group" aria-label="Período" className="mx-auto flex w-fit gap-2 rounded-full border border-[color-mix(in_srgb,var(--texto)_70%,transparent)] p-1.5">
             {PERIODOS.map((p) => (
-              <button key={p.id} type="button" aria-pressed={periodo === p.id} onClick={() => setPeriodo(p.id)} className={`w-36 rounded-full border border-[color-mix(in_srgb,var(--texto)_70%,transparent)] px-3 py-1 text-sm transition-colors ${periodo === p.id ? "bg-acento font-medium text-sobre-acento" : "text-texto hover:bg-suave"}`}>
+              <button key={p.id} type="button" aria-pressed={periodo === p.id} onClick={() => setPeriodo(p.id)} className={`w-36 rounded-full border border-[color-mix(in_srgb,var(--texto)_70%,transparent)] px-3 py-1 text-sm transition-colors ${periodo === p.id ? "bg-acento font-medium text-sobre-acento" : "bg-gray-200 text-texto hover:bg-gray-300"}`}>
                 {p.nombre}
               </button>
             ))}
