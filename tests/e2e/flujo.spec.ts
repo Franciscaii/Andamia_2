@@ -1176,8 +1176,8 @@ test("semana: con 2 eventos y más de 2 filas de hábitos, los hábitos van en u
   await desplegable.click();
   await expect(page.getByRole("switch", { name: "Hábito Uno" })).toBeVisible();
   // Cada hábito lleva su color de fondo.
-  const fondo = await page.getByTestId("habito-semana").first().evaluate((e) => getComputedStyle(e).backgroundColor);
-  expect(fondo).not.toBe("rgba(0, 0, 0, 0)");
+  const fondo = await page.getByTestId("habito-semana").first().evaluate((e) => getComputedStyle(e).backgroundImage);
+  expect(fondo).not.toBe("none");
 });
 
 test("estadísticas: el filtro Año viene elegido por defecto", async ({ page }) => {
