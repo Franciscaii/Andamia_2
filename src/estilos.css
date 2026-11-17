@@ -186,3 +186,10 @@ html.modo-widget body {
 .sin-barra::-webkit-scrollbar {
   display: none;
 }
+
+/* Nombre de la app con borde blanco. */
+.contorno-blanco {
+  -webkit-text-stroke: 4px #fff;
+  paint-order: stroke fill;
+  color: #1e2433;
+}

@@ -52,6 +52,14 @@ final class DatosWidget {
     }
 
     /** Filtro del widget Semana: "tareas", "eventos" o "todos". */
+    static boolean habitosAbiertos(Context c, int idWidget) {
+        return prefs(c).getBoolean("habitos_abiertos_" + idWidget, false);
+    }
+
+    static void alternarHabitos(Context c, int idWidget) {
+        prefs(c).edit().putBoolean("habitos_abiertos_" + idWidget, !habitosAbiertos(c, idWidget)).apply();
+    }
+
     static void elegirFiltro(Context c, int idWidget, String filtro) {
         prefs(c).edit().putString("filtro_" + idWidget, filtro).apply();
     }

@@ -20,7 +20,7 @@ export function VistaConfiguracion() {
       {/* Arriba: el logo y el nombre de la app. */}
       <div className="flex shrink-0 items-center gap-2 px-5 pt-10">
         <Marca clase="h-8 w-8" />
-        <span className="text-xl font-semibold">Andamia</span>
+        <span className="contorno-blanco text-xl font-semibold">Andamia</span>
       </div>
       <div className="my-auto pb-16 pt-6">
       {/* Título y tarjetas van juntos y centrados: el título queda a poca distancia de las tarjetas. */}

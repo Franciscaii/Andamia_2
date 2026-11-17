@@ -120,6 +120,15 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.NoDisplay" />
 
+        <!-- Confeti al completar un hábito desde el widget: no recibe toques, se cierra solo. -->
+        <activity
+            android:name=".ConfetiActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Confeti" />
+
         <!-- Cuadro rápido del "+" de los widgets: se escribe sobre la pantalla de inicio. -->
         <activity
             android:name=".NuevaRapidaActivity"
