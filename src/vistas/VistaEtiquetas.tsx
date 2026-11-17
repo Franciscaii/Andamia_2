@@ -25,11 +25,18 @@ export function VistaEtiquetas() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="px-4 pt-4 pb-2 sm:px-6">
+      {/* Celular: un solo encabezado, "Etiquetas" con el + azul como el de Semana. */}
+      <header className="flex items-center justify-between px-4 pt-4 pb-2 sm:px-6 lg:hidden">
+        <h1 className="text-lg font-semibold">Etiquetas</h1>
+        <button type="button" aria-label="Nueva etiqueta" title="Nueva etiqueta" className="flex h-8 w-8 items-center justify-center rounded-full bg-acento text-sobre-acento hover:opacity-90" onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
+          <Plus size={18} />
+        </button>
+      </header>
+      <header className="hidden px-4 pt-4 pb-2 sm:px-6 lg:block">
         <h1 className="text-lg font-semibold">Etiquetas</h1>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
-        <div className="mb-3 flex items-center justify-between border-b border-borde pb-1">
+        <div className="mb-3 hidden items-center justify-between border-b border-borde pb-1 lg:flex">
           <h2 className="text-base font-semibold">Configuración</h2>
           <button type="button" aria-label="Nueva etiqueta" title="Nueva etiqueta" className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
             <Plus size={18} />
@@ -43,7 +50,7 @@ export function VistaEtiquetas() {
               <li key={e.nombre} data-testid="tarjeta-etiqueta" className="flex min-w-0 items-center gap-2 rounded-xl border border-borde bg-panel p-2.5 pl-3">
                 <Tag size={17} className="shrink-0" style={{ color: e.color }} />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium" title={e.nombreVisible}>{e.nombreVisible}</span>
-                {n > 0 && <span className="shrink-0 text-xs text-tenue tabular-nums">{n}</span>}
+                {n > 0 && <span className="hidden shrink-0 text-xs text-tenue tabular-nums lg:inline">{n}</span>}
                 <button type="button" aria-label={`Editar etiqueta ${e.nombreVisible}`} title="Editar" className={claseAccion} onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: e })}>
                   <Pencil size={14} /> <span>Editar</span>
                 </button>

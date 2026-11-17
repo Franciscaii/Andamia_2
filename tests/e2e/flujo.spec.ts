@@ -371,6 +371,9 @@ test("celular: el menú va abajo con 8 iconos y la tuerca abre la pantalla Confi
   const caja = (await barra.boundingBox())!;
   expect(caja.y + caja.height).toBeGreaterThan(779);
   await expect(barra.getByRole("link", { name: "Semana" })).toHaveAttribute("aria-current", "page");
+  // El título del mes lleva el año y la cabecera no se desborda.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^[A-Z][a-z]{2} \d{4}$/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   for (const [nombre, direccion] of [["Calendario", /#\/calendario/], ["Matriz", /#\/matriz/], ["Estadística Tareas", /#\/estadisticas\/tareas/], ["Hábitos", /#\/habitos/], ["Estadística Hábitos", /#\/estadisticas\/habitos/], ["Etiquetas", /#\/etiquetas$/]] as const) {
     await barra.getByRole("link", { name: nombre, exact: true }).click();
     await expect(page).toHaveURL(direccion);
@@ -380,6 +383,8 @@ test("celular: el menú va abajo con 8 iconos y la tuerca abre la pantalla Confi
   // Etiquetas: una por fila, con Editar y Eliminar a la vista.
   const tarjetas = page.getByTestId("tarjeta-etiqueta");
   await expect(tarjetas).toHaveCount(8);
+  await expect(page.getByRole("heading", { name: "Etiquetas" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Configuración" })).toHaveCount(0);
   const a = (await tarjetas.nth(0).boundingBox())!;
   const b = (await tarjetas.nth(1).boundingBox())!;
   expect(b.y).toBeGreaterThan(a.y + a.height - 1);
