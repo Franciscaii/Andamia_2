@@ -145,7 +145,7 @@ public class WidgetSemana extends AppWidgetProvider {
     static void dibujar(Context contexto, AppWidgetManager gestor, int idWidget) {
         TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_semana);
-        TemaWidget.letra(vista, R.id.semana_mes, 16);
+        TemaWidget.letra(vista, R.id.semana_mes, 15);
         TemaWidget.letra(vista, R.id.semana_f_tareas, 12);
         TemaWidget.letra(vista, R.id.semana_f_eventos, 12);
         TemaWidget.letra(vista, R.id.semana_f_habitos, 12);
