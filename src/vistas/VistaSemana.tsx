@@ -473,7 +473,7 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
           <li key={h.id} data-testid="habito-semana" style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${h.color} ${fuerte}%, var(--panel)), color-mix(in srgb, ${h.color} ${suave}%, var(--panel)))`, color: oscuro ? "#ffffff" : undefined, borderColor: `color-mix(in srgb, ${h.color} 55%, var(--panel))`, boxShadow: `0 2px 6px -2px color-mix(in srgb, ${h.color} 45%, transparent)` }} className={`flex min-w-0 items-center rounded-2xl border-[1.5px] [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-2" : "gap-2 px-3 py-2"}`}>
             
             {/* Tocar el nombre abre el detalle del hábito al costado; tocarlo de nuevo lo cierra. */}
-            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate font-bold ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho && !oscuro ? "text-tenue" : ""}`}>
+            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate font-bold ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"}`}>
               {h.nombre}
             </button>
             <DeslizadorHabito

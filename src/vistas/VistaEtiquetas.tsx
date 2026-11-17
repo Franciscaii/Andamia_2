@@ -24,7 +24,7 @@ export function VistaEtiquetas() {
           <Plus size={18} />
         </button>
       </header>
-      <header className="hidden items-center justify-between px-4 pt-4 pb-3 sm:px-6 lg:flex">
+      <header className="hidden items-center justify-between px-4 pt-4 pb-3 sm:px-6 lg:flex lg:pt-10">
         <h1 className="text-lg font-semibold lg:text-2xl">Etiquetas</h1>
         <button type="button" aria-label="Nueva etiqueta" title="Nueva etiqueta" className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => setDialogo({ tipo: "etiqueta", etiqueta: null })}>
           <Plus size={18} />

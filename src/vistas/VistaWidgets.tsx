@@ -302,7 +302,7 @@ function WidgetsEscritorio() {
   const abiertos = useWidgetsAbiertos();
   const puente = puenteEscritorio();
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-8 lg:px-8">
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-8 lg:px-8 lg:pt-12">
       <h1 className="text-xl font-semibold lg:text-2xl">Widgets</h1>
       <p className="mt-1 text-sm text-tenue lg:text-base lg:text-white">Ponlos en el escritorio de Windows. Quedan detrás de las ventanas y vuelven al iniciar. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
       {!puente ? (
