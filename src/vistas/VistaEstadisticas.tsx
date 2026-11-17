@@ -256,7 +256,11 @@ function valorDePeriodo(p: Periodo, ref: Date): string {
     case "dia":
       return format(ref, "dd/MM/yyyy");
     case "semana":
-      return `${format(startOfWeek(ref, { weekStartsOn: 1 }), "dd/MM")} – ${format(endOfWeek(ref, { weekStartsOn: 1 }), "dd/MM")}`;
+    {
+      const i = startOfWeek(ref, { weekStartsOn: 1 });
+      const f = endOfWeek(ref, { weekStartsOn: 1 });
+      return i.getMonth() === f.getMonth() ? `${format(i, "dd")} – ${format(f, "dd/MM/yy")}` : `${format(i, "dd/MM")} – ${format(f, "dd/MM/yy")}`;
+    }
     case "mes": {
       const t = format(ref, "MMM yyyy", { locale: es }).replace(".", "");
       return t.charAt(0).toUpperCase() + t.slice(1);
@@ -297,31 +301,23 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
       {!EN_WIDGET && <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>}
       {tarjetaPeriodo ? (
         <header className="shrink-0 rounded-2xl border border-borde bg-panel px-6 py-3 shadow-sm">
-          <div role="group" aria-label="Período" className="mx-auto grid w-fit grid-cols-[6rem_auto_13rem_auto] items-center gap-x-3 gap-y-1.5">
-            {PERIODOS.map((p) => {
-              const activo = periodo === p.id;
-              const nombre = activo ? "Período" : p.nombre;
-              const flecha = (paso: number) => () => {
-                setPeriodo(p.id);
-                setReferencia((r) => moverPeriodo(p.id, r, paso));
-              };
-              return (
-                <div key={p.id} className="contents">
-                  <button type="button" aria-pressed={activo} onClick={() => setPeriodo(p.id)} className={`rounded-full px-3 py-1 text-left text-sm transition-colors ${activo ? "bg-acento font-medium text-sobre-acento shadow-sm" : "text-tenue hover:text-texto"}`}>
-                    {p.nombre}
-                  </button>
-                  <button type="button" aria-label={`${nombre} anterior`} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={flecha(-1)}>
-                    <ChevronLeft size={18} />
-                  </button>
-                  <span data-testid={activo ? "titulo-periodo" : undefined} className={`text-center text-base ${activo ? "font-semibold" : ""}`}>
-                    {valorDePeriodo(p.id, referencia)}
-                  </span>
-                  <button type="button" aria-label={`${nombre} siguiente`} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={flecha(1)}>
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-              );
-            })}
+          <div role="group" aria-label="Período" className="mx-auto flex w-fit gap-2 rounded-full border border-[color-mix(in_srgb,var(--texto)_70%,transparent)] p-1.5">
+            {PERIODOS.map((p) => (
+              <button key={p.id} type="button" aria-pressed={periodo === p.id} onClick={() => setPeriodo(p.id)} className={`w-24 rounded-full border border-[color-mix(in_srgb,var(--texto)_70%,transparent)] px-3 py-1 text-sm transition-colors ${periodo === p.id ? "bg-acento font-medium text-sobre-acento" : "text-texto hover:bg-suave"}`}>
+                {p.nombre}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex items-center justify-center gap-3">
+            <button type="button" aria-label="Período anterior" className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => mover(-1)}>
+              <ChevronLeft size={18} />
+            </button>
+            <span data-testid="titulo-periodo" className="min-w-40 text-center text-base font-semibold">
+              {valorDePeriodo(periodo, referencia)}
+            </span>
+            <button type="button" aria-label="Período siguiente" className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => mover(1)}>
+              <ChevronRight size={18} />
+            </button>
           </div>
         </header>
       ) : (
@@ -353,22 +349,22 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
         ) : (
           <>
             <div className={`flex shrink-0 items-center gap-3 h-[calc(50%-0.25rem)]`}>
-              <Circular clase="aspect-square max-h-full w-full" claseCaja="h-full w-1/2 items-center" filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={esTareas ? (resumen.total === 1 ? "tarea" : "tareas") : resumen.total === 1 ? "día" : "días"} />
+              <Circular clase="aspect-square max-h-full w-full" claseCaja={`h-full items-center ${EN_WIDGET ? "w-1/2" : "w-1/2 lg:w-[36%]"}`} filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={esTareas ? (resumen.total === 1 ? "tarea" : "tareas") : resumen.total === 1 ? "día" : "días"} />
               <div className={`flex max-h-full min-w-0 flex-1 self-center ${EN_WIDGET ? "" : "lg:rounded-2xl lg:border lg:border-borde lg:bg-suave lg:p-4"}`}>
               <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className={`barra-fina max-h-full w-full space-y-1 overflow-y-auto py-1 pr-1 ${EN_WIDGET ? "" : `lg:grid lg:gap-x-8 lg:gap-y-2 lg:space-y-0 ${resumen.filas.length > 12 ? "lg:grid-cols-3" : resumen.filas.length > 4 ? "lg:grid-cols-2" : ""}`}`}>
                 {resumen.filas.map((f) => (
                   <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
-                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className={`flex w-full items-center gap-2 text-left text-xs ${EN_WIDGET ? "" : "lg:justify-start lg:text-base"}`}>
+                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className={`grid w-full items-center gap-2 text-left text-xs ${EN_WIDGET ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_6.5rem] lg:text-base"}`}>
                       {/* Como en el widget del celular: píldora con borde y punto del color del grupo. */}
                       <span
                         title={f.nombre}
-                        className={`flex max-w-full min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 ${EN_WIDGET ? "" : "lg:gap-2 lg:px-4 lg:py-1.5"} ${elegidoVisible === f.clave ? "font-semibold" : ""}`}
+                        className={`flex w-fit max-w-full min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 ${EN_WIDGET ? "" : "lg:gap-2 lg:px-4 lg:py-1.5"} ${elegidoVisible === f.clave ? "font-semibold" : ""}`}
                         style={{ borderColor: `color-mix(in srgb, ${f.color} 67%, transparent)`, background: elegidoVisible === f.clave ? `color-mix(in srgb, ${f.color} 20%, transparent)` : undefined }}
                       >
                         <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${EN_WIDGET ? "" : "lg:h-3 lg:w-3"}`} style={{ background: f.color }} />
                         <span className="truncate">{f.nombre}</span>
                       </span>
-                      <span className={`ml-auto shrink-0 text-tenue tabular-nums ${EN_WIDGET ? "" : "lg:ml-3"}`}>
+                      <span className="shrink-0 text-tenue tabular-nums lg:text-right">
                         {f.cantidad} · {f.porcentaje}%
                       </span>
                     </button>
