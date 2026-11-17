@@ -261,7 +261,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
   // Como el boceto: arriba el período; abajo una tarjeta con el anillo, la leyenda y las ondas.
   // La tarjeta se reparte en cuadrados (en el celular y en el computador): anillo y etiquetas arriba (una mitad cada uno) y las ondas en la mitad de abajo.
   return (
-    <div className={`flex min-h-0 flex-1 flex-col gap-3 ${EN_WIDGET ? "p-3" : "p-4 lg:p-5"}`}>
+    <div className={`flex min-h-0 flex-1 flex-col gap-3 ${EN_WIDGET ? "p-3" : "p-4 lg:px-20 lg:py-5"}`}>
       {!EN_WIDGET && <h1 className="text-xl font-semibold">{esTareas ? "Mis tareas completadas" : "Mis hábitos cumplidos"}</h1>}
       <header className="shrink-0 rounded-2xl border border-borde bg-panel px-3 py-2.5 shadow-sm">
         <div role="group" aria-label="Período" className="mx-auto flex max-w-md gap-1 rounded-full bg-suave p-1">
@@ -291,17 +291,18 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
           <>
             <div className={`flex shrink-0 items-center gap-3 h-[calc(50%-0.25rem)]`}>
               <Circular clase="aspect-square max-h-full w-full" claseCaja="h-full w-1/2 items-center" filas={resumen.filas} total={resumen.total} elegido={elegidoVisible} alElegir={alElegir} unidad={esTareas ? (resumen.total === 1 ? "tarea" : "tareas") : resumen.total === 1 ? "día" : "días"} />
-              <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className="barra-fina max-h-full min-w-0 flex-1 space-y-1 self-center overflow-y-auto py-1 pr-1">
+              <div className={`flex max-h-full min-w-0 flex-1 self-center ${EN_WIDGET ? "" : "lg:rounded-2xl lg:border lg:border-borde lg:bg-suave lg:p-4"}`}>
+              <ul aria-label={esTareas ? "Por etiqueta" : "Por hábito"} className={`barra-fina max-h-full w-full space-y-1 overflow-y-auto py-1 pr-1 ${EN_WIDGET ? "" : "lg:space-y-2"}`}>
                 {resumen.filas.map((f) => (
                   <li key={f.clave} style={{ opacity: opacidad(f.clave, elegidoVisible) }} className="transition-opacity">
-                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className="flex w-full items-center gap-2 text-left text-xs">
+                    <button type="button" aria-pressed={elegidoVisible === f.clave} data-testid="fila-grupo" onClick={() => alElegir(f.clave)} className={`flex w-full items-center gap-2 text-left text-xs ${EN_WIDGET ? "" : "lg:text-base"}`}>
                       {/* Como en el widget del celular: píldora con borde y punto del color del grupo. */}
                       <span
                         title={f.nombre}
-                        className={`flex max-w-full min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 ${elegidoVisible === f.clave ? "font-semibold" : ""}`}
+                        className={`flex max-w-full min-w-0 items-center gap-1.5 rounded-full border px-2 py-0.5 ${EN_WIDGET ? "" : "lg:gap-2 lg:px-4 lg:py-1.5"} ${elegidoVisible === f.clave ? "font-semibold" : ""}`}
                         style={{ borderColor: `color-mix(in srgb, ${f.color} 67%, transparent)`, background: elegidoVisible === f.clave ? `color-mix(in srgb, ${f.color} 20%, transparent)` : undefined }}
                       >
-                        <span aria-hidden className="h-2 w-2 shrink-0 rounded-full" style={{ background: f.color }} />
+                        <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${EN_WIDGET ? "" : "lg:h-3 lg:w-3"}`} style={{ background: f.color }} />
                         <span className="truncate">{f.nombre}</span>
                       </span>
                       <span className="ml-auto shrink-0 text-tenue tabular-nums">
@@ -311,6 +312,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
                   </li>
                 ))}
               </ul>
+            </div>
             </div>
             <div className="mt-2 min-h-0 flex-1">
               <Areas llenar resumen={resumen} elegido={elegidoVisible} alElegir={alElegir} />
