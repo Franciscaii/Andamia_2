@@ -6,7 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
 import { addDays, addMonths, format, isSameDay, isSameMonth, parseISO, startOfMonth } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, GripVertical, Plus } from "lucide-react";
+import { CalendarClock, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, GripVertical, Plus } from "lucide-react";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
 import { DialogoHabito } from "./VistaHabitos";
 import { COLOR_HECHA, COLOR_NIVEL } from "../componentes/FilaTarea";
@@ -439,7 +439,8 @@ function leerAlcance(): Alcance {
 }
 
 /** Los hábitos que tocan un día: el nombre y su interruptor. Se completa arrastrando el círculo, en el celular y en el computador. */
-function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha?: boolean }) {
+function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: Date; estrecha?: boolean; desplegable?: boolean }) {
+  const [abierto, setAbierto] = useState(false);
   const habitos = useTienda((s) => s.habitos);
   const registros = useTienda((s) => s.registros);
   const registrarHabito = useTienda((s) => s.registrarHabito);
@@ -448,13 +449,15 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
   const delDia = habitosDelDia(habitos, registros, dia, ahora);
   if (!delDia.length) return null;
   const fecha = claveDia(dia);
-  return (
+  // Con muchos hábitos (más de dos filas) junto a varios eventos, van en un desplegable.
+  const conDesplegable = Boolean(desplegable) && delDia.length > 4;
+  const lista = (
     // En la vista de un día van de a dos por fila, para aprovechar el ancho.
-    <ul aria-label="Hábitos" className={estrecha ? "space-y-1" : "mb-3 grid grid-cols-2 gap-1"}>
+    <ul aria-label="Hábitos" className={estrecha ? "space-y-1" : conDesplegable ? "mt-1 grid grid-cols-2 gap-1" : "mb-3 grid grid-cols-2 gap-1"}>
       {delDia.map(({ habito: h, estado, marcable }) => {
         const hecho = estado === "hecho";
         return (
-          <li key={h.id} data-testid="habito-semana" className={`flex min-w-0 items-center rounded-lg bg-panel [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-2 py-1.5 sm:px-3"}`}>
+          <li key={h.id} data-testid="habito-semana" style={{ backgroundColor: `color-mix(in srgb, ${h.color} 20%, var(--panel))` }} className={`flex min-w-0 items-center rounded-lg [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-1.5" : "gap-2 px-2 py-1.5 sm:px-3"}`}>
             {/* Tocar el nombre abre el detalle del hábito al costado; tocarlo de nuevo lo cierra. */}
             <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-1/2 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"} ${hecho ? "text-tenue" : ""}`}>
               {h.nombre}
@@ -471,6 +474,22 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
         );
       })}
     </ul>
+  );
+  if (!conDesplegable) return lista;
+  return (
+    <div className="mb-3">
+      <button
+        type="button"
+        aria-expanded={abierto}
+        aria-label="Hábitos"
+        onClick={() => setAbierto(!abierto)}
+        className="flex w-full items-center justify-between rounded-lg border border-borde bg-panel px-3 py-1.5 text-sm font-medium"
+      >
+        Hábitos
+        {abierto ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+      </button>
+      {abierto && lista}
+    </div>
   );
 }
 
@@ -497,7 +516,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, verHabitos, tareaAbie
           ))}
         </ul>
       )}
-      {verHabitos && <HabitosDia dia={dia} ahora={ahora} />}
+      {verHabitos && <HabitosDia dia={dia} ahora={ahora} desplegable={verEventos && verTareas && contenido.eventos.length >= 2} />}
       {!compacto && !verTareas && verEventos && !hayHabitos && contenido.eventos.length === 0 && <p className="mt-8 text-center text-sm text-tenue">No hay eventos este día. Toca + para añadir.</p>}
       {!compacto && !verTareas && !verEventos && !hayHabitos && <p className="mt-8 text-center text-sm text-tenue">No hay hábitos para este día. Toca + para añadir.</p>}
 
@@ -809,11 +828,11 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       <ArrastreSemana ahora={ahora}>
       <header data-widget-cabecera className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
         <div className={`flex items-center ${esEscritorio ? "gap-2" : "gap-1 min-[450px]:gap-2"}`}>
-          <div className="flex shrink-0 items-center">
+          <div className={`flex shrink-0 items-center ${esEscritorio && !EN_WIDGET ? "-my-1 rounded-lg border border-borde bg-panel p-0.5" : ""}`}>
             <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
-            <h1 className="px-0 text-center text-sm font-semibold min-[450px]:text-lg sm:px-1.5" title={format(elegido, "MMMM yyyy", { locale: es })}>
+            <h1 className={`text-center text-sm font-semibold min-[450px]:text-lg ${esEscritorio && !EN_WIDGET ? "px-5" : esEscritorio ? "px-1.5" : "px-0 sm:px-1.5"}`} title={format(elegido, "MMMM yyyy", { locale: es })}>
               {mes} {anio}
             </h1>
             <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(1)}>

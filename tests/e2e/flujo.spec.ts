@@ -1157,6 +1157,29 @@ test("hábitos: de a dos en la Semana y tabla por día en el computador", async 
   await expect(page.getByTestId("tabla-habitos")).toBeHidden();
 });
 
+test("semana: con 2 eventos y más de 2 filas de hábitos, los hábitos van en un desplegable", async ({ page }) => {
+  await page.goto("/#/habitos");
+  for (const nombre of ["Uno", "Dos", "Tres", "Cuatro", "Cinco"]) {
+    await page.getByRole("button", { name: "Nuevo hábito" }).first().click();
+    await page.getByLabel("Nombre del hábito").fill(nombre);
+    await page.getByRole("button", { name: "Crear hábito" }).click();
+    await expect(page.getByTestId("habito").filter({ hasText: nombre })).toHaveCount(1);
+  }
+  await page.goto("/#/semana");
+  // Sin eventos, los hábitos se ven directo.
+  await expect(page.getByRole("switch", { name: "Hábito Uno" })).toBeVisible();
+  await crearEnSemana(page, "Evento", "Primer evento");
+  await crearEnSemana(page, "Evento", "Segundo evento");
+  const desplegable = page.locator("button[aria-expanded][aria-label='Hábitos']");
+  await expect(desplegable).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("switch", { name: "Hábito Uno" })).toHaveCount(0);
+  await desplegable.click();
+  await expect(page.getByRole("switch", { name: "Hábito Uno" })).toBeVisible();
+  // Cada hábito lleva su color de fondo.
+  const fondo = await page.getByTestId("habito-semana").first().evaluate((e) => getComputedStyle(e).backgroundColor);
+  expect(fondo).not.toBe("rgba(0, 0, 0, 0)");
+});
+
 test("estadísticas: el filtro Año viene elegido por defecto", async ({ page }) => {
   await page.goto("/#/estadisticas/tareas");
   await expect(page.getByRole("button", { name: "Año", exact: true })).toHaveAttribute("aria-pressed", "true");
