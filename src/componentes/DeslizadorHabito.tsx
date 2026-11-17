@@ -42,7 +42,8 @@ export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar, cl
       title={marcable ? (hecho ? "Pincha el círculo o a la izquierda para quitar la marca" : "Pincha el círculo o a la derecha para marcarlo hecho") : "Todavía no llega este día"}
       onClick={alPinchar}
       onKeyDown={alTeclear}
-      className={`relative h-7 ${clase} overflow-hidden rounded-full bg-suave ring-1 ring-borde ring-inset ${marcable ? "cursor-pointer" : "opacity-40"}`}
+      style={{ backgroundColor: `color-mix(in srgb, ${color} 42%, white)` }}
+      className={`relative h-7 ${clase} overflow-hidden rounded-full ring-1 ring-borde ring-inset ${marcable ? "cursor-pointer" : "opacity-40"}`}
     >
       {/* El lado izquierdo se colorea hasta donde va el círculo. */}
       <span
