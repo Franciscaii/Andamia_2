@@ -501,16 +501,19 @@ export function VistaHabitos() {
                 style={{ gridTemplateColumns: alcanceTabla === "semana" ? "minmax(6.5rem, 9rem) repeat(7, minmax(3.5rem, 1fr))" : `minmax(6rem, 8rem) repeat(${diasTabla.length}, minmax(1.5rem, 1fr))` }}
               >
                 <h1 className="text-center text-xl font-semibold">Hábitos</h1>
-                <div className={`relative flex items-center justify-center ${alcanceTabla === "semana" ? "" : "col-span-7"}`}>
-                  <button type="button" aria-label={alcanceTabla === "semana" ? "Semana anterior" : "Mes anterior de la tabla"} className="absolute right-full mr-1 rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(-1)}>
-                    <ChevronLeft size={18} />
-                  </button>
-                  <span data-testid="titulo-tabla-habitos" title={format(baseTabla, "MMMM yyyy", { locale: es })} className="whitespace-nowrap text-center text-lg font-semibold first-letter:uppercase">
-                    {tituloTabla}
-                  </span>
-                  <button type="button" aria-label={alcanceTabla === "semana" ? "Semana siguiente" : "Mes siguiente de la tabla"} className="absolute left-full ml-1 rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(1)}>
-                    <ChevronRight size={18} />
-                  </button>
+                {/* Tarjeta con < mes >: empieza donde empieza la primera columna de días. */}
+                <div className="relative h-8">
+                  <div data-testid="nav-tabla-habitos" className="absolute left-0 top-1/2 flex -translate-y-1/2 items-center whitespace-nowrap rounded-lg border border-borde bg-panel p-0.5">
+                    <button type="button" aria-label={alcanceTabla === "semana" ? "Semana anterior" : "Mes anterior de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(-1)}>
+                      <ChevronLeft size={18} />
+                    </button>
+                    <span data-testid="titulo-tabla-habitos" title={format(baseTabla, "MMMM yyyy", { locale: es })} className="min-w-12 px-3 text-center text-lg font-semibold first-letter:uppercase">
+                      {tituloTabla}
+                    </span>
+                    <button type="button" aria-label={alcanceTabla === "semana" ? "Semana siguiente" : "Mes siguiente de la tabla"} className="rounded-md border border-borde bg-panel p-1 text-texto hover:bg-suave" onClick={() => moverTabla(1)}>
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-2"><div role="group" aria-label="Ver por" className="flex gap-1">
