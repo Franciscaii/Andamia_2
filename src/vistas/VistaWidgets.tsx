@@ -275,13 +275,14 @@ function AjustesWidgetEscritorio({ id, nombre }: { id: string; nombre: string })
 /** El widget en chiquito, dentro de su tarjeta: se actualiza solo con cada cambio de tema, transparencia, esquinas o letra. */
 function MiniaturaWidget({ id, nombre }: { id: string; nombre: string }) {
   const base = WIDGETS.find((x) => x.id === id)!;
-  const ancho = 440;
-  const escala = ancho / base.ancho;
-  const alto = Math.min(Math.round(base.alto * escala), 420);
+  // Se achica para que el widget entre COMPLETO en la caja (a lo ancho y a lo alto).
+  const escala = Math.min(560 / base.ancho, 440 / base.alto);
+  const ancho = Math.round(base.ancho * escala);
+  const alto = Math.round(base.alto * escala);
   return (
     <div data-testid="miniatura-widget" className="shrink-0 self-start">
       <p className="mb-2 text-sm">Vista previa</p>
-      <div className="relative overflow-hidden rounded-xl bg-suave" style={{ width: ancho, height: alto }}>
+      <div className="relative" style={{ width: ancho, height: alto }}>
         <iframe
           title={`Vista previa de ${nombre}`}
           src={`${window.location.pathname}?widget=${id}`}
@@ -298,7 +299,7 @@ function TarjetaWidgetEscritorio({ w, puesto, alCambiarPuesto }: { w: (typeof WI
   const { abierta, setAbierta, tarjeta } = useTarjetaPedida(w.id);
   const { icono: Icono, texto } = DETALLE[w.id];
   return (
-    <li ref={tarjeta} data-testid="widget-disponible" className="rounded-2xl border border-borde bg-panel shadow-sm">
+    <li ref={tarjeta} data-testid="widget-disponible" className="rounded-2xl border border-borde bg-panel shadow-sm [--panel:var(--panel-solido)]">
       <div className="flex items-center gap-3 p-4 lg:gap-4 lg:p-6">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-acento-suave text-acento lg:h-14 lg:w-14 lg:rounded-xl">
           <Icono size={20} className="lg:h-7 lg:w-7" />

@@ -470,10 +470,10 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
         const oscuro = colorOscuro(h.color);
         const [fuerte, suave] = oscuro ? [85, 70] : [24, 8];
         return (
-          <li key={h.id} data-testid="habito-semana" style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${h.color} ${fuerte}%, var(--panel)), color-mix(in srgb, ${h.color} ${suave}%, var(--panel)))`, color: oscuro ? "#ffffff" : undefined, borderColor: `color-mix(in srgb, ${h.color} 55%, var(--panel))`, boxShadow: `0 2px 6px -2px color-mix(in srgb, ${h.color} 45%, transparent)` }} className={`flex min-w-0 items-center rounded-2xl border-[1.5px] [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-1 px-1 py-1" : `gap-2 px-3 ${EN_WIDGET ? "py-0.5" : "py-2 lg:py-0.5"}`}`}>
+          <li key={h.id} data-testid="habito-semana" style={{ backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${h.color} ${fuerte}%, var(--panel)), color-mix(in srgb, ${h.color} ${suave}%, var(--panel)))`, color: oscuro ? "#ffffff" : undefined, borderColor: `color-mix(in srgb, ${h.color} 55%, var(--panel))`, boxShadow: `0 2px 6px -2px color-mix(in srgb, ${h.color} 45%, transparent)` }} className={`flex min-w-0 items-center rounded-2xl border-[1.5px] [&:last-child:nth-child(odd)]:col-span-2 ${estrecha ? "flex-col gap-0.5 px-1 py-0.5" : `gap-2 px-3 ${EN_WIDGET ? "py-0.5" : "py-2 lg:py-0.5"}`}`}>
             
             {/* Tocar el nombre abre el detalle del hábito al costado; tocarlo de nuevo lo cierra. */}
-            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate font-bold ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"}`}>
+            <button type="button" title={h.nombre} aria-label={`Ver ${h.nombre}`} onClick={() => alternarHabito(SECCION, h.id)} className={`min-w-0 truncate ${estrecha ? "w-full text-center text-[11px]" : celular ? "w-2/5 text-left text-sm" : "min-w-[40%] flex-1 text-left text-sm"}`}>
               {h.nombre}
             </button>
             <DeslizadorHabito
@@ -481,6 +481,7 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
               color={h.color}
               hecho={hecho}
               marcable={marcable}
+              pequeno={estrecha}
               clase={estrecha ? "w-full shrink-0" : celular ? "min-w-0 flex-1" : "max-w-64 min-w-0 flex-1"}
               alCambiar={(v) => {
                 if (v) lanzarConfeti();

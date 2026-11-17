@@ -1,7 +1,7 @@
 import { useRef, type KeyboardEvent, type MouseEvent } from "react";
 import { Check } from "lucide-react";
 
-const PERILLA = 24;
+const PERILLA_GRANDE = 24;
 const MARGEN = 2;
 
 /**
@@ -9,7 +9,8 @@ const MARGEN = 2;
  * izquierdo; pinchar el círculo lo cambia siempre (marca o desmarca). No se arrastra.
  * Con teclado: Enter o Espacio.
  */
-export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar, clase = "min-w-0 flex-1" }: { nombre: string; color: string; hecho: boolean; marcable: boolean; alCambiar: (hecho: boolean) => void; clase?: string }) {
+export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar, clase = "min-w-0 flex-1", pequeno = false }: { nombre: string; color: string; hecho: boolean; marcable: boolean; alCambiar: (hecho: boolean) => void; clase?: string; pequeno?: boolean }) {
+  const PERILLA = pequeno ? 16 : PERILLA_GRANDE;
   const riel = useRef<HTMLDivElement>(null);
   const avance = hecho ? 1 : 0;
 
@@ -43,7 +44,7 @@ export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar, cl
       onClick={alPinchar}
       onKeyDown={alTeclear}
       style={{ backgroundColor: `color-mix(in srgb, ${color} 42%, white)` }}
-      className={`relative h-7 ${clase} overflow-hidden rounded-full ring-1 ring-borde ring-inset ${marcable ? "cursor-pointer" : "opacity-40"}`}
+      className={`relative ${pequeno ? "h-5" : "h-7"} ${clase} overflow-hidden rounded-full ring-1 ring-borde ring-inset ${marcable ? "cursor-pointer" : "opacity-40"}`}
     >
       {/* El lado izquierdo se colorea hasta donde va el círculo. */}
       <span
@@ -56,7 +57,7 @@ export function DeslizadorHabito({ nombre, color, hecho, marcable, alCambiar, cl
         style={{ left: izquierda, width: PERILLA, height: PERILLA }}
         className="absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-[left] duration-200 ease-out"
       >
-        <Check size={12} strokeWidth={3.5} style={{ color: hecho ? color : "#c5cad3" }} />
+        <Check size={pequeno ? 9 : 12} strokeWidth={3.5} style={{ color: hecho ? color : "#c5cad3" }} />
       </span>
     </div>
   );
