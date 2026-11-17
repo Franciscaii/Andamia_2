@@ -1,9 +1,9 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { CalendarClock, ChartArea, ChartPie, CalendarDays, CalendarRange, CheckCheck, Cloud, CloudOff, Flame, Grid2x2, RefreshCw, Settings, ChevronDown, ChevronRight, Folder, FolderPlus, Inbox, LayoutDashboard, Layers, ListTodo, Palette, Pencil, Plus, Sunrise, Tag, Trash2, PanelLeftClose } from "lucide-react";
 import { listasActivas } from "../config";
 import { useCuenta } from "../datos/cuenta";
 import { useTienda } from "../datos/tienda";
-import { contarVista, estaPendiente, type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
+import { type VistaInteligente, VISTAS_INTELIGENTES } from "../logica/vistas";
 import { hashDe, INICIO, irA, type Seccion } from "../logica/ruta";
 import { esAppNativa } from "../logica/plataforma";
 import { puenteEscritorio } from "../logica/puenteEscritorio";
@@ -28,13 +28,12 @@ const VISTAS_EN_MENU: VistaInteligente[] = ["semana"];
 const claseFila = (activa: boolean) =>
   `group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${activa ? "bg-acento-suave font-medium" : "hover:bg-suave"}`;
 
-function Fila({ href, activa, icono, nombre, contador, acciones }: { href: string; activa: boolean; icono: ReactNode; nombre: string; contador?: number; acciones?: ReactNode }) {
+function Fila({ href, activa, icono, nombre, acciones }: { href: string; activa: boolean; icono: ReactNode; nombre: string; acciones?: ReactNode }) {
   return (
     <div className={claseFila(activa)}>
       <a href={href} aria-current={activa ? "page" : undefined} className="flex min-w-0 flex-1 items-center gap-2">
         <span className="shrink-0 text-tenue">{icono}</span>
         <span className="truncate">{nombre}</span>
-        {contador ? <span className="ml-auto pl-1 text-xs text-tenue group-hover:hidden">{contador}</span> : null}
       </a>
       {acciones && <span className="hidden shrink-0 items-center gap-0.5 group-focus-within:flex group-hover:flex">{acciones}</span>}
     </div>
@@ -94,7 +93,6 @@ type Dialogo =
   | { tipo: "borrar-carpeta"; carpeta: Carpeta };
 
 export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcultar?: () => void }) {
-  const tareas = useTienda((s) => s.tareas);
   const listas = useTienda((s) => s.listas);
   const carpetas = useTienda((s) => s.carpetas);
   const etiquetas = useTienda((s) => s.etiquetas);
@@ -122,12 +120,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
   // Sin listas creadas y con la opción apagada, la sección entera desaparece.
   const mostrarListas = listasActivas || listas.length > 0 || carpetas.length > 0;
 
-  const pendientesPorLista = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const t of tareas) if (estaPendiente(t)) m.set(t.listaId, (m.get(t.listaId) ?? 0) + 1);
-    return m;
-  }, [tareas]);
-
   const filaLista = (l: Lista) => (
     <Fila
       key={l.id}
@@ -135,7 +127,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
       activa={seccion.tipo === "lista" && seccion.id === l.id}
       icono={<Punto color={l.color} />}
       nombre={l.nombre}
-      contador={pendientesPorLista.get(l.id)}
       acciones={
         <>
           <BotonIcono etiqueta={`Editar ${l.nombre}`} alPulsar={() => setDialogo({ tipo: "lista", lista: l })}>
@@ -191,7 +182,6 @@ export function BarraLateral({ seccion, alOcultar }: { seccion: Seccion; alOcult
             activa={seccion.tipo === "vista" && seccion.vista === v.id}
             icono={ICONOS[v.id]}
             nombre={v.nombre}
-            contador={contarVista(tareas, v.id, listas)}
           />
         ))}
         <Fila href={hashDe({ tipo: "calendario", modo: seccion.tipo === "calendario" ? seccion.modo : "mes" })} activa={seccion.tipo === "calendario"} icono={<CalendarRange size={17} />} nombre="Calendario" />
