@@ -95,7 +95,7 @@ function TarjetaWidget({
         </span>
         <p className="min-w-0 flex-1 text-sm font-semibold">{w.nombre}</p>
         {puesto ? (
-          <button type="button" aria-label={`Quitar de la pantalla de inicio: ${w.nombre}`} className="shrink-0 rounded-full border border-borde px-3 py-1.5 text-xs font-medium hover:bg-suave" onClick={alQuitar}>
+          <button type="button" aria-label={`Quitar de la pantalla de inicio: ${w.nombre}`} className="shrink-0 rounded-full bg-gray-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-600" onClick={alQuitar}>
             Quitar
           </button>
         ) : (
@@ -310,7 +310,7 @@ function TarjetaWidgetEscritorio({ w, puesto, alCambiarPuesto }: { w: (typeof WI
         <button
           type="button"
           aria-label={`${puesto ? "Quitar del escritorio" : "Añadir al escritorio"}: ${w.nombre}`}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium lg:px-5 lg:py-2 lg:text-base ${puesto ? "border border-borde text-tenue hover:text-texto" : "bg-acento text-sobre-acento hover:opacity-90"}`}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium lg:px-5 lg:py-2 lg:text-base ${puesto ? "bg-gray-500 text-white hover:bg-gray-600" : "bg-acento text-sobre-acento hover:opacity-90"}`}
           onClick={alCambiarPuesto}
         >
           {puesto ? "Quitar" : "Añadir"}
