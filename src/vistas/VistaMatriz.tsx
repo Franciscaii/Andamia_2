@@ -6,7 +6,7 @@ import { Check, ChevronDown, Plus, Tag } from "lucide-react";
 import { colisionTareasEnZonas } from "../componentes/colision";
 import { datosDesdeEntrada } from "../componentes/EntradaRapida";
 import { COLOR_PRIORIDAD, FilaTarea } from "../componentes/FilaTarea";
-import { claseCampo } from "../componentes/Modal";
+import { claseCampo, Modal } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
 import { interpretarEntrada } from "../logica/entradaRapida";
 import { ordenEntre } from "../logica/vistas";
@@ -14,7 +14,6 @@ import { CUADRANTES, prioridadDeCuadrante, repartirEnCuadrantes, type Cuadrante,
 import { irA } from "../logica/ruta";
 import { acotar, guardarDivision, leerDivision, type DivisionMatriz } from "../logica/divisionMatriz";
 import { LISTA_BANDEJA, type Etiqueta, type Tarea } from "../modelos/tipos";
-import { esAppNativa } from "../logica/plataforma";
 import { WIDGET_ACTUAL } from "../logica/widgetEscritorio";
 
 /** Widget Matriz del PC: siempre los 4 cuadrantes a la vista (2×2), cada uno con su propio desplazamiento. */
@@ -44,47 +43,54 @@ function TarjetaMatriz({ tarea, abierta, cuadrante }: { tarea: Tarea; abierta: b
 function SelectorEtiqueta({ etiquetas, valor, alElegir }: { etiquetas: Etiqueta[]; valor: string | null; alElegir: (nombre: string | null) => void }) {
   const [abierto, setAbierto] = useState(false);
   const actual = etiquetas.find((e) => e.nombre === valor);
-  const opcion = (nombre: string | null, texto: string) => (
-    <button
-      key={nombre ?? "todas"}
-      type="button"
-      role="option"
-      aria-selected={nombre === valor}
-      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm ${nombre === valor ? "bg-acento-suave font-semibold" : "hover:bg-suave"}`}
-      onClick={() => {
-        alElegir(nombre);
-        setAbierto(false);
-      }}
-    >
-      <Tag size={16} className="shrink-0 text-tenue" />
-      <span className="min-w-0 flex-1 truncate">{texto}</span>
-      {nombre === valor && <Check size={16} className="shrink-0 text-acento" />}
-    </button>
-  );
+  const elegir = (nombre: string | null) => {
+    alElegir(nombre);
+    setAbierto(false);
+  };
+  // Píldora con borde y punto del color de la etiqueta, como en Estadísticas.
+  const opcion = (nombre: string | null, texto: string, color: string | null) => {
+    const activa = nombre === valor;
+    const c = color ?? "var(--tenue)";
+    return (
+      <li key={nombre ?? "todas"}>
+        <button
+          type="button"
+          role="option"
+          aria-selected={activa}
+          onClick={() => elegir(nombre)}
+          className={`flex w-full items-center gap-2 rounded-full border px-3 py-2 text-left text-sm ${activa ? "font-semibold" : ""}`}
+          style={{ borderColor: `color-mix(in srgb, ${c} 67%, transparent)`, background: activa ? `color-mix(in srgb, ${c} 20%, transparent)` : undefined }}
+        >
+          <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c }} />
+          <span className="min-w-0 flex-1 truncate">{texto}</span>
+          {activa && <Check size={16} className="shrink-0 text-acento" />}
+        </button>
+      </li>
+    );
+  };
   return (
-    <div className="relative">
+    <>
       <button
         type="button"
         aria-label="Filtrar por etiqueta"
-        aria-haspopup="listbox"
+        aria-haspopup="dialog"
         aria-expanded={abierto}
-        onClick={() => setAbierto(!abierto)}
+        onClick={() => setAbierto(true)}
         className="flex items-center gap-2 rounded-xl border border-borde bg-panel px-3 py-2 text-sm font-medium shadow-sm"
       >
         <Tag size={16} className="text-tenue" />
         <span className="max-w-40 truncate">{actual ? actual.nombreVisible : "Todas las etiquetas"}</span>
-        <ChevronDown size={16} className={`text-tenue transition-transform ${abierto ? "rotate-180" : ""}`} />
+        <ChevronDown size={16} className="text-tenue" />
       </button>
       {abierto && (
-        <>
-          <button type="button" aria-label="Cerrar lista de etiquetas" tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setAbierto(false)} />
-          <div role="listbox" aria-label="Etiquetas" className="absolute right-0 z-40 mt-2 max-h-72 w-64 max-w-[80vw] overflow-y-auto rounded-2xl border border-borde bg-panel p-1.5 shadow-xl">
-            {opcion(null, "Todas las etiquetas")}
-            {etiquetas.map((e) => opcion(e.nombre, e.nombreVisible))}
-          </div>
-        </>
+        <Modal titulo="Etiquetas" alCerrar={() => setAbierto(false)}>
+          <ul role="listbox" aria-label="Etiquetas" className="flex flex-col gap-2">
+            {opcion(null, "Todas las etiquetas", null)}
+            {etiquetas.map((e) => opcion(e.nombre, e.nombreVisible, e.color))}
+          </ul>
+        </Modal>
       )}
-    </div>
+    </>
   );
 }
 
@@ -261,18 +267,7 @@ export function VistaMatriz({ tareaAbierta }: { tareaAbierta: string | null }) {
       <header className={EN_WIDGET ? "flex items-center gap-2 pt-1 pr-12 pb-1.5 pl-3" : "flex flex-wrap items-center gap-2 px-5 pt-5 pb-3"}>
         <h1 className={EN_WIDGET ? "truncate text-base font-semibold" : "text-xl font-semibold"}>Matriz de Eisenhower</h1>
         <div className={EN_WIDGET ? "ml-auto flex shrink-0" : "flex flex-wrap gap-2 sm:ml-auto"}>
-          {esAppNativa() ? (
-            <SelectorEtiqueta etiquetas={etiquetas} valor={etiqueta} alElegir={setEtiqueta} />
-          ) : (
-            <select aria-label="Filtrar por etiqueta" className={`${claseCampo} !w-auto`} value={etiqueta ?? ""} onChange={(e) => setEtiqueta(e.target.value || null)}>
-              <option value="">Todas las etiquetas</option>
-              {etiquetas.map((e) => (
-                <option key={e.nombre} value={e.nombre}>
-                  {e.nombreVisible}
-                </option>
-              ))}
-            </select>
-          )}
+          <SelectorEtiqueta etiquetas={etiquetas} valor={etiqueta} alElegir={setEtiqueta} />
         </div>
       </header>
       <DndContext

@@ -65,10 +65,12 @@ test.describe("matriz", () => {
     await expect(cuadrante("Urgente + No importante")).toContainText("Llamar al gas");
     await expect(cuadrante("Urgente + No importante")).toContainText("Mañana");
 
-    await page.getByLabel("Filtrar por etiqueta").selectOption("casa");
+    await page.getByLabel("Filtrar por etiqueta").click();
+    await page.getByRole("option", { name: /casa/i }).click();
     await expect(page.getByTestId("fila-tarea")).toHaveCount(1);
     await expect(page.getByTestId("fila-tarea")).toContainText("Con etiqueta");
-    await page.getByLabel("Filtrar por etiqueta").selectOption("");
+    await page.getByLabel("Filtrar por etiqueta").click();
+    await page.getByRole("option", { name: "Todas las etiquetas" }).click();
     await expect(page.getByLabel("Filtrar por lista")).toHaveCount(0);
     await expect(page.getByTestId("fila-tarea")).toHaveCount(2);
   });
