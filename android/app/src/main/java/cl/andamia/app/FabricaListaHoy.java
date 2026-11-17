@@ -31,6 +31,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     private static final int TIPO_SECCION = 3;
     private static final int TIPO_ESPACIO = 4;
     private static final int TIPO_HABITO = 5;
+    private static final int TIPO_RELLENO = 6;
 
     /** Lugar de una fila dentro de su tarjeta (solo en el widget Semana). */
     private static final int SIN_TARJETA = 0, ARRIBA = 1, MEDIO = 2, ABAJO = 3, SOLA = 4;
@@ -195,7 +196,15 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                 f.grupo = 2;
                 filas.add(f);
             }
-            if (semana) ubicarEnTarjetas();
+            if (semana) {
+                ubicarEnTarjetas();
+                // Relleno final: el espacio vacío bajo las tarjetas también abre Andamia.
+                if (!filas.isEmpty()) {
+                    Fila relleno = new Fila();
+                    relleno.tipo = TIPO_RELLENO;
+                    filas.add(relleno);
+                }
+            }
         } catch (Exception e) {
             filas.clear();
             hechas = 0;
@@ -236,7 +245,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     @Override public void onDestroy() { filas.clear(); }
     @Override public int getCount() { return filas.size(); }
     @Override public RemoteViews getLoadingView() { return null; }
-    @Override public int getViewTypeCount() { return 6; }
+    @Override public int getViewTypeCount() { return 7; }
     @Override public long getItemId(int posicion) { return posicion; }
     @Override public boolean hasStableIds() { return false; }
 
@@ -436,6 +445,11 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                 RemoteViews espacio = new RemoteViews(contexto.getPackageName(), R.layout.widget_espacio);
                 espacio.setOnClickFillInIntent(R.id.espacio_fila, abrirDia());
                 return espacio;
+            }
+            case TIPO_RELLENO: {
+                RemoteViews relleno = new RemoteViews(contexto.getPackageName(), R.layout.widget_relleno);
+                relleno.setOnClickFillInIntent(R.id.relleno_fila, abrirDia());
+                return relleno;
             }
             case TIPO_PROGRESO: {
                 RemoteViews vista = filaProgreso();

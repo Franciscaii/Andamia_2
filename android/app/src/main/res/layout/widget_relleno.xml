@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Relleno al final de la lista del widget Semana: el espacio vacío también abre Andamia al tocarlo. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/relleno_fila"
+    android:layout_width="match_parent"
+    android:layout_height="400dp" />

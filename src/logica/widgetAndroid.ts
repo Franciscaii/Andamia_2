@@ -127,7 +127,7 @@ export function diasDeSemanaWidget(e: Estado, ahora: Date) {
       fecha: format(dia, "yyyy-MM-dd"),
       nombre: nombreCortoDia(dia),
       numero: dia.getDate(),
-      mes: format(dia, "MMM", { locale: es }).replace(".", ""),
+      mes: format(dia, "MMM yyyy", { locale: es }).replace(".", ""),
       hoy: isSameDay(dia, ahora),
       titulo: tituloDelDia(dia, ahora),
       eventos: c.eventos.slice(0, MAX_TAREAS).map(evento),

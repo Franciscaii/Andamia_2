@@ -15,12 +15,13 @@ export function VistaConfiguracion() {
     </li>
   );
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center gap-2 px-4 pt-[136px] pb-3 sm:px-6">
+    <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto pb-16">
+      {/* Título y tarjetas van juntos y centrados: el título queda a poca distancia de las tarjetas. */}
+      <header className="flex items-center gap-2 px-4 pb-4 sm:px-6">
         <Settings size={22} />
         <h1 className="text-lg font-semibold">Configuración</h1>
       </header>
-      <ul className="flex min-h-0 flex-1 flex-col justify-center gap-4 overflow-y-auto px-4 pb-16 sm:px-6">
+      <ul className="flex flex-col gap-4 px-4 sm:px-6">
         {fila("Tema", { tipo: "tema" }, <Palette size={24} />)}
         {esAppNativa() && fila("Widgets", { tipo: "widgets" }, <LayoutDashboard size={24} />)}
         {fila("Cuenta y ajustes", { tipo: "ajustes" }, <UserCog size={24} />)}
