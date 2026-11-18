@@ -47,14 +47,14 @@ function useTarjetaPedida(id: string) {
   return { abierta, setAbierta, tarjeta };
 }
 
-function Deslizador({ etiqueta, valor, min = 0, max, porcentaje, alCambiar }: { etiqueta: string; valor: number; min?: number; max: number; porcentaje: number; alCambiar: (v: number) => void }) {
+function Deslizador({ etiqueta, valor, min = 0, max, porcentaje, alCambiar, compacto = false }: { compacto?: boolean; etiqueta: string; valor: number; min?: number; max: number; porcentaje: number; alCambiar: (v: number) => void }) {
   return (
     <label className="block">
-      <span className="flex justify-between text-sm">
+      <span className={`flex justify-between ${compacto ? "gap-1 text-xs leading-tight" : "text-sm"}`}>
         <span>{etiqueta}</span>
         <span className="text-tenue tabular-nums">{porcentaje}%</span>
       </span>
-      <input type="range" min={min} max={max} step={min ? 5 : 1} value={valor} aria-label={etiqueta} onChange={(e) => alCambiar(Number(e.target.value))} className="mt-0 w-3/5 accent-[var(--acento)] lg:mt-2 lg:w-full" />
+      <input type="range" min={min} max={max} step={min ? 5 : 1} value={valor} aria-label={etiqueta} onChange={(e) => alCambiar(Number(e.target.value))} className={`mt-0 accent-[var(--acento)] lg:mt-2 lg:w-full ${compacto ? "w-full" : "w-3/5"}`} />
     </label>
   );
 }
@@ -124,7 +124,23 @@ function TarjetaWidget({
       </div>
       {abierta && (
         <div className="mx-3 mb-3 space-y-2 rounded-xl border border-borde p-3">
-          <MiniaturaWidget celular id={w.tipo} nombre={w.nombre} maxAncho={Math.min(300, window.innerWidth - 104)} />
+          {/* Vista previa a la izquierda y los ajustes a su lado, para verlos juntos sin subir y bajar. */}
+          <div className="flex items-start gap-3">
+            <MiniaturaWidget celular id={w.tipo} nombre={w.nombre} maxAncho={Math.min(140, window.innerWidth - 220)} />
+            <div className="min-w-0 flex-1 space-y-1.5">
+            <Deslizador compacto etiqueta="Transparencia" valor={config.transparencia} max={MAX_TRANSPARENCIA} porcentaje={config.transparencia} alCambiar={(v) => cambiar({ ...config, transparencia: v })} />
+            <Deslizador compacto etiqueta="Transparencia de tarjetas" valor={config.tarjetas ?? 0} max={MAX_TRANSPARENCIA} porcentaje={config.tarjetas ?? 0} alCambiar={(v) => cambiar({ ...config, tarjetas: v })} />
+            <Deslizador
+              compacto
+              etiqueta="Esquinas"
+              valor={config.esquinas}
+              max={MAX_ESQUINAS_ANDROID}
+              porcentaje={Math.round((config.esquinas / MAX_ESQUINAS_ANDROID) * 100)}
+              alCambiar={(v) => cambiar({ ...config, esquinas: v })}
+            />
+            <Deslizador compacto etiqueta="Tamaño de letra" valor={config.letra} min={LETRA_MIN} max={LETRA_MAX} porcentaje={config.letra} alCambiar={(v) => cambiar({ ...config, letra: v })} />
+            </div>
+          </div>
           <div>
             <p className="text-sm">Tema</p>
             <div role="radiogroup" aria-label={`Tema de ${w.nombre}`} className="mt-2 flex flex-wrap gap-2.5">
@@ -147,16 +163,6 @@ function TarjetaWidget({
             </div>
             <p className="mt-1.5 text-xs text-tenue">{presetDe(config.temaId).nombre}</p>
           </div>
-          <Deslizador etiqueta="Transparencia" valor={config.transparencia} max={MAX_TRANSPARENCIA} porcentaje={config.transparencia} alCambiar={(v) => cambiar({ ...config, transparencia: v })} />
-          <Deslizador etiqueta="Transparencia de tarjetas" valor={config.tarjetas ?? 0} max={MAX_TRANSPARENCIA} porcentaje={config.tarjetas ?? 0} alCambiar={(v) => cambiar({ ...config, tarjetas: v })} />
-          <Deslizador
-            etiqueta="Esquinas"
-            valor={config.esquinas}
-            max={MAX_ESQUINAS_ANDROID}
-            porcentaje={Math.round((config.esquinas / MAX_ESQUINAS_ANDROID) * 100)}
-            alCambiar={(v) => cambiar({ ...config, esquinas: v })}
-          />
-          <Deslizador etiqueta="Tamaño de letra" valor={config.letra} min={LETRA_MIN} max={LETRA_MAX} porcentaje={config.letra} alCambiar={(v) => cambiar({ ...config, letra: v })} />
         </div>
       )}
     </li>
@@ -311,7 +317,7 @@ const TAMANO_CELULAR: Record<string, { ancho: number; alto: number }> = {
 function MiniaturaWidget({ id, nombre, maxAncho = 560, celular = false }: { id: string; nombre: string; maxAncho?: number; celular?: boolean }) {
   const base = celular ? { ...WIDGETS.find((x) => x.id === id)!, ...TAMANO_CELULAR[id] } : WIDGETS.find((x) => x.id === id)!;
   // Se achica para que el widget entre COMPLETO en la caja (a lo ancho y a lo alto).
-  const escala = Math.min(maxAncho / base.ancho, (celular ? 580 : 440) / base.alto);
+  const escala = Math.min(maxAncho / base.ancho, (celular ? 250 : 440) / base.alto);
   const ancho = Math.round(base.ancho * escala);
   const alto = Math.round(base.alto * escala);
   return (

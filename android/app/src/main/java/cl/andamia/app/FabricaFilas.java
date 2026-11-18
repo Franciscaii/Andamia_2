@@ -88,7 +88,7 @@ class FabricaFilas implements RemoteViewsService.RemoteViewsFactory {
     @Override public void onDataSetChanged() { cargar(); }
     @Override public void onDestroy() { filas.clear(); }
     @Override public int getCount() { return filas.size(); }
-    @Override public RemoteViews getLoadingView() { return null; }
+    @Override public RemoteViews getLoadingView() { return new RemoteViews(contexto.getPackageName(), R.layout.widget_cargando); }
     @Override public int getViewTypeCount() { return 3; }
     @Override public long getItemId(int posicion) { return posicion; }
     @Override public boolean hasStableIds() { return false; }

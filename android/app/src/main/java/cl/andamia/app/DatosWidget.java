@@ -29,11 +29,17 @@ final class DatosWidget {
         return prefs(c).getString("tema", null);
     }
 
-    /** Si el confeti al completar un hábito está activado en la app (por defecto sí). */
-    static boolean confetiActivo(Context c) {
+    /** Si el confeti al completar ese hábito está activado (por defecto sí; se elige en el detalle de cada hábito). */
+    static boolean confetiActivo(Context c, String habitoId) {
         try {
             String json = leerTareas(c);
-            return json == null || new org.json.JSONObject(json).optBoolean("confeti", true);
+            if (json == null) return true;
+            org.json.JSONArray defs = new org.json.JSONObject(json).optJSONArray("habitosDef");
+            for (int i = 0; defs != null && i < defs.length(); i++) {
+                org.json.JSONObject h = defs.optJSONObject(i);
+                if (h != null && habitoId.equals(h.optString("id"))) return h.optBoolean("confeti", true);
+            }
+            return true;
         } catch (Exception e) {
             return true;
         }
