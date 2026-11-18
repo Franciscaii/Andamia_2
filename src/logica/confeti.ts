@@ -1,5 +1,5 @@
-/** Lluvia de confeti sobre la pantalla al completar un hábito; dura menos de dos segundos y deja pasar los toques. */
-export function lanzarConfeti() {
+/** Estallido de confeti pastel (estrellas, puntos, trocitos y cintas) que sale de un punto, por ejemplo del círculo de un hábito recién marcado. Dura menos de dos segundos y deja pasar los toques. */
+export function lanzarConfeti(origen?: { x: number; y: number }) {
   if (typeof document === "undefined" || typeof requestAnimationFrame === "undefined") return;
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
   const lienzo = document.createElement("canvas");
@@ -11,18 +11,36 @@ export function lanzarConfeti() {
   const ctx = lienzo.getContext("2d");
   if (!ctx) return;
   document.body.appendChild(lienzo);
-  const paleta = ["#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#14b8a6"];
-  const trozos = Array.from({ length: 90 }, () => ({
-    x: ancho * (0.1 + 0.8 * Math.random()),
-    y: alto * (0.25 + 0.15 * Math.random()),
-    vx: (Math.random() - 0.5) * 300,
-    vy: -(150 + Math.random() * 350),
-    giro: Math.random() * Math.PI * 2,
-    vg: (Math.random() - 0.5) * 12,
-    tam: 6 + Math.random() * 6,
-    color: paleta[Math.floor(Math.random() * paleta.length)],
-  }));
-  const DURACION = 1800;
+  const ox = origen?.x ?? ancho / 2;
+  const oy = origen?.y ?? alto * 0.35;
+  const paleta = ["#ff9ec0", "#a9d0ff", "#ffe08a", "#c9a6ee", "#a9e2c4", "#ffb88a", "#ff9ed4"];
+  const formas = ["estrella", "punto", "trozo", "cinta", "cinta", "trozo"] as const;
+  const trozos = Array.from({ length: 80 }, () => {
+    const angulo = Math.random() * Math.PI * 2;
+    const rapidez = 90 + Math.random() * 300;
+    return {
+      forma: formas[Math.floor(Math.random() * formas.length)],
+      x: ox,
+      y: oy,
+      vx: Math.cos(angulo) * rapidez,
+      vy: Math.sin(angulo) * rapidez,
+      giro: Math.random() * Math.PI * 2,
+      vg: (Math.random() - 0.5) * 10,
+      tam: 5 + Math.random() * 7,
+      color: paleta[Math.floor(Math.random() * paleta.length)],
+    };
+  });
+  const estrella = (r: number) => {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const rr = i % 2 === 0 ? r : r * 0.45;
+      const a = (Math.PI / 5) * i - Math.PI / 2;
+      ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  };
+  const DURACION = 1700;
   const inicio = performance.now();
   let ultimo = inicio;
   const cuadro = (ahora: number) => {
@@ -35,9 +53,11 @@ export function lanzarConfeti() {
     }
     ctx.clearRect(0, 0, ancho, alto);
     ctx.globalAlpha = Math.max(0, Math.min(1, (1 - t) * 2.2));
+    const freno = Math.pow(0.05, dt);
     for (const p of trozos) {
-      p.vy += 450 * dt;
-      p.vx *= 0.99;
+      p.vy += 160 * dt;
+      p.vx *= freno;
+      p.vy *= freno;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.giro += p.vg * dt;
@@ -45,7 +65,22 @@ export function lanzarConfeti() {
       ctx.translate(p.x, p.y);
       ctx.rotate(p.giro);
       ctx.fillStyle = p.color;
-      ctx.fillRect(-p.tam / 2, -p.tam / 4, p.tam, p.tam / 2);
+      ctx.strokeStyle = p.color;
+      if (p.forma === "estrella") estrella(p.tam * 0.9);
+      else if (p.forma === "punto") {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.tam * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.forma === "trozo") ctx.fillRect(-p.tam / 2, -p.tam / 4, p.tam, p.tam / 2);
+      else {
+        // Cinta: una ondita.
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(-p.tam * 1.3, 0);
+        ctx.bezierCurveTo(-p.tam * 0.6, -p.tam * 0.9, 0, p.tam * 0.9, p.tam * 1.3, 0);
+        ctx.stroke();
+      }
       ctx.restore();
     }
     requestAnimationFrame(cuadro);

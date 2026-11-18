@@ -230,7 +230,7 @@ export default function App() {
       <main className="flex min-w-0 flex-1 flex-col">
         {/* App de PC: franja para mover la ventana; a la derecha quedan los botones de Windows. */}
         {altoBarra > 0 && (
-          <div data-testid="barra-ventana" className="flex shrink-0 items-start px-6 pt-[17px] [-webkit-app-region:drag]" style={{ height: altoBarra }}>
+          <div data-testid="barra-ventana" className="flex shrink-0 items-start px-6 pt-[12px] [-webkit-app-region:drag]" style={{ height: altoBarra }}>
             <span className="flex items-center gap-2.5">
               <Marca clase="h-8 w-8" />
               <span className="contorno-blanco text-xl font-semibold">Andamia</span>
