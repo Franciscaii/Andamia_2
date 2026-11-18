@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, isSameDay, isSameMonth, startOfDay, startOfMonth, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Pencil, Plus, Trash2, X } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Flame, Minus, Plus, Trash2, X } from "lucide-react";
 import { IconoHabito, ICONOS_HABITO } from "../componentes/IconoHabito";
 import { claseBotonEliminar, clasePanelDetalle, FondoDetalle } from "../componentes/DetalleTarea";
 import { PanelColor } from "../componentes/PanelColor";
@@ -9,7 +9,7 @@ import { recordatoriosActivos } from "../config";
 import { claseBoton, claseBotonPrincipal, claseCampo, Confirmar, Modal } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes } from "../logica/calendario";
-import { calcularRachas, describirFrecuencia, esEditable, estadoPorValor, indexarRegistros, siguienteEstado, tasaCumplimiento } from "../logica/habitos";
+import { calcularRachas, describirFrecuencia, esEditable, estadoPorValor, indexarRegistros, tasaCumplimiento } from "../logica/habitos";
 import { INICIALES_DIA, NOMBRES_DIA } from "../logica/repeticion";
 import { irA, type Seccion } from "../logica/ruta";
 import { COLORES_LISTA, type EstadoHabito, type FrecuenciaHabito, type Habito, type RegistroHabito } from "../modelos/tipos";
@@ -50,7 +50,8 @@ function SelectorColor({ color, alElegir, etiqueta = "Color" }: { color: string;
   );
 }
 
-export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: { habito: Habito | null; alCerrar: () => void; /** Fecha de inicio propuesta para un hábito nuevo (yyyy-MM-dd). */ inicioSugerido?: string; /** Con esto se muestra como panel de detalle (al costado), con Eliminar y Guardar. */ alEliminar?: () => void }) {
+/** Los datos de un hábito que se está escribiendo (ventana, panel del costado o tarjeta abierta en Hábitos). */
+function useBorradorHabito(habito: Habito | null, inicioSugerido: string | undefined, alCerrar: () => void, autoEnfocar: boolean, conNombre: boolean, entreFrecuenciaYObjetivo?: React.ReactNode) {
   const crearHabito = useTienda((s) => s.crearHabito);
   const actualizarHabito = useTienda((s) => s.actualizarHabito);
   const [nombre, setNombre] = useState(habito?.nombre ?? "");
@@ -81,10 +82,12 @@ export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: 
 
   const campos = (
     <>
-        <label className="block text-sm">
-          <span className="mb-1 block text-tenue">Nombre</span>
-          <input autoFocus={!alEliminar} maxLength={64} aria-label="Nombre del hábito" className={claseCampo} placeholder="Tomar agua" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        </label>
+        {conNombre && (
+          <label className="block text-sm">
+            <span className="mb-1 block text-tenue">Nombre</span>
+            <input autoFocus={autoEnfocar} maxLength={64} aria-label="Nombre del hábito" className={claseCampo} placeholder="Tomar agua" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+          </label>
+        )}
         <div className="grid grid-cols-2 gap-2 text-sm">
           <label>
             <span className="mb-1 block text-tenue">Fecha de inicio</span>
@@ -111,24 +114,23 @@ export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: 
           <SelectorColor color={color} alElegir={setColor} />
         </div>
         <div className="text-sm">
-          <label className="block">
-            <span className="mb-1 block text-tenue">Frecuencia</span>
-            <select
-              aria-label="Frecuencia"
-              className={claseCampo}
-              value={frecuencia.tipo}
-              onChange={(e) => {
-                const tipo = e.target.value;
-                if (tipo === "diaria") setFrecuencia({ tipo: "diaria" });
-                else if (tipo === "dias") setFrecuencia({ tipo: "dias", dias: [0, 1, 2, 3, 4] });
-                else setFrecuencia({ tipo: "semanal", veces: 3 });
-              }}
-            >
-              <option value="diaria">Cada día</option>
-              <option value="dias">Días de la semana</option>
-              <option value="semanal">Varias veces por semana</option>
-            </select>
-          </label>
+          <span className="mb-1 block text-tenue">Frecuencia</span>
+          <div role="group" aria-label="Frecuencia" className="flex flex-wrap gap-1.5">
+            {TIPOS_FRECUENCIA.map((t) => (
+              <button
+                key={t.tipo}
+                type="button"
+                aria-pressed={frecuencia.tipo === t.tipo}
+                className={`rounded-full border px-3 py-1 text-xs ${frecuencia.tipo === t.tipo ? "border-acento bg-acento text-sobre-acento" : "border-borde hover:bg-suave"}`}
+                onClick={() => {
+                  if (t.tipo === frecuencia.tipo) return;
+                  setFrecuencia(t.tipo === "diaria" ? { tipo: "diaria" } : t.tipo === "dias" ? { tipo: "dias", dias: [0, 1, 2, 3, 4] } : { tipo: "semanal", veces: 3 });
+                }}
+              >
+                {t.nombre}
+              </button>
+            ))}
+          </div>
           {frecuencia.tipo === "dias" && (
             <div role="group" aria-label="Días de la semana" className="mt-2 flex gap-1">
               {INICIALES_DIA.map((inicial, d) => {
@@ -149,6 +151,7 @@ export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: 
             </label>
           )}
         </div>
+        {entreFrecuenciaYObjetivo}
         <div className="grid grid-cols-2 gap-2 text-sm">
           <label>
             <span className="mb-1 block text-tenue">Objetivo por día</span>
@@ -170,6 +173,22 @@ export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: 
     </>
   );
 
+  const reiniciar = () => {
+    setNombre(habito?.nombre ?? "");
+    setIcono(habito?.icono ?? "estrella");
+    setColor(habito?.color ?? COLORES_LISTA[4]);
+    setFrecuencia(habito?.frecuencia ?? { tipo: "diaria" });
+    setMeta(habito?.metaDiaria ?? 1);
+    setInicio(habito?.inicio ?? inicioSugerido ?? format(new Date(), "yyyy-MM-dd"));
+    setFin(habito?.fin ?? "");
+    setHora(habito?.recordatorioHora ?? "");
+    setConfeti(habito?.confeti !== false);
+  };
+  return { nombre, setNombre, valido, enviar, campos, reiniciar };
+}
+
+export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: { habito: Habito | null; alCerrar: () => void; /** Fecha de inicio propuesta para un hábito nuevo (yyyy-MM-dd). */ inicioSugerido?: string; /** Con esto se muestra como panel de detalle (al costado), con Eliminar y Guardar. */ alEliminar?: () => void }) {
+  const { valido, enviar, campos } = useBorradorHabito(habito, inicioSugerido, alCerrar, !alEliminar, true);
   if (alEliminar) {
     return (
       <FondoDetalle alCerrar={alCerrar}>
@@ -318,65 +337,120 @@ const TIPOS_FRECUENCIA: { tipo: FrecuenciaHabito["tipo"]; nombre: string }[] = [
 ];
 
 /** Lo que se cambia al desplegar un hábito: ícono, color y frecuencia. Cada cambio se guarda al momento. */
-function EditorHabito({ habito }: { habito: Habito }) {
+/** Tarjeta de un hábito en la vista Hábitos: cerrada es una fila y abierta es el formulario completo (nombre incluido) con Eliminar, Historial, Cancelar y Guardar. */
+function TarjetaHabito({ h, abierto, alternar, rachas, unidad, indice, semana, hoy, marcar, historialAbierto, alternarHistorial, alEliminar, historial }: {
+  h: Habito;
+  abierto: boolean;
+  alternar: () => void;
+  rachas: { actual: number };
+  unidad: string;
+  indice: Map<string, RegistroHabito>;
+  semana: Date[];
+  hoy: Date;
+  marcar: (h: Habito, dia: Date) => void;
+  historialAbierto: boolean;
+  alternarHistorial: () => void;
+  alEliminar: () => void;
+  historial: React.ReactNode;
+}) {
   const actualizarHabito = useTienda((s) => s.actualizarHabito);
-  const f = habito.frecuencia;
-  const cambiar = (cambios: Partial<Habito>) => void actualizarHabito(habito.id, cambios);
-  const elegirTipo = (tipo: FrecuenciaHabito["tipo"]) => {
-    if (tipo === f.tipo) return;
-    cambiar({ frecuencia: tipo === "diaria" ? { tipo } : tipo === "dias" ? { tipo, dias: [0, 1, 2, 3, 4] } : { tipo, veces: 3 } });
-  };
-  return (
-    <div className="space-y-3 text-sm">
-      <div>
-        <span className="mb-1 block text-tenue">Ícono</span>
-        <div role="group" aria-label={`Ícono de ${habito.nombre}`} className="flex flex-wrap gap-1">
-          {Object.entries(ICONOS_HABITO).map(([clave, Icono]) => (
-            <button key={clave} type="button" aria-label={`Icono ${clave}`} aria-pressed={habito.icono === clave} className={`flex h-8 w-8 items-center justify-center rounded-md border ${habito.icono === clave ? "border-acento bg-acento-suave" : "border-borde hover:bg-suave"}`} onClick={() => cambiar({ icono: clave })}>
-              <Icono size={16} />
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <span className="mb-1 block text-tenue">Color</span>
-        <SelectorColor etiqueta={`Color de ${habito.nombre}`} color={habito.color} alElegir={(color) => cambiar({ color })} />
-      </div>
-      <div>
-        <span className="mb-1 block text-tenue">Frecuencia</span>
-        <div role="group" aria-label={`Frecuencia de ${habito.nombre}`} className="flex flex-wrap gap-1.5">
-          {TIPOS_FRECUENCIA.map((t) => (
-            <button key={t.tipo} type="button" aria-pressed={f.tipo === t.tipo} className={`rounded-full border px-3 py-1 text-xs ${f.tipo === t.tipo ? "border-acento bg-acento text-sobre-acento" : "border-borde hover:bg-suave"}`} onClick={() => elegirTipo(t.tipo)}>
-              {t.nombre}
-            </button>
-          ))}
-        </div>
-        {f.tipo === "dias" && (
-          <div role="group" aria-label={`Días de ${habito.nombre}`} className="mt-2 flex gap-1">
-            {INICIALES_DIA.map((inicial, d) => {
-              const activo = f.dias.includes(d);
-              // Siempre queda al menos un día elegido.
-              const dias = activo ? f.dias.filter((x) => x !== d) : [...f.dias, d];
-              return (
-                <button key={d} type="button" aria-label={NOMBRES_DIA[d]} aria-pressed={activo} disabled={activo && f.dias.length === 1} className={`h-8 w-8 rounded-full border text-xs ${activo ? "border-acento bg-acento text-sobre-acento" : "border-borde hover:bg-suave"}`} onClick={() => cambiar({ frecuencia: { tipo: "dias", dias } })}>
-                  {inicial}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {f.tipo === "semanal" && (
-          <div role="group" aria-label={`Veces por semana de ${habito.nombre}`} className="mt-2 flex items-center gap-1">
-            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-              <button key={n} type="button" aria-pressed={f.veces === n} className={`h-8 w-8 rounded-full border text-xs tabular-nums ${f.veces === n ? "border-acento bg-acento text-sobre-acento" : "border-borde hover:bg-suave"}`} onClick={() => cambiar({ frecuencia: { tipo: "semanal", veces: n } })}>
-                {n}
-              </button>
-            ))}
-            <span className="ml-1 text-xs text-tenue">por semana</span>
-          </div>
-        )}
+  const ultimosDias = (
+    <div className="text-sm">
+      <span className="mb-1 flex items-center gap-2 text-tenue">Últimos 7 días</span>
+      <div className="flex gap-1">
+        {semana.map((dia) => {
+          const r = indice.get(claveDia(dia));
+          return (
+            <div key={claveDia(dia)} className="flex flex-col items-center gap-0.5">
+              <span className="text-[10px] text-tenue">{INICIALES_DIA[(dia.getDay() + 6) % 7]}</span>
+              <CeldaEstado
+                estado={r?.estado ?? null}
+                color={h.color}
+                inhabilitado={!esEditable(h, dia, hoy) || h.archivado}
+                etiqueta={`${h.nombre}, ${format(dia, "EEEE d 'de' MMMM", { locale: es })}: ${NOMBRES_ESTADO[r?.estado ?? "vacio"]}`}
+                alPulsar={() => marcar(h, dia)}
+              >
+                {h.metaDiaria > 1 && r ? <span className={`tabular-nums ${r.estado === "hecho" ? "font-medium text-white" : ""}`}>{r.valor}</span> : undefined}
+              </CeldaEstado>
+            </div>
+          );
+        })}
       </div>
     </div>
+  );
+  const cerrar = () => {
+    b.reiniciar();
+    alternar();
+  };
+  const b = useBorradorHabito(h, undefined, alternar, false, false, ultimosDias);
+  // Al abrirla, el borrador parte de lo que tiene el hábito ahora (por si cambió desde un widget).
+  useEffect(() => {
+    if (abierto) b.reiniciar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierto]);
+  return (
+    <li data-testid="habito" className={`rounded-xl border bg-panel ${abierto ? "border-acento" : "border-borde"}`}>
+      <div className="flex items-center gap-2 p-3">
+        <IconoHabito nombre={h.icono} color={h.color} />
+        {abierto ? (
+          <span className="min-w-0 flex-1">
+            <input maxLength={64} aria-label={`Nombre de ${h.nombre}`} className={`${claseCampo} !py-1 text-sm font-medium`} placeholder="Nombre del hábito" value={b.nombre} onChange={(e) => b.setNombre(e.target.value)} />
+            <span className="block truncate text-xs text-tenue">{describirFrecuencia(h.frecuencia)}</span>
+            <span aria-hidden="true" className="sr-only">{h.nombre}</span>
+          </span>
+        ) : (
+          <button type="button" className={`flex min-w-0 flex-1 items-center gap-2 text-left ${h.archivado ? "opacity-50" : ""}`} onClick={alternar}>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium">{h.nombre}</span>
+              <span className="block truncate text-xs text-tenue">
+                {describirFrecuencia(h.frecuencia)}
+                {h.metaDiaria > 1 && ` · ${h.metaDiaria}${h.unidad ? ` ${h.unidad}` : ""}`}
+              </span>
+            </span>
+          </button>
+        )}
+        <span data-testid="racha-fila" title="Racha actual" className="hidden shrink-0 items-center gap-1 text-sm font-medium tabular-nums sm:flex">
+          <Flame size={15} className={rachas.actual ? "text-prio-media" : "text-tenue"} />
+          {rachas.actual} {unidad}
+        </span>
+        <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-tenue">
+          <span>Activo</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!h.archivado}
+            aria-label={`Activo: ${h.nombre}`}
+            className={`relative h-5 w-9 rounded-full transition-colors ${h.archivado ? "bg-suave" : "bg-acento"}`}
+            onClick={() => void actualizarHabito(h.id, { archivado: !h.archivado })}
+          >
+            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${h.archivado ? "left-0.5" : "left-[18px]"}`} />
+          </button>
+        </label>
+        <button type="button" aria-label={`${abierto ? "Cerrar" : "Desplegar"} ${h.nombre}`} aria-expanded={abierto} className="shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave" onClick={abierto ? cerrar : alternar}>
+          <ChevronDown size={18} className={`transition-transform ${abierto ? "rotate-180" : ""}`} />
+        </button>
+      </div>
+      {abierto && (
+        <form onSubmit={b.enviar} className="space-y-3 border-t border-borde p-3">
+          {b.campos}
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className={claseBotonEliminar} onClick={alEliminar}>
+              <Trash2 size={14} /> Eliminar
+            </button>
+            <button type="button" aria-pressed={historialAbierto} className={`${claseBoton} flex items-center gap-1.5`} onClick={alternarHistorial}>
+              <CalendarDays size={14} /> Historial
+            </button>
+            <button type="button" className={`${claseBoton} ml-auto`} onClick={cerrar}>
+              Cancelar
+            </button>
+            <button type="submit" className={claseBotonPrincipal} disabled={!b.valido}>
+              Guardar
+            </button>
+          </div>
+        </form>
+      )}
+      {historial}
+    </li>
   );
 }
 
@@ -384,7 +458,6 @@ export function VistaHabitos() {
   const habitos = useTienda((s) => s.habitos);
   const registros = useTienda((s) => s.registros);
   const registrarHabito = useTienda((s) => s.registrarHabito);
-  const actualizarHabito = useTienda((s) => s.actualizarHabito);
   const borrarHabito = useTienda((s) => s.borrarHabito);
   const [dialogo, setDialogo] = useState<{ habito: Habito | null } | null>(null);
   const [cantidad, setCantidad] = useState<{ habito: Habito; dia: Date } | null>(null);
@@ -421,8 +494,8 @@ export function VistaHabitos() {
     }
     const fecha = claveDia(dia);
     const actual = registros.find((r) => r.id === `${h.id}|${fecha}`)?.estado ?? null;
-    const siguiente = siguienteEstado(actual);
-    void registrarHabito(h.id, fecha, siguiente ? { estado: siguiente, valor: siguiente === "hecho" ? 1 : 0 } : null);
+    // El primer toque marca (✓) y el segundo desmarca.
+    void registrarHabito(h.id, fecha, actual === "hecho" ? null : { estado: "hecho", valor: 1 });
   };
 
   const detalle = seleccionado && (() => {
@@ -598,8 +671,8 @@ export function VistaHabitos() {
                 <p className="mt-1 text-sm text-tenue">Crea uno pequeño y fácil de cumplir para empezar.</p>
               </div>
             )}
-            {/* En el computador las tarjetas van de a dos, salvo cuando el historial ocupa el costado. */}
-            <ul className={`grid items-start gap-2 ${seleccionado ? "" : "lg:grid-cols-2"}`}>
+            {/* Una tarjeta por fila. */}
+            <ul className="grid items-start gap-2">
               {visibles.map((h) => {
                 const indice = indexarRegistros(registros, h.id);
                 const rachas = calcularRachas(h, indice, hoy);
@@ -607,89 +680,29 @@ export function VistaHabitos() {
                 const abierto = abiertoId === h.id;
                 const alternar = () => setAbiertoId(abierto ? null : h.id);
                 return (
-                  <li key={h.id} data-testid="habito" className={`rounded-xl border bg-panel ${abierto ? "border-acento" : "border-borde"}`}>
-                    <div className="flex items-center gap-2 p-3">
-                      <button type="button" className={`flex min-w-0 flex-1 items-center gap-2 text-left ${h.archivado ? "opacity-50" : ""}`} onClick={alternar}>
-                        <IconoHabito nombre={h.icono} color={h.color} />
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">{h.nombre}</span>
-                          <span className="block truncate text-xs text-tenue">
-                            {describirFrecuencia(h.frecuencia)}
-                            {h.metaDiaria > 1 && ` · ${h.metaDiaria}${h.unidad ? ` ${h.unidad}` : ""}`}
-                          </span>
-                        </span>
-                      </button>
-                      <span data-testid="racha-fila" title="Racha actual" className="hidden shrink-0 items-center gap-1 text-sm font-medium tabular-nums sm:flex">
-                        <Flame size={15} className={rachas.actual ? "text-prio-media" : "text-tenue"} />
-                        {rachas.actual} {unidad}
-                      </span>
-                      <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-tenue">
-                        <span>Activo</span>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={!h.archivado}
-                          aria-label={`Activo: ${h.nombre}`}
-                          className={`relative h-5 w-9 rounded-full transition-colors ${h.archivado ? "bg-suave" : "bg-acento"}`}
-                          onClick={() => void actualizarHabito(h.id, { archivado: !h.archivado })}
-                        >
-                          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${h.archivado ? "left-0.5" : "left-[18px]"}`} />
-                        </button>
-                      </label>
-                      <button type="button" aria-label={`Borrar ${h.nombre}`} title="Borrar" className="shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave hover:text-peligro" onClick={() => setBorrando(h)}>
-                        <Trash2 size={16} />
-                      </button>
-                      <button type="button" aria-label={`${abierto ? "Cerrar" : "Desplegar"} ${h.nombre}`} aria-expanded={abierto} className="shrink-0 rounded-md p-1.5 text-tenue hover:bg-suave" onClick={alternar}>
-                        <ChevronDown size={18} className={`transition-transform ${abierto ? "rotate-180" : ""}`} />
-                      </button>
-                    </div>
-                    {abierto && (
-                      <div className="space-y-3 border-t border-borde p-3">
-                        <EditorHabito habito={h} />
-                        <div className="text-sm">
-                          <span className="mb-1 flex items-center gap-2 text-tenue">
-                            Últimos 7 días
-                            <span className="flex items-center gap-1 text-xs tabular-nums sm:hidden">
-                              <Flame size={13} className={rachas.actual ? "text-prio-media" : "text-tenue"} />
-                              {rachas.actual} {unidad}
-                            </span>
-                          </span>
-                          <div className="flex gap-1">
-                            {semana.map((dia) => {
-                              const r = indice.get(claveDia(dia));
-                              return (
-                                <div key={claveDia(dia)} className="flex flex-col items-center gap-0.5">
-                                  <span className="text-[10px] text-tenue">{INICIALES_DIA[(dia.getDay() + 6) % 7]}</span>
-                                  <CeldaEstado
-                                    estado={r?.estado ?? null}
-                                    color={h.color}
-                                    inhabilitado={!esEditable(h, dia, hoy) || h.archivado}
-                                    etiqueta={`${h.nombre}, ${format(dia, "EEEE d 'de' MMMM", { locale: es })}: ${NOMBRES_ESTADO[r?.estado ?? "vacio"]}`}
-                                    alPulsar={() => marcar(h, dia)}
-                                  >
-                                    {h.metaDiaria > 1 && r ? <span className={`tabular-nums ${r.estado === "hecho" ? "font-medium text-white" : ""}`}>{r.valor}</span> : undefined}
-                                  </CeldaEstado>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <button type="button" className={`${claseBoton} flex items-center gap-1.5`} onClick={() => { setSeleccionId(h.id); setMes(new Date()); }}>
-                            <CalendarDays size={14} /> Historial
-                          </button>
-                          <button type="button" className={`${claseBoton} flex items-center gap-1.5`} onClick={() => setDialogo({ habito: h })}>
-                            <Pencil size={14} /> Más opciones
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    {!enEscritorio && seleccionado?.id === h.id && <div className="border-t border-borde p-3">{detalle}</div>}
-                  </li>
+                  <TarjetaHabito
+                    key={h.id}
+                    h={h}
+                    abierto={abierto}
+                    alternar={alternar}
+                    rachas={rachas}
+                    unidad={unidad}
+                    indice={indice}
+                    semana={semana}
+                    hoy={hoy}
+                    marcar={marcar}
+                    historialAbierto={seleccionId === h.id}
+                    alternarHistorial={() => {
+                      setSeleccionId(seleccionId === h.id ? null : h.id);
+                      setMes(new Date());
+                    }}
+                    alEliminar={() => setBorrando(h)}
+                    historial={!enEscritorio && seleccionado?.id === h.id ? <div className="border-t border-borde p-3">{detalle}</div> : null}
+                  />
                 );
               })}
             </ul>
-            {visibles.length > 0 && <p className="mt-3 text-xs text-tenue">Despliega un hábito con la flecha para cambiar su ícono, color y frecuencia, o para marcar sus días.</p>}
+            {visibles.length > 0 && <p className="mt-3 text-xs text-tenue">Despliega un hábito con la flecha para cambiar su nombre, fechas, ícono, color y frecuencia, o para marcar sus días.</p>}
           </div>
           {enEscritorio && detalle}
         </div>

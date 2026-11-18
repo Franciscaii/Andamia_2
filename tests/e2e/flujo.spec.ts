@@ -1157,6 +1157,11 @@ test("hábitos: de a dos en la Semana y tabla por día en el computador", async 
   const hoy = tabla.locator("button[aria-label^='Marcar Agua el ']:not([disabled])").last();
   await hoy.click();
   await expect(hoy).toHaveAttribute("data-estado", "hecho");
+  // El segundo toque lo desmarca.
+  await hoy.click();
+  await expect(hoy).toHaveAttribute("data-estado", "vacio");
+  await hoy.click();
+  await expect(hoy).toHaveAttribute("data-estado", "hecho");
   // Semana: "Hábitos" queda centrado sobre la columna de nombres y el mes sobre el primer día.
   const nombreCol = (await tabla.getByTestId("fila-tabla-habito").first().boundingBox())!;
   const titulo = (await tabla.getByRole("heading", { name: "Hábitos" }).boundingBox())!;

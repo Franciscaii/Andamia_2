@@ -123,10 +123,10 @@ function TarjetaWidget({
         </button>
       </div>
       {abierta && (
-        <div className="mx-3 mb-3 space-y-2 rounded-xl border border-borde p-3">
+        <div className="mx-1.5 mb-2 space-y-2 rounded-xl border border-borde p-2.5">
           {/* Vista previa a la izquierda y los ajustes a su lado, para verlos juntos sin subir y bajar. */}
           <div className="flex items-start gap-3">
-            <MiniaturaWidget celular id={w.tipo} nombre={w.nombre} maxAncho={Math.min(140, window.innerWidth - 220)} />
+            <MiniaturaWidget celular id={w.tipo} nombre={w.nombre} maxAncho={Math.min(190, window.innerWidth - 190)} />
             <div className="min-w-0 flex-1 space-y-1.5">
             <Deslizador compacto etiqueta="Transparencia" valor={config.transparencia} max={MAX_TRANSPARENCIA} porcentaje={config.transparencia} alCambiar={(v) => cambiar({ ...config, transparencia: v })} />
             <Deslizador compacto etiqueta="Transparencia de tarjetas" valor={config.tarjetas ?? 0} max={MAX_TRANSPARENCIA} porcentaje={config.tarjetas ?? 0} alCambiar={(v) => cambiar({ ...config, tarjetas: v })} />
@@ -206,7 +206,7 @@ function WidgetsCelular() {
   const quitar = (nombre: string) => setAviso(`Para quitar "${nombre}": en la pantalla de inicio, mantén presionado el widget y toca "Quitar".`);
   return (
     <>
-      <p className="mt-1 text-sm text-tenue">Ponlos en la pantalla de inicio. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
+      <p className="mt-1 px-3 text-sm text-tenue">Ponlos en la pantalla de inicio. Cada widget tiene su propio tema, transparencia, esquinas y tamaño de letra.</p>
       {aviso && (
         <p role="status" className="mt-4 rounded-lg bg-acento-suave px-3 py-2 text-sm">
           {aviso}
@@ -236,8 +236,8 @@ function WidgetsCelular() {
 export function VistaWidgets() {
   if (esAppNativa()) {
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-8">
-        <div className="flex items-center"><FlechaVolver /><h1 className="text-xl font-semibold">Widgets</h1></div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-5 pb-8">
+        <div className="flex items-center px-3"><FlechaVolver /><h1 className="text-xl font-semibold">Widgets</h1></div>
         <WidgetsCelular />
       </div>
     );
@@ -317,7 +317,7 @@ const TAMANO_CELULAR: Record<string, { ancho: number; alto: number }> = {
 function MiniaturaWidget({ id, nombre, maxAncho = 560, celular = false }: { id: string; nombre: string; maxAncho?: number; celular?: boolean }) {
   const base = celular ? { ...WIDGETS.find((x) => x.id === id)!, ...TAMANO_CELULAR[id] } : WIDGETS.find((x) => x.id === id)!;
   // Se achica para que el widget entre COMPLETO en la caja (a lo ancho y a lo alto).
-  const escala = Math.min(maxAncho / base.ancho, (celular ? 250 : 440) / base.alto);
+  const escala = Math.min(maxAncho / base.ancho, (celular ? 330 : 440) / base.alto);
   const ancho = Math.round(base.ancho * escala);
   const alto = Math.round(base.alto * escala);
   return (

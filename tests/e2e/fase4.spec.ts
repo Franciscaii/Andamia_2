@@ -197,7 +197,7 @@ test.describe("hábitos", () => {
     await page.clock.setFixedTime(AHORA);
     await page.goto("/#/habitos");
     await crear(page, "Leer", async () => {
-      await page.getByLabel("Fecha de inicio").fill("2026-11-01");
+      await page.getByRole("dialog").getByLabel("Fecha de inicio").fill("2026-11-01");
       await page.getByRole("button", { name: "Icono libro" }).click();
     });
 
@@ -214,17 +214,13 @@ test.describe("hábitos", () => {
     await fila.getByRole("button", { name: /^Leer, miércoles 4 de noviembre/ }).click();
     await expect(fila.getByTestId("racha-fila")).toContainText("3 días");
 
-    // Parcial no suma; no hecho rompe la racha.
+    // El segundo toque lo desmarca y el tercero lo vuelve a marcar.
     const hoy = fila.getByRole("button", { name: /^Leer, miércoles 4 de noviembre/ });
     await hoy.click();
-    await expect(hoy).toHaveAttribute("data-estado", "parcial");
+    await expect(hoy).toHaveAttribute("data-estado", "vacio");
     await expect(fila.getByTestId("racha-fila")).toContainText("2 días");
     await hoy.click();
-    await expect(hoy).toHaveAttribute("data-estado", "no-hecho");
-    await expect(fila.getByTestId("racha-fila")).toContainText("0 días");
-    await hoy.click();
-    await expect(hoy).toHaveAttribute("data-estado", "vacio");
-    await hoy.click();
+    await expect(hoy).toHaveAttribute("data-estado", "hecho");
 
     // Historial con rachas, cumplimiento y calendario.
     await fila.getByRole("button", { name: "Historial" }).click();
@@ -236,6 +232,10 @@ test.describe("hábitos", () => {
     await historial.getByRole("button", { name: /^1 de noviembre/ }).click();
     await expect(historial.getByTestId("racha-actual")).toHaveText("4 días");
     await expect(historial.getByTestId("cumplimiento")).toHaveText("100 %");
+
+    // Tocar Historial otra vez lo cierra.
+    await fila.getByRole("button", { name: "Historial" }).click();
+    await expect(page.getByRole("region", { name: "Historial de Leer" })).toHaveCount(0);
 
     // Persiste.
     await page.reload();
@@ -264,6 +264,7 @@ test.describe("hábitos", () => {
     await expect(cuadro).not.toHaveAttribute("aria-valuetext", rojoOtro!);
     const elegido = (await cuadro.getAttribute("aria-valuetext"))!;
     await leer.getByRole("button", { name: "Veces por semana" }).click();
+    await leer.getByRole("button", { name: "Guardar" }).click();
     await expect(leer).toContainText("3 veces por semana");
     await page.reload();
     await expect(page.getByTestId("habito").filter({ hasText: "Leer" })).toContainText("3 veces por semana");
@@ -271,8 +272,8 @@ test.describe("hábitos", () => {
     await page.getByRole("button", { name: "Otro color" }).click();
     await expect(page.getByRole("slider", { name: "Intensidad y brillo" })).toHaveAttribute("aria-valuetext", elegido);
 
-    // El basurero lo borra, con confirmación.
-    await page.getByRole("button", { name: "Borrar Leer" }).click();
+    // Eliminar (dentro de la tarjeta abierta) lo borra, con confirmación.
+    await page.getByTestId("habito").filter({ hasText: "Leer" }).getByRole("button", { name: "Eliminar" }).click();
     await page.getByRole("button", { name: "Borrar para siempre" }).click();
     await expect(page.getByTestId("habito")).toHaveCount(0);
   });
@@ -281,11 +282,11 @@ test.describe("hábitos", () => {
     await page.clock.setFixedTime(AHORA);
     await page.goto("/#/habitos");
     await crear(page, "Agua", async () => {
-      await page.getByLabel("Objetivo por día").fill("8");
+      await page.getByRole("dialog").getByLabel("Objetivo por día").fill("8");
       // Ya no se pide unidad; bajo el nombre van la fecha de inicio y la de fin.
-      await expect(page.getByLabel("Unidad")).toHaveCount(0);
-      await expect(page.getByLabel("Fecha de inicio")).toBeVisible();
-      await expect(page.getByLabel("Fecha de fin")).toBeVisible();
+      await expect(page.getByRole("dialog").getByLabel("Unidad")).toHaveCount(0);
+      await expect(page.getByRole("dialog").getByLabel("Fecha de inicio")).toBeVisible();
+      await expect(page.getByRole("dialog").getByLabel("Fecha de fin")).toBeVisible();
     });
     const agua = page.getByTestId("habito").filter({ hasText: "Agua" });
     await expect(agua).toContainText("· 8");
@@ -305,8 +306,8 @@ test.describe("hábitos", () => {
     await expect(agua.getByTestId("racha-fila")).toContainText("1 día");
 
     await crear(page, "Correr", async () => {
-      await page.getByLabel("Frecuencia", { exact: true }).selectOption("semanal");
-      await page.getByLabel("Veces por semana").fill("1");
+      await page.getByRole("dialog").getByRole("group", { name: "Frecuencia", exact: true }).getByRole("button", { name: "Veces por semana" }).click();
+      await page.getByRole("dialog").getByLabel("Veces por semana").fill("1");
     });
     const correr = page.getByTestId("habito").filter({ hasText: "Correr" });
     await expect(correr).toContainText("1 vez por semana");
@@ -319,9 +320,9 @@ test.describe("hábitos", () => {
     await page.clock.setFixedTime(AHORA);
     await page.goto("/#/habitos");
     await crear(page, "Clase", async () => {
-      await page.getByLabel("Frecuencia", { exact: true }).selectOption("dias");
+      await page.getByRole("dialog").getByRole("group", { name: "Frecuencia", exact: true }).getByRole("button", { name: "Algunos días" }).click();
       for (const d of ["martes", "miércoles", "jueves"]) await page.getByRole("dialog").getByRole("button", { name: d, exact: true }).click();
-      await page.getByLabel("Hora del recordatorio").fill("09:00");
+      await page.getByRole("dialog").getByLabel("Hora del recordatorio").fill("09:00");
     });
     const fila = page.getByTestId("habito").filter({ hasText: "Clase" });
     await expect(fila).toContainText("lun, vie");
@@ -331,7 +332,7 @@ test.describe("hábitos", () => {
     await expect(page.getByTestId("aviso")).toHaveCount(0);
 
     await crear(page, "Estirar", async () => {
-      await page.getByLabel("Hora del recordatorio").fill("09:00");
+      await page.getByRole("dialog").getByLabel("Hora del recordatorio").fill("09:00");
     });
     await expect(page.getByTestId("aviso")).toContainText("Estirar");
     await page.reload();
