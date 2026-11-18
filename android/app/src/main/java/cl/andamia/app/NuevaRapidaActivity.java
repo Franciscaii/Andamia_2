@@ -322,13 +322,25 @@ public class NuevaRapidaActivity extends Activity {
             zonaFrecuencia.setOrientation(LinearLayout.VERTICAL);
             campos.addView(zonaFrecuencia);
             pintarFrecuencia(zonaFrecuencia);
-            campos.addView(seccion("Objetivo por día"));
+            // Objetivo por día y Confeti en la misma fila.
+            LinearLayout filaMeta = new LinearLayout(this);
+            filaMeta.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout colMeta = new LinearLayout(this);
+            colMeta.setOrientation(LinearLayout.VERTICAL);
+            colMeta.addView(seccion("Objetivo por día"));
             LinearLayout zonaMeta = new LinearLayout(this);
             zonaMeta.setGravity(Gravity.CENTER_VERTICAL);
-            campos.addView(zonaMeta);
+            colMeta.addView(zonaMeta);
             pintarMeta(zonaMeta);
-            campos.addView(seccion("Confeti al completarlo"));
-            campos.addView(interruptorConfeti());
+            LinearLayout colConfeti = new LinearLayout(this);
+            colConfeti.setOrientation(LinearLayout.VERTICAL);
+            colConfeti.addView(seccion("Confeti al completarlo"));
+            colConfeti.addView(interruptorConfeti());
+            filaMeta.addView(colMeta, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            LinearLayout.LayoutParams lpConfeti = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            lpConfeti.leftMargin = px(16);
+            filaMeta.addView(colConfeti, lpConfeti);
+            campos.addView(filaMeta);
         }
 
         // Eliminar (solo al editar), Cancelar y Añadir o Guardar.
@@ -421,7 +433,7 @@ public class NuevaRapidaActivity extends Activity {
         zona.removeAllViews();
         TextView menos = chip("−");
         TextView cifra = new TextView(this);
-        cifra.setText(metaHabito + (metaHabito == 1 ? " vez al día" : " veces al día"));
+        cifra.setText(metaHabito + (metaHabito == 1 ? " vez" : " veces"));
         cifra.setTextColor(texto);
         cifra.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         cifra.setPadding(px(4), 0, px(10), 0);
