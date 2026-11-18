@@ -236,6 +236,11 @@ test.describe("hábitos", () => {
     // Tocar Historial otra vez lo cierra.
     await fila.getByRole("button", { name: "Historial" }).click();
     await expect(page.getByRole("region", { name: "Historial de Leer" })).toHaveCount(0);
+    // Cerrar la tarjeta con la flecha también esconde el historial.
+    await fila.getByRole("button", { name: "Historial" }).click();
+    await expect(page.getByRole("region", { name: "Historial de Leer" })).toBeVisible();
+    await fila.getByRole("button", { name: "Cerrar Leer" }).click();
+    await expect(page.getByRole("region", { name: "Historial de Leer" })).toHaveCount(0);
 
     // Persiste.
     await page.reload();
