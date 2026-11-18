@@ -133,8 +133,8 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                     f.hecha = marcas.optBoolean(f.id + "|" + fechaDia, h.optBoolean("hecho"));
                     lista.add(f);
                 }
-                // Con "Todos", dos o más eventos y más de dos filas de hábitos, van en un desplegable.
-                boolean desplegable = semana && "todos".equals(filtro) && filas.size() >= 2 && lista.size() > 4;
+                // En la Semana, con al menos un hábito, los hábitos van en un desplegable (como en la app).
+                boolean desplegable = semana && !lista.isEmpty();
                 boolean abierto = !desplegable || DatosWidget.habitosAbiertos(contexto, idWidget);
                 if (desplegable) {
                     Fila cab = new Fila();
@@ -142,12 +142,14 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                     cab.titulo = "Hábitos";
                     cab.detalle = String.valueOf(lista.size());
                     cab.hecha = abierto;
+                    cab.grupo = 3;
                     filas.add(cab);
                 }
                 if (abierto) {
                     // De a dos por fila, como en la Semana de la app.
                     Fila izquierda = null;
                     for (Fila f : lista) {
+                        f.grupo = 3;
                         if (izquierda == null) {
                             filas.add(f);
                             izquierda = f;
@@ -327,6 +329,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             // Un hábito solo en la fila ocupa todo el ancho.
             fila.setViewVisibility(R.id.b_fila, View.GONE);
         }
+        enTarjeta(fila, R.id.par_fila, f);
         return fila;
     }
 
@@ -475,9 +478,11 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                 cab.setTextViewText(R.id.cab_titulo, f.titulo);
                 cab.setInt(R.id.cab_icono, "setColorFilter", color(contexto, R.color.widget_texto));
                 cab.setTextColor(R.id.cab_titulo, color(contexto, R.color.widget_texto));
-                cab.setTextViewText(R.id.cab_flecha, f.hecha ? "▾" : "▴");
-                cab.setTextColor(R.id.cab_flecha, color(contexto, R.color.widget_texto));
-                TemaWidget.tenirFondo(cab, R.id.cab_fila, color(contexto, R.color.widget_evento_suave));
+                // Flecha como en la app: abierto ⌄, cerrado ⌃, dentro de un círculo suave.
+                cab.setImageViewResource(R.id.cab_flecha, f.hecha ? R.drawable.ic_chevron_abajo : R.drawable.ic_chevron_arriba);
+                cab.setInt(R.id.cab_flecha, "setColorFilter", color(contexto, R.color.widget_texto));
+                TemaWidget.tenirFondo(cab, R.id.cab_flecha, mezcla(color(contexto, R.color.widget_texto), 12, color(contexto, R.color.widget_evento_suave)));
+                enTarjeta(cab, R.id.cab_fila, f);
                 Intent alternar = new Intent();
                 alternar.setData(Uri.parse("andamia://desplegar/habitos/" + idWidget));
                 cab.setOnClickFillInIntent(R.id.cab_fila, alternar);

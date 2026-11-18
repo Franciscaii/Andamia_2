@@ -283,11 +283,11 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     <div className="flex min-h-0 flex-1 flex-col">
       {modo === "mes" ? (
         <header className={`flex items-center gap-2 px-4 sm:px-5 ${EN_WIDGET ? "pt-1 pb-1.5 pr-12 sm:pr-12" : "pt-4 pb-2"}`}>
-          <div className="flex shrink-0 items-center lg:-my-1 lg:rounded-lg lg:border lg:border-borde lg:bg-panel lg:p-0.5">
+          <div className={`flex shrink-0 items-center ${EN_WIDGET ? "-my-1 rounded-lg border border-borde bg-panel p-0.5" : "lg:-my-1 lg:rounded-lg lg:border lg:border-borde lg:bg-panel lg:p-0.5"}`}>
             <button type="button" aria-label="Periodo anterior" className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
-            <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className="px-0.5 text-sm font-semibold min-[450px]:text-lg sm:px-1.5 lg:px-5">
+            <h1 data-testid="titulo-calendario" title={format(fecha, "MMMM yyyy", { locale: es })} className={`text-sm font-semibold min-[450px]:text-lg ${EN_WIDGET ? "px-3" : "px-0.5 sm:px-1.5 lg:px-5"}`}>
               {tituloMes} {anioMes}
             </h1>
             <button type="button" aria-label="Periodo siguiente" className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(1)}>

@@ -29,6 +29,16 @@ final class DatosWidget {
         return prefs(c).getString("tema", null);
     }
 
+    /** Si el confeti al completar un hábito está activado en la app (por defecto sí). */
+    static boolean confetiActivo(Context c) {
+        try {
+            String json = leerTareas(c);
+            return json == null || new org.json.JSONObject(json).optBoolean("confeti", true);
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     static String leerTareas(Context c) {
         return prefs(c).getString(CLAVE_TAREAS, null);
     }

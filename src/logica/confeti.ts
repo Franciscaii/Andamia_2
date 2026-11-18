@@ -1,6 +1,28 @@
+const CLAVE_CONFETI = "andamia-confeti";
+
+/** Si el confeti al completar un hábito está activado (por defecto sí). Se guarda en este dispositivo. */
+export function confetiActivo(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_CONFETI) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+export function guardarConfetiActivo(activo: boolean): void {
+  try {
+    localStorage.setItem(CLAVE_CONFETI, activo ? "1" : "0");
+  } catch {
+    // Sin almacenamiento: queda como estaba.
+  }
+  // El widget de Android también tiene que enterarse.
+  window.dispatchEvent(new Event("andamia-confeti"));
+}
+
 /** Estallido de confeti pastel (estrellas, puntos, trocitos y cintas) que sale de un punto, por ejemplo del círculo de un hábito recién marcado. Dura menos de dos segundos y deja pasar los toques. */
 export function lanzarConfeti(origen?: { x: number; y: number }) {
   if (typeof document === "undefined" || typeof requestAnimationFrame === "undefined") return;
+  if (!confetiActivo()) return;
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
   const lienzo = document.createElement("canvas");
   lienzo.setAttribute("aria-hidden", "true");
