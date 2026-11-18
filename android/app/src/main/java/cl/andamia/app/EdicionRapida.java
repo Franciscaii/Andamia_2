@@ -110,6 +110,7 @@ final class EdicionRapida {
                     info.put("fecha", h.optString("inicio"));
                     info.put("fin", h.optString("fin"));
                     info.put("meta", h.optInt("meta", 1));
+                    info.put("confeti", h.optBoolean("confeti", true));
                     return info;
                 }
                 return null;
@@ -291,6 +292,7 @@ final class EdicionRapida {
             if (!e.optString("fecha").isEmpty()) h.put("inicio", e.optString("fecha"));
             h.put("fin", e.optString("fin"));
             if (e.has("meta")) h.put("meta", e.optInt("meta", 1));
+            if (e.has("confeti")) h.put("confeti", e.optBoolean("confeti", true));
             nuevas.put(h);
         }
         if (defs != null) datos.put("habitosDef", nuevas);

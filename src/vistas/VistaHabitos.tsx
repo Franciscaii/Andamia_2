@@ -83,8 +83,8 @@ function useBorradorHabito(habito: Habito | null, inicioSugerido: string | undef
   const enTarjeta = !conNombre;
   // El interruptor de confeti: en la tarjeta del celular queda junto a Objetivo y en la del PC junto a Color.
   const interruptorConfeti = (clase: string) => (
-    <div className={`flex items-center justify-between gap-3 text-sm ${enTarjeta ? "self-end pb-1.5" : ""} ${clase}`}>
-      <span id="etiqueta-confeti" className="text-tenue">Confeti al completarlo</span>
+    <div className={enTarjeta ? `text-sm ${clase}` : `flex items-center justify-between gap-3 text-sm ${clase}`}>
+      <span id="etiqueta-confeti" className={enTarjeta ? "mb-1 block text-tenue" : "text-tenue"}>Confeti al completarlo</span>
       <button type="button" role="switch" aria-checked={confeti} aria-labelledby="etiqueta-confeti" onClick={() => setConfeti(!confeti)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${confeti ? "bg-acento" : "bg-gray-300"}`}>
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${confeti ? "left-[22px]" : "left-0.5"}`} />
       </button>
@@ -417,7 +417,7 @@ function TarjetaHabito({ h, abierto, alternar, rachas, unidad, indice, semana, h
   }, [abierto]);
   return (
     <li data-testid="habito" className={`rounded-xl border bg-panel ${abierto ? "border-acento" : "border-borde"}`}>
-      <div className="flex items-center gap-2 p-3">
+      <div className="flex items-center gap-2 p-2 lg:p-3">
         <IconoHabito nombre={h.icono} color={h.color} />
         {abierto ? (
           <span className="min-w-0 flex-1">
@@ -698,7 +698,7 @@ export function VistaHabitos() {
               </div>
             )}
             {/* Una tarjeta por fila. */}
-            <ul className="grid items-start gap-2">
+            <ul className="grid items-start gap-1.5 lg:gap-2">
               {visibles.map((h) => {
                 const indice = indexarRegistros(registros, h.id);
                 const rachas = calcularRachas(h, indice, hoy);
