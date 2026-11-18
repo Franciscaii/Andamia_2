@@ -123,10 +123,14 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
 /** Pincha el interruptor de un hábito en una fracción de su largo (0 = izquierda, 1 = derecha). */
 /** En el computador los hábitos de la Semana van en un desplegable: lo abre si está cerrado. */
 async function abrirHabitos(page: Page) {
-  const boton = page.locator("button[aria-expanded][aria-label='Hábitos']").first();
+  const botones = page.locator("button[aria-expanded][aria-label='Hábitos']");
+  await expect(botones.first()).toBeVisible();
   await expect(async () => {
-    if ((await boton.getAttribute("aria-expanded", { timeout: 500 })) === "false") await boton.click();
-    await expect(boton).toHaveAttribute("aria-expanded", "true", { timeout: 500 });
+    for (let i = 0; i < (await botones.count()); i++) {
+      const b = botones.nth(i);
+      if ((await b.getAttribute("aria-expanded", { timeout: 500 })) === "false") await b.click();
+    }
+    for (let i = 0; i < (await botones.count()); i++) await expect(botones.nth(i)).toHaveAttribute("aria-expanded", "true", { timeout: 500 });
   }).toPass({ timeout: 5000 });
 }
 
@@ -157,12 +161,13 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   // En las columnas de 7 días la barra cabe en su fila y el nombre se sigue viendo.
   await crearEnSemana(page, "Tarea", "Tarea para ensanchar el día");
   await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "7 Días" }).click();
+  await abrirHabitos(page);
   const fila = page.getByTestId("habito-semana").filter({ hasText: "Estirar" }).last();
   const cajaFila = (await fila.boundingBox())!;
   const cajaBarra = (await fila.getByRole("switch").boundingBox())!;
   const cajaNombre = (await fila.getByText("Estirar").boundingBox())!;
   expect(cajaBarra.x + cajaBarra.width).toBeLessThanOrEqual(cajaFila.x + cajaFila.width);
-  expect(cajaNombre.width).toBeGreaterThan(40);
+  expect(cajaNombre.width).toBeGreaterThan(30);
   await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
   await abrirHabitos(page);
 

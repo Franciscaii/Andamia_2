@@ -462,7 +462,7 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
   const fecha = claveDia(dia);
   // Con muchos hábitos (más de dos filas) junto a varios eventos, van en un desplegable.
   // En el computador, con al menos un hábito, siempre van en el desplegable (salvo en las columnas angostas de los otros días).
-  const conDesplegable = !estrecha && (esEscritorio || (Boolean(desplegable) && delDia.length > 4));
+  const conDesplegable = esEscritorio || (!estrecha && Boolean(desplegable) && delDia.length > 4);
   const lista = (
     // En la vista de un día van de a dos por fila, para aprovechar el ancho.
     <ul aria-label="Hábitos" className={estrecha ? "space-y-1" : conDesplegable ? "mt-1 grid grid-cols-2 gap-1" : "mb-3 grid grid-cols-2 gap-1"}>
@@ -485,8 +485,8 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
               marcable={marcable}
               pequeno={estrecha}
               clase={estrecha ? "w-full shrink-0" : celular ? "min-w-0 flex-1" : "max-w-64 min-w-0 flex-1"}
-              alCambiar={(v) => {
-                if (v) lanzarConfeti();
+              alCambiar={(v, origen) => {
+                if (v) lanzarConfeti(origen);
                 void registrarHabito(h.id, fecha, v ? { estado: "hecho", valor: h.metaDiaria } : null);
               }}
             />
@@ -504,13 +504,13 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
         aria-expanded={abierto}
         aria-label="Hábitos"
         onClick={() => setAbierto(!abierto)}
-        className={`flex w-full items-center gap-2 text-sm font-semibold ${EN_WIDGET ? "px-4 py-1" : "px-3 py-2 lg:px-4 lg:py-1"}`}
+        className={`flex w-full items-center ${estrecha ? "gap-1 px-1.5 py-1 text-[11px]" : `gap-2 text-sm ${EN_WIDGET ? "px-4 py-1" : "px-3 py-2 lg:px-4 lg:py-1"}`} font-semibold`}
       >
-        <Flame size={16} className={EN_WIDGET ? "text-texto" : "text-acento lg:text-texto"} />
+        <Flame size={estrecha ? 12 : 16} className={EN_WIDGET ? "text-texto" : "text-acento lg:text-texto"} />
         <span className="flex-1 text-left">Hábitos</span>
-        <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-suave">{abierto ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</span>
+        <span className={`ml-auto flex items-center justify-center rounded-full bg-suave ${estrecha ? "h-4 w-4" : "h-6 w-6"}`}>{abierto ? <ChevronDown size={estrecha ? 11 : 16} /> : <ChevronUp size={estrecha ? 11 : 16} />}</span>
       </button>
-      {abierto && <div className="px-2 pb-2">{lista}</div>}
+      {abierto && <div className={estrecha ? "px-0 pb-1" : "px-2 pb-2"}>{lista}</div>}
     </div>
   );
 }
