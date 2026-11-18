@@ -80,6 +80,16 @@ function useBorradorHabito(habito: Habito | null, inicioSugerido: string | undef
     alCerrar();
   };
 
+  const enTarjeta = !conNombre;
+  // El interruptor de confeti: en la tarjeta del celular queda junto a Objetivo y en la del PC junto a Color.
+  const interruptorConfeti = (clase: string) => (
+    <div className={`flex items-center justify-between gap-3 text-sm ${enTarjeta ? "self-end pb-1.5" : ""} ${clase}`}>
+      <span id="etiqueta-confeti" className="text-tenue">Confeti al completarlo</span>
+      <button type="button" role="switch" aria-checked={confeti} aria-labelledby="etiqueta-confeti" onClick={() => setConfeti(!confeti)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${confeti ? "bg-acento" : "bg-gray-300"}`}>
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${confeti ? "left-[22px]" : "left-0.5"}`} />
+      </button>
+    </div>
+  );
   const campos = (
     <>
         {conNombre && (
@@ -109,11 +119,12 @@ function useBorradorHabito(habito: Habito | null, inicioSugerido: string | undef
             ))}
           </div>
         </div>
-        <div className="text-sm">
+        <div className={enTarjeta ? "grid grid-cols-2 gap-x-4 gap-y-4" : "contents"}>
+        <div className={`text-sm ${enTarjeta ? "col-span-2 lg:col-span-1 lg:col-start-1 lg:row-start-1" : ""}`}>
           <span className="mb-1 block text-tenue">Color</span>
           <SelectorColor color={color} alElegir={setColor} />
         </div>
-        <div className="text-sm">
+        <div className={`text-sm ${enTarjeta ? "col-span-2 lg:col-span-1 lg:col-start-1 lg:row-start-2" : ""}`}>
           <span className="mb-1 block text-tenue">Frecuencia</span>
           <div role="group" aria-label="Frecuencia" className="flex flex-wrap gap-1.5">
             {TIPOS_FRECUENCIA.map((t) => (
@@ -151,7 +162,23 @@ function useBorradorHabito(habito: Habito | null, inicioSugerido: string | undef
             </label>
           )}
         </div>
-        {entreFrecuenciaYObjetivo}
+        <div className={enTarjeta ? "col-span-2 lg:row-start-3" : "contents"}>{entreFrecuenciaYObjetivo}</div>
+        {enTarjeta ? (
+          <>
+            <label className="text-sm lg:col-start-2 lg:row-start-2">
+              <span className="mb-1 block text-tenue">Objetivo por día</span>
+              <input type="number" min={1} aria-label="Objetivo por día" className={claseCampo} value={meta} onChange={(e) => setMeta(Math.max(1, Number(e.target.value) || 1))} />
+            </label>
+            {interruptorConfeti("lg:col-start-2 lg:row-start-1 lg:self-start")}
+            {recordatoriosActivos && (
+              <label className="col-span-2 text-sm lg:row-start-4">
+                <span className="mb-1 block text-tenue">Recordatorio (opcional)</span>
+                <input type="time" aria-label="Hora del recordatorio" className={claseCampo} value={hora} onChange={(e) => setHora(e.target.value)} />
+              </label>
+            )}
+          </>
+        ) : (
+          <>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <label>
             <span className="mb-1 block text-tenue">Objetivo por día</span>
@@ -164,11 +191,9 @@ function useBorradorHabito(habito: Habito | null, inicioSugerido: string | undef
             </label>
           )}
         </div>
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span id="etiqueta-confeti" className="text-tenue">Confeti al completarlo</span>
-          <button type="button" role="switch" aria-checked={confeti} aria-labelledby="etiqueta-confeti" onClick={() => setConfeti(!confeti)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${confeti ? "bg-acento" : "bg-gray-300"}`}>
-            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${confeti ? "left-[22px]" : "left-0.5"}`} />
-          </button>
+        {interruptorConfeti("")}
+          </>
+        )}
         </div>
     </>
   );
@@ -380,6 +405,8 @@ function TarjetaHabito({ h, abierto, alternar, rachas, unidad, indice, semana, h
   );
   const cerrar = () => {
     b.reiniciar();
+    // Al cerrar la tarjeta también se esconde su historial.
+    if (historialAbierto) alternarHistorial();
     alternar();
   };
   const b = useBorradorHabito(h, undefined, alternar, false, false, ultimosDias);
@@ -395,7 +422,6 @@ function TarjetaHabito({ h, abierto, alternar, rachas, unidad, indice, semana, h
         {abierto ? (
           <span className="min-w-0 flex-1">
             <input maxLength={64} aria-label={`Nombre de ${h.nombre}`} className={`${claseCampo} !py-1 text-sm font-medium`} placeholder="Nombre del hábito" value={b.nombre} onChange={(e) => b.setNombre(e.target.value)} />
-            <span className="block truncate text-xs text-tenue">{describirFrecuencia(h.frecuencia)}</span>
             <span aria-hidden="true" className="sr-only">{h.nombre}</span>
           </span>
         ) : (
@@ -433,17 +459,17 @@ function TarjetaHabito({ h, abierto, alternar, rachas, unidad, indice, semana, h
       {abierto && (
         <form onSubmit={b.enviar} className="space-y-3 border-t border-borde p-3">
           {b.campos}
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className={claseBotonEliminar} onClick={alEliminar}>
-              <Trash2 size={14} /> Eliminar
+          <div className="grid grid-cols-4 gap-2">
+            <button type="button" className={`${claseBotonEliminar} w-full justify-center !px-2`} onClick={alEliminar}>
+              <Trash2 size={14} className="hidden sm:block" /> Eliminar
             </button>
-            <button type="button" aria-pressed={historialAbierto} className={`${claseBoton} flex items-center gap-1.5`} onClick={alternarHistorial}>
-              <CalendarDays size={14} /> Historial
+            <button type="button" aria-pressed={historialAbierto} className={`${claseBoton} flex w-full items-center justify-center gap-1.5 !px-2`} onClick={alternarHistorial}>
+              <CalendarDays size={14} className="hidden sm:block" /> Historial
             </button>
-            <button type="button" className={`${claseBoton} ml-auto`} onClick={cerrar}>
+            <button type="button" className={`${claseBoton} w-full !px-2`} onClick={cerrar}>
               Cancelar
             </button>
-            <button type="submit" className={claseBotonPrincipal} disabled={!b.valido}>
+            <button type="submit" className={`${claseBotonPrincipal} w-full !px-2`} disabled={!b.valido}>
               Guardar
             </button>
           </div>
