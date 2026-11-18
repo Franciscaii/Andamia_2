@@ -281,17 +281,17 @@ function AjustesWidgetEscritorio({ id, nombre }: { id: string; nombre: string })
 /** El widget en chiquito, dentro de su tarjeta: se actualiza solo con cada cambio de tema, transparencia, esquinas o letra. */
 /** Tamaño (en píxeles de pantalla) con que se dibuja cada widget del celular: angosto y alto, como en la pantalla de inicio. */
 const TAMANO_CELULAR: Record<string, { ancho: number; alto: number }> = {
-  semana: { ancho: 340, alto: 400 },
-  calendario: { ancho: 340, alto: 380 },
-  matriz: { ancho: 340, alto: 400 },
-  "estadistica-tareas": { ancho: 340, alto: 440 },
-  "estadistica-habitos": { ancho: 340, alto: 440 },
+  semana: { ancho: 360, alto: 620 },
+  calendario: { ancho: 360, alto: 620 },
+  matriz: { ancho: 360, alto: 620 },
+  "estadistica-tareas": { ancho: 360, alto: 700 },
+  "estadistica-habitos": { ancho: 360, alto: 700 },
 };
 
 function MiniaturaWidget({ id, nombre, maxAncho = 560, celular = false }: { id: string; nombre: string; maxAncho?: number; celular?: boolean }) {
   const base = celular ? { ...WIDGETS.find((x) => x.id === id)!, ...TAMANO_CELULAR[id] } : WIDGETS.find((x) => x.id === id)!;
   // Se achica para que el widget entre COMPLETO en la caja (a lo ancho y a lo alto).
-  const escala = Math.min(maxAncho / base.ancho, 440 / base.alto);
+  const escala = Math.min(maxAncho / base.ancho, (celular ? 580 : 440) / base.alto);
   const ancho = Math.round(base.ancho * escala);
   const alto = Math.round(base.alto * escala);
   return (
@@ -300,7 +300,7 @@ function MiniaturaWidget({ id, nombre, maxAncho = 560, celular = false }: { id: 
       <div className="relative" style={{ width: ancho, height: alto }}>
         <iframe
           title={`Vista previa de ${nombre}`}
-          src={`${window.location.pathname}?widget=${id}`}
+          src={`${window.location.pathname}?${celular ? "previa" : "widget"}=${id}`}
           tabIndex={-1}
           className="pointer-events-none absolute top-0 left-0 border-0"
           style={{ width: base.ancho, height: base.alto, transform: `scale(${escala})`, transformOrigin: "top left" }}

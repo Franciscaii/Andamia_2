@@ -39,3 +39,9 @@ export function widgetDeDireccion(busqueda: string): (typeof WIDGETS)[number] | 
 
 /** El widget de esta ventana, si es una. */
 export const WIDGET_ACTUAL = typeof window === "undefined" ? null : widgetDeDireccion(window.location.search);
+
+/** Vista previa del widget en el celular (?previa=<id>): la misma vista de la app, sin marco, con el aspecto elegido para ese widget. */
+export const PREVIA_CELULAR = typeof window === "undefined" ? null : (() => {
+  const id = new URLSearchParams(window.location.search).get("previa");
+  return WIDGETS.find((w) => w.id === id) ?? null;
+})();
