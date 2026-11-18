@@ -143,22 +143,19 @@ final class EstadisticaWidget {
         return c.get(Calendar.YEAR) * 10000 + (c.get(Calendar.MONTH) + 1) * 100 + c.get(Calendar.DAY_OF_MONTH);
     }
 
+    /** Lo que se lee bajo los filtros, igual que en la app: 17/11/2026, 16/11 - 22/11, Nov 2026 o 2026. */
     static String titulo(String periodo, Calendar inicio, Calendar fin) {
         switch (periodo) {
             case "dia":
-                return DIAS[(inicio.get(Calendar.DAY_OF_WEEK) + 5) % 7] + " " + inicio.get(Calendar.DAY_OF_MONTH) + " " + MESES[inicio.get(Calendar.MONTH)].toLowerCase(Locale.ROOT);
+                return String.format(Locale.ROOT, "%02d/%02d/%d", inicio.get(Calendar.DAY_OF_MONTH), inicio.get(Calendar.MONTH) + 1, inicio.get(Calendar.YEAR));
             case "mes":
-                return MESES_LARGOS[inicio.get(Calendar.MONTH)] + " " + inicio.get(Calendar.YEAR);
+                return MESES[inicio.get(Calendar.MONTH)] + " " + inicio.get(Calendar.YEAR);
             case "anio":
                 return String.valueOf(inicio.get(Calendar.YEAR));
             default: {
                 Calendar ultimo = (Calendar) fin.clone();
                 ultimo.add(Calendar.DAY_OF_MONTH, -1);
-                String mesFin = MESES[ultimo.get(Calendar.MONTH)].toLowerCase(Locale.ROOT);
-                String desde = inicio.get(Calendar.MONTH) == ultimo.get(Calendar.MONTH)
-                        ? String.valueOf(inicio.get(Calendar.DAY_OF_MONTH))
-                        : inicio.get(Calendar.DAY_OF_MONTH) + " " + MESES[inicio.get(Calendar.MONTH)].toLowerCase(Locale.ROOT);
-                return desde + " – " + ultimo.get(Calendar.DAY_OF_MONTH) + " " + mesFin;
+                return String.format(Locale.ROOT, "%02d/%02d - %02d/%02d", inicio.get(Calendar.DAY_OF_MONTH), inicio.get(Calendar.MONTH) + 1, ultimo.get(Calendar.DAY_OF_MONTH), ultimo.get(Calendar.MONTH) + 1);
             }
         }
     }

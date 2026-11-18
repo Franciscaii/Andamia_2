@@ -65,6 +65,8 @@ function TarjetaWidget({
   puestos,
   configInicial,
   puede,
+  abierta,
+  setAbierta,
   alAnclar,
   alQuitar,
 }: {
@@ -72,10 +74,16 @@ function TarjetaWidget({
   puestos: number;
   configInicial: ConfigWidget;
   puede: boolean;
+  abierta: boolean;
+  setAbierta: (abierta: boolean) => void;
   alAnclar: () => void;
   alQuitar: () => void;
 }) {
-  const { abierta, setAbierta, tarjeta } = useTarjetaPedida(w.tipo);
+  const tarjeta = useRef<HTMLLIElement>(null);
+  // Al desplegarse, la tarjeta queda a la vista (las demás se retraen y todo sube).
+  useEffect(() => {
+    if (abierta) tarjeta.current?.scrollIntoView({ block: "nearest" });
+  }, [abierta]);
   const [config, setConfig] = useState<ConfigWidget>(configInicial);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Si los ajustes llegan del celular después de abrir el apartado, se muestran.
@@ -148,7 +156,7 @@ function TarjetaWidget({
             alCambiar={(v) => cambiar({ ...config, esquinas: v })}
           />
           <Deslizador etiqueta="Tamaño de letra" valor={config.letra} min={LETRA_MIN} max={LETRA_MAX} porcentaje={config.letra} alCambiar={(v) => cambiar({ ...config, letra: v })} />
-          <MiniaturaWidget celular id={w.tipo} nombre={w.nombre} maxAncho={Math.min(320, window.innerWidth - 72)} />
+          <MiniaturaWidget celular id={w.tipo} nombre={w.nombre} maxAncho={Math.min(300, window.innerWidth - 104)} />
         </div>
       )}
     </li>
@@ -161,6 +169,16 @@ function WidgetsCelular() {
   const [aviso, setAviso] = useState("");
   const [porTipo, setPorTipo] = useState<Record<string, { puestos: number; config: ConfigWidget }>>({});
   const recargar = useCallback(() => void widgetsPorTipo().then(setPorTipo), []);
+  // Solo un widget desplegado a la vez: al abrir el detalle de uno, el resto se retrae.
+  const [abierto, setAbierto] = useState<string | null>(() => widgetPedido());
+  useEffect(() => {
+    const alPedir = () => {
+      const pedido = widgetPedido();
+      if (pedido) setAbierto(pedido);
+    };
+    window.addEventListener("hashchange", alPedir);
+    return () => window.removeEventListener("hashchange", alPedir);
+  }, []);
   useEffect(() => {
     void puedeAnclarWidget().then(setPuede);
     recargar();
@@ -196,6 +214,8 @@ function WidgetsCelular() {
             puestos={porTipo[w.tipo]?.puestos ?? 0}
             configInicial={porTipo[w.tipo]?.config ?? CONFIG_INICIAL}
             puede={puede}
+            abierta={abierto === w.tipo}
+            setAbierta={(a) => setAbierto(a ? w.tipo : null)}
             alAnclar={() => void anclar(w.tipo, w.nombre)}
             alQuitar={() => quitar(w.nombre)}
           />
@@ -297,7 +317,7 @@ function MiniaturaWidget({ id, nombre, maxAncho = 560, celular = false }: { id: 
   return (
     <div data-testid="miniatura-widget" className="shrink-0 self-start">
       <p className="mb-2 text-sm">Vista previa</p>
-      <div className="relative" style={{ width: ancho, height: alto }}>
+      <div className="relative overflow-hidden rounded-lg" style={{ width: ancho, height: alto }}>
         <iframe
           title={`Vista previa de ${nombre}`}
           src={`${window.location.pathname}?${celular ? "previa" : "widget"}=${id}`}
