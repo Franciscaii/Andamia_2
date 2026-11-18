@@ -58,6 +58,9 @@
         <!-- Eventos, luego la barra de progreso del día y después las tareas. -->
         <ListView
             android:id="@+id/widget_lista"
+            android:cacheColorHint="@android:color/transparent"
+            android:listSelector="@android:color/transparent"
+            android:drawSelectorOnTop="false"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:divider="@null"

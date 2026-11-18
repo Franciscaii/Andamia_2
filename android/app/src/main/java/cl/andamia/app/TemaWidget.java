@@ -130,6 +130,11 @@ final class TemaWidget {
         vista.setTextViewTextSize(id, android.util.TypedValue.COMPLEX_UNIT_SP, sp * letra());
     }
 
+    /** Como letra(), pero sin agrandarse más de un poco: la fila de arriba (mes, filtros y "+") tiene que caber entera. */
+    static void letraEncabezado(RemoteViews vista, int id, float sp) {
+        vista.setTextViewTextSize(id, android.util.TypedValue.COMPLEX_UNIT_SP, sp * Math.min(letra(), 1.05f));
+    }
+
     /** El color del tema que reemplaza a ese recurso, o null si se usa el del recurso. */
     static Integer color(Context c, int recurso) {
         Paleta p = actual.get();
