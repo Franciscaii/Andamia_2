@@ -120,10 +120,13 @@ function Deslizador({
 export function MarcoWidget({
   id,
   nombre,
+  previa = false,
   children,
 }: {
   id: string;
   nombre: string;
+  /** Vista previa en la app del celular: sin barra, botones ni bordes, y sin achicar el contenido. */
+  previa?: boolean;
   children: ReactNode;
 }) {
   const ruta = useRuta();
@@ -177,6 +180,7 @@ export function MarcoWidget({
   const contenido = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const base = WIDGETS.find((w) => w.id === id);
+    if (previa) return;
     const el = marco.current;
     const caja = contenido.current;
     if (!base || !el || !caja) return;
@@ -231,7 +235,7 @@ export function MarcoWidget({
       mut.disconnect();
       cancelAnimationFrame(cuadro);
     };
-  }, [id]);
+  }, [id, previa]);
   const o = opacidades(aspecto);
   const estilo = {
     borderRadius: aspecto.esquinas,
@@ -260,6 +264,7 @@ export function MarcoWidget({
         />
         {/* Franja fina arriba para mover el widget, con una agarradera al centro. Va antes del contenido,
             así no tapa los filtros ni los botones. */}
+        {!previa && (<>
         <div
           data-testid="barra-widget"
           title={`Arrastra aquí para mover el widget ${nombre}`}
@@ -291,7 +296,8 @@ export function MarcoWidget({
             <SlidersHorizontal size={12} />
           </button>
         </div>
-        {ajustes && (
+        </>)}
+        {!previa && ajustes && (
           <div
             role="group"
             aria-label="Aspecto del widget"
@@ -332,7 +338,7 @@ export function MarcoWidget({
           {children}
         </div>
       </div>
-      <BordesAjustables />
+      {!previa && <BordesAjustables />}
     </div>
   );
 }

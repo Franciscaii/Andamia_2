@@ -5,7 +5,7 @@ import { BarraLateral, Marca } from "./componentes/BarraLateral";
 import { DetalleTarea } from "./componentes/DetalleTarea";
 import { useTienda } from "./datos/tienda";
 import { irA, useRuta, type Seccion } from "./logica/ruta";
-import { WIDGET_ACTUAL, WIDGETS } from "./logica/widgetEscritorio";
+import { PREVIA_CELULAR, WIDGET_ACTUAL, WIDGETS } from "./logica/widgetEscritorio";
 import { MarcoWidget } from "./componentes/MarcoWidget";
 import { PanelAvisos } from "./componentes/Avisos";
 import { DialogoMigracion } from "./componentes/DialogoMigracion";
@@ -190,6 +190,16 @@ export default function App() {
 
   if (cargando) {
     return <div className="flex h-full items-center justify-center text-tenue">Cargando…</div>;
+  }
+
+  if (PREVIA_CELULAR) {
+    return (
+      <MarcoWidget id={PREVIA_CELULAR.id} nombre={PREVIA_CELULAR.nombre} previa>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <Vista ruta={ruta} />
+        </main>
+      </MarcoWidget>
+    );
   }
 
   if (WIDGET_ACTUAL) {

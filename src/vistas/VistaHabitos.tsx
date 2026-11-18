@@ -173,9 +173,14 @@ export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: 
               <button type="button" className={claseBotonEliminar} onClick={alEliminar}>
                 <Trash2 size={14} /> Eliminar
               </button>
-              <button type="submit" className={claseBotonPrincipal} disabled={!valido}>
-                Guardar
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" className={claseBoton} onClick={alCerrar}>
+                  Cancelar
+                </button>
+                <button type="submit" className={claseBotonPrincipal} disabled={!valido}>
+                  Guardar
+                </button>
+              </div>
             </footer>
           </form>
         </aside>
