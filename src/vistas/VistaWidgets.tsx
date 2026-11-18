@@ -54,7 +54,7 @@ function Deslizador({ etiqueta, valor, min = 0, max, porcentaje, alCambiar }: { 
         <span>{etiqueta}</span>
         <span className="text-tenue tabular-nums">{porcentaje}%</span>
       </span>
-      <input type="range" min={min} max={max} step={min ? 5 : 1} value={valor} aria-label={etiqueta} onChange={(e) => alCambiar(Number(e.target.value))} className="mt-2 w-full accent-[var(--acento)]" />
+      <input type="range" min={min} max={max} step={min ? 5 : 1} value={valor} aria-label={etiqueta} onChange={(e) => alCambiar(Number(e.target.value))} className="mt-0 w-full accent-[var(--acento)] lg:mt-2" />
     </label>
   );
 }
@@ -123,7 +123,8 @@ function TarjetaWidget({
         </button>
       </div>
       {abierta && (
-        <div className="mx-3 mb-3 space-y-4 rounded-xl border border-borde p-3">
+        <div className="mx-3 mb-3 space-y-2 rounded-xl border border-borde p-3">
+          <MiniaturaWidget celular id={w.tipo} nombre={w.nombre} maxAncho={Math.min(300, window.innerWidth - 104)} />
           <div>
             <p className="text-sm">Tema</p>
             <div role="radiogroup" aria-label={`Tema de ${w.nombre}`} className="mt-2 flex flex-wrap gap-2.5">
@@ -156,7 +157,6 @@ function TarjetaWidget({
             alCambiar={(v) => cambiar({ ...config, esquinas: v })}
           />
           <Deslizador etiqueta="Tamaño de letra" valor={config.letra} min={LETRA_MIN} max={LETRA_MAX} porcentaje={config.letra} alCambiar={(v) => cambiar({ ...config, letra: v })} />
-          <MiniaturaWidget celular id={w.tipo} nombre={w.nombre} maxAncho={Math.min(300, window.innerWidth - 104)} />
         </div>
       )}
     </li>
