@@ -444,6 +444,8 @@ export interface NuevaDesdeWidget {
   /** Hábito: último día ("AAAA-MM-DD") y objetivo por día (desde la 1.26). */
   fin?: string;
   meta?: number;
+  /** Hábito: confeti al completarlo (sin valor = sí). */
+  confeti?: boolean;
 }
 
 const NIVELES_VALIDOS: Prioridad[] = ["alta", "media", "baja", "ninguna"];
@@ -475,6 +477,7 @@ async function crearDesdeWidget(n: NuevaDesdeWidget): Promise<string | null> {
       inicio: n.fecha,
       fin: typeof n.fin === "string" && /^\d{4}-\d{2}-\d{2}$/.test(n.fin) && n.fin >= n.fecha ? n.fin : null,
       recordatorioHora: null,
+      ...(n.confeti === false ? { confeti: false } : {}),
     });
   }
   const esEvento = tipo === "evento";
@@ -506,6 +509,8 @@ export interface EdicionDesdeWidget {
   frecuencia?: FrecuenciaHabito;
   fin?: string;
   meta?: number;
+  /** Hábito: confeti al completarlo (sin valor = sí). */
+  confeti?: boolean;
 }
 
 /** Lee las ediciones que manda el widget; descarta las que no tengan forma. */
@@ -541,6 +546,7 @@ async function aplicarEdicionDeWidget(e: EdicionDesdeWidget, real: Map<string, s
       ...(typeof e.color === "string" && /^#[0-9a-f]{6}$/i.test(e.color) ? { color: e.color } : {}),
       ...(e.frecuencia ? { frecuencia: frecuenciaValida(e.frecuencia) } : {}),
       ...(typeof e.meta === "number" && e.meta >= 1 ? { metaDiaria: Math.min(99, Math.round(e.meta)) } : {}),
+      ...(typeof e.confeti === "boolean" ? { confeti: e.confeti } : {}),
       ...(inicio ? { inicio } : {}),
       fin: esFecha(e.fin) && (!inicio || e.fin >= inicio) ? e.fin : null,
     });

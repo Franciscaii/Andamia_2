@@ -85,6 +85,8 @@ public class NuevaRapidaActivity extends Activity {
     /** Último día del hábito; null = no termina. */
     private Calendar finHabito = null;
     private int metaHabito = 1;
+    /** Si el hábito lanza confeti al completarlo (por defecto sí). */
+    private boolean confetiHabito = true;
     /** Si viene, la ventana edita (o borra) esta tarea, evento o hábito en vez de crear uno nuevo. */
     private String editarId;
     private String textoInicial = "";
@@ -170,6 +172,7 @@ public class NuevaRapidaActivity extends Activity {
             if (!info.optString("icono").isEmpty()) icono = info.optString("icono");
             if (!info.optString("color").isEmpty()) colorHabito = info.optString("color");
             metaHabito = Math.max(1, Math.min(99, info.optInt("meta", 1)));
+            confetiHabito = info.optBoolean("confeti", true);
             JSONObject f = info.optJSONObject("frecuencia");
             if (f != null) {
                 frecuencia = f.optString("tipo", "diaria");
@@ -287,6 +290,18 @@ public class NuevaRapidaActivity extends Activity {
             zonaMeta.setGravity(Gravity.CENTER_VERTICAL);
             campos.addView(zonaMeta);
             pintarMeta(zonaMeta);
+            campos.addView(seccion("Confeti al completarlo"));
+            android.widget.Switch interruptor = new android.widget.Switch(this);
+            interruptor.setChecked(confetiHabito);
+            interruptor.setContentDescription("Confeti al completarlo");
+            android.content.res.ColorStateList[] colores = {
+                new android.content.res.ColorStateList(new int[][] { { android.R.attr.state_checked }, {} }, new int[] { acento, Color.WHITE }),
+                new android.content.res.ColorStateList(new int[][] { { android.R.attr.state_checked }, {} }, new int[] { conAlfa(acento, 90), suave })
+            };
+            interruptor.setThumbTintList(colores[0]);
+            interruptor.setTrackTintList(colores[1]);
+            interruptor.setOnCheckedChangeListener((v, marcado) -> confetiHabito = marcado);
+            campos.addView(interruptor);
         }
 
         // Eliminar (solo al editar), Cancelar y Añadir o Guardar.
@@ -944,6 +959,7 @@ public class NuevaRapidaActivity extends Activity {
                 n.put("frecuencia", f);
                 if (finHabito != null) n.put("fin", new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(finHabito.getTime()));
                 n.put("meta", metaHabito);
+                n.put("confeti", confetiHabito);
             }
         } catch (Exception e) {
             return;

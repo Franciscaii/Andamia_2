@@ -118,7 +118,7 @@ final class TareaRapida {
                 }
                 if (eliminar) continue;
                 try {
-                    for (String k : new String[] { "titulo", "fecha", "prioridad", "dificultad", "indole", "color", "icono", "frecuencia", "fin", "meta" }) {
+                    for (String k : new String[] { "titulo", "fecha", "prioridad", "dificultad", "indole", "color", "icono", "frecuencia", "fin", "meta", "confeti" }) {
                         if (e.has(k)) n.put(k, e.get(k));
                         else n.remove(k);
                     }
@@ -235,6 +235,7 @@ final class TareaRapida {
             def.put("inicio", inicio);
             def.put("fin", n.optString("fin"));
             def.put("meta", n.optInt("meta", 1));
+            def.put("confeti", n.optBoolean("confeti", true));
             defs.put(def);
             datos.put("habitosDef", defs);
         }
