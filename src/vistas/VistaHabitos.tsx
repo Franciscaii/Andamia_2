@@ -83,8 +83,8 @@ function useBorradorHabito(habito: Habito | null, inicioSugerido: string | undef
   const enTarjeta = !conNombre;
   // El interruptor de confeti: en la tarjeta del celular queda junto a Objetivo y en la del PC junto a Color.
   const interruptorConfeti = (clase: string) => (
-    <div className={enTarjeta ? `text-sm ${clase}` : `flex items-center justify-between gap-3 text-sm ${clase}`}>
-      <span id="etiqueta-confeti" className={enTarjeta ? "mb-1 block text-tenue" : "text-tenue"}>Confeti al completarlo</span>
+    <div className={`text-sm ${clase}`}>
+      <span id="etiqueta-confeti" className="mb-1 block text-tenue">Confeti al completarlo</span>
       <button type="button" role="switch" aria-checked={confeti} aria-labelledby="etiqueta-confeti" onClick={() => setConfeti(!confeti)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${confeti ? "bg-acento" : "bg-gray-300"}`}>
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${confeti ? "left-[22px]" : "left-0.5"}`} />
       </button>
@@ -184,14 +184,14 @@ function useBorradorHabito(habito: Habito | null, inicioSugerido: string | undef
             <span className="mb-1 block text-tenue">Objetivo por día</span>
             <input type="number" min={1} aria-label="Objetivo por día" className={claseCampo} value={meta} onChange={(e) => setMeta(Math.max(1, Number(e.target.value) || 1))} />
           </label>
+          {interruptorConfeti("")}
           {recordatoriosActivos && (
-            <label>
+            <label className="col-span-2">
               <span className="mb-1 block text-tenue">Recordatorio (opcional)</span>
               <input type="time" aria-label="Hora del recordatorio" className={claseCampo} value={hora} onChange={(e) => setHora(e.target.value)} />
             </label>
           )}
         </div>
-        {interruptorConfeti("")}
           </>
         )}
         </div>

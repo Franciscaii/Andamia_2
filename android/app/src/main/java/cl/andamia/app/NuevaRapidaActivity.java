@@ -93,9 +93,46 @@ public class NuevaRapidaActivity extends Activity {
     private TextView botonEliminar;
     private boolean confirmandoEliminar;
 
+    /** Interruptor dibujado a mano: el Switch del sistema salía casi invisible sobre este fondo. */
+    private View interruptorConfeti() {
+        final FrameLayout pista = new FrameLayout(this);
+        final View bola = new View(this);
+        int ancho = (int) (48 * d), alto = (int) (28 * d), diametro = (int) (22 * d), margen = (int) (3 * d);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ancho, alto);
+        lp.topMargin = (int) (4 * d);
+        pista.setLayoutParams(lp);
+        FrameLayout.LayoutParams lb = new FrameLayout.LayoutParams(diametro, diametro);
+        lb.topMargin = margen;
+        bola.setLayoutParams(lb);
+        android.graphics.drawable.GradientDrawable circulo = new android.graphics.drawable.GradientDrawable();
+        circulo.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        circulo.setColor(Color.WHITE);
+        bola.setBackground(circulo);
+        pista.addView(bola);
+        pista.setContentDescription("Confeti al completarlo");
+        final Runnable pintar = () -> {
+            android.graphics.drawable.GradientDrawable fondo = new android.graphics.drawable.GradientDrawable();
+            fondo.setCornerRadius(alto / 2f);
+            fondo.setColor(confetiHabito ? acento : Color.rgb(190, 194, 200));
+            pista.setBackground(fondo);
+            FrameLayout.LayoutParams p = (FrameLayout.LayoutParams) bola.getLayoutParams();
+            p.leftMargin = confetiHabito ? ancho - diametro - margen : margen;
+            bola.setLayoutParams(p);
+        };
+        pintar.run();
+        pista.setOnClickListener(v -> {
+            confetiHabito = !confetiHabito;
+            pintar.run();
+        });
+        return pista;
+    }
+
     @Override
     protected void onCreate(Bundle estado) {
         super.onCreate(estado);
+        // La barra de navegación se veía blanca bajo la ventana: transparente y sin aviso de contraste.
+        getWindow().setNavigationBarColor(Color.TRANSPARENT);
+        if (android.os.Build.VERSION.SDK_INT >= 29) getWindow().setNavigationBarContrastEnforced(false);
         d = getResources().getDisplayMetrics().density;
         idWidget = getIntent().getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
         tipoWidget = getIntent().getStringExtra(TareaRapida.EXTRA_TIPO);
@@ -291,17 +328,7 @@ public class NuevaRapidaActivity extends Activity {
             campos.addView(zonaMeta);
             pintarMeta(zonaMeta);
             campos.addView(seccion("Confeti al completarlo"));
-            android.widget.Switch interruptor = new android.widget.Switch(this);
-            interruptor.setChecked(confetiHabito);
-            interruptor.setContentDescription("Confeti al completarlo");
-            android.content.res.ColorStateList[] colores = {
-                new android.content.res.ColorStateList(new int[][] { { android.R.attr.state_checked }, {} }, new int[] { acento, Color.WHITE }),
-                new android.content.res.ColorStateList(new int[][] { { android.R.attr.state_checked }, {} }, new int[] { conAlfa(acento, 90), suave })
-            };
-            interruptor.setThumbTintList(colores[0]);
-            interruptor.setTrackTintList(colores[1]);
-            interruptor.setOnCheckedChangeListener((v, marcado) -> confetiHabito = marcado);
-            campos.addView(interruptor);
+            campos.addView(interruptorConfeti());
         }
 
         // Eliminar (solo al editar), Cancelar y Añadir o Guardar.
