@@ -12,7 +12,6 @@ import {
   moverPeriodo,
   PERIODOS,
   resumir,
-  tituloPeriodo,
   type FilaResumen,
   type Periodo,
   type Resumen,
@@ -335,7 +334,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
             <ChevronLeft size={18} />
           </button>
           <span data-testid="titulo-periodo" className="min-w-28 text-center text-sm font-medium">
-            {tituloPeriodo(periodo, referencia)}
+            {valorDePeriodo(periodo, referencia)}
           </span>
           <button type="button" aria-label="Período siguiente" className="rounded-md p-1 border border-borde bg-panel text-texto hover:bg-suave" onClick={() => mover(1)}>
             <ChevronRight size={18} />

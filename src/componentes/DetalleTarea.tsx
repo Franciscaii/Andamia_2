@@ -375,9 +375,16 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
           </button>
         )}
         {/* Los cambios se van guardando al escribir; Guardar los confirma y cierra el panel. */}
-        <button type="button" className={claseBotonPrincipal} onClick={cerrar}>
-          Guardar
-        </button>
+        <div className="flex items-center gap-2">
+          {enPapelera && (
+            <button type="button" className={claseBoton} onClick={cerrar}>
+              Cancelar
+            </button>
+          )}
+          <button type="button" className={claseBotonPrincipal} onClick={cerrar}>
+            Guardar
+          </button>
+        </div>
       </footer>
     </aside>
   );

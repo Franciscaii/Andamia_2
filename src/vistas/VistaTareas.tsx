@@ -104,7 +104,7 @@ export function VistaTareas({ seccion, tareaAbierta }: { seccion: SeccionTareas;
           </div>
         )}
         {esPapelera && pendientes.length > 0 && (
-          <button type="button" className={`${claseBoton} ml-auto flex items-center gap-1.5 text-peligro lg:border-transparent lg:bg-red-600 lg:text-white lg:hover:bg-red-700`} onClick={() => setConfirmarVaciar(true)}>
+          <button type="button" className={`${claseBoton} ml-auto flex items-center gap-1.5 border-transparent bg-red-600 text-white hover:bg-red-700`} onClick={() => setConfirmarVaciar(true)}>
             <Trash2 size={14} /> Vaciar papelera
           </button>
         )}
@@ -117,7 +117,7 @@ export function VistaTareas({ seccion, tareaAbierta }: { seccion: SeccionTareas;
         {conEntrada && <EntradaRapida key={JSON.stringify(seccion)} seccion={seccion} />}
 
         {esPapelera || esCompletadas ? (
-          <ul className={esPapelera ? "lg:space-y-2 lg:[&>li]:rounded-xl lg:[&>li]:border lg:[&>li]:border-borde lg:[&>li]:bg-panel lg:[&>li]:px-3" : undefined}>
+          <ul className={esPapelera ? "space-y-2 [&>li]:rounded-xl [&>li]:border [&>li]:border-borde [&>li]:bg-panel [&>li]:px-3" : undefined}>
             {pendientes.map((t) => (
               <FilaTarea
                 key={t.id}
