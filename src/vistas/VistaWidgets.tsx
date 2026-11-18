@@ -87,6 +87,11 @@ function TarjetaWidget({
     temporizador.current = setTimeout(() => void configurarTipoWidget(w.tipo, c), 250);
   };
   const puesto = puestos > 0;
+  // La vista previa usa el aspecto del widget del PC con los mismos ajustes (las esquinas pasan de la escala del celular a la del PC).
+  useEffect(() => {
+    if (!abierta) return;
+    guardarAspecto(w.tipo, { transparencia: config.transparencia, tarjetas: config.tarjetas, esquinas: Math.round((config.esquinas / MAX_ESQUINAS_ANDROID) * MAX_ESQUINAS), temaId: config.temaId, letra: config.letra });
+  }, [abierta, config, w.tipo]);
   return (
     <li ref={tarjeta} data-testid="widget-celular" className="rounded-2xl border border-borde bg-panel shadow-sm">
       <div className="flex items-center gap-3 p-4">
@@ -143,6 +148,7 @@ function TarjetaWidget({
             alCambiar={(v) => cambiar({ ...config, esquinas: v })}
           />
           <Deslizador etiqueta="Tamaño de letra" valor={config.letra} min={LETRA_MIN} max={LETRA_MAX} porcentaje={config.letra} alCambiar={(v) => cambiar({ ...config, letra: v })} />
+          <MiniaturaWidget id={w.tipo} nombre={w.nombre} maxAncho={Math.min(320, window.innerWidth - 72)} />
         </div>
       )}
     </li>
@@ -205,7 +211,7 @@ export function VistaWidgets() {
   if (esAppNativa()) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-8">
-        <h1 className="text-xl font-semibold">Widgets</h1>
+        <div className="flex items-center"><FlechaVolver /><h1 className="text-xl font-semibold">Widgets</h1></div>
         <WidgetsCelular />
       </div>
     );
@@ -273,10 +279,10 @@ function AjustesWidgetEscritorio({ id, nombre }: { id: string; nombre: string })
 }
 
 /** El widget en chiquito, dentro de su tarjeta: se actualiza solo con cada cambio de tema, transparencia, esquinas o letra. */
-function MiniaturaWidget({ id, nombre }: { id: string; nombre: string }) {
+function MiniaturaWidget({ id, nombre, maxAncho = 560 }: { id: string; nombre: string; maxAncho?: number }) {
   const base = WIDGETS.find((x) => x.id === id)!;
   // Se achica para que el widget entre COMPLETO en la caja (a lo ancho y a lo alto).
-  const escala = Math.min(560 / base.ancho, 440 / base.alto);
+  const escala = Math.min(maxAncho / base.ancho, 440 / base.alto);
   const ancho = Math.round(base.ancho * escala);
   const alto = Math.round(base.alto * escala);
   return (

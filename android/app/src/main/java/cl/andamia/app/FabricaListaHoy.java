@@ -461,8 +461,9 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             case TIPO_HABITO: return filaHabitos(f);
             case TIPO_DESPLEGABLE: {
                 RemoteViews cab = new RemoteViews(contexto.getPackageName(), R.layout.widget_habitos_cab);
-                TemaWidget.letra(cab, R.id.cab_titulo, 14);
-                cab.setTextViewText(R.id.cab_titulo, f.titulo + "  " + f.detalle);
+                TemaWidget.letra(cab, R.id.cab_titulo, 13);
+                cab.setTextViewText(R.id.cab_titulo, f.titulo);
+                cab.setInt(R.id.cab_icono, "setColorFilter", color(contexto, R.color.widget_texto));
                 cab.setTextColor(R.id.cab_titulo, color(contexto, R.color.widget_texto));
                 cab.setTextViewText(R.id.cab_flecha, f.hecha ? "▾" : "▴");
                 cab.setTextColor(R.id.cab_flecha, color(contexto, R.color.widget_texto));
