@@ -504,9 +504,9 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
         aria-expanded={abierto}
         aria-label="Hábitos"
         onClick={() => setAbierto(!abierto)}
-        className={`flex w-full items-center ${estrecha ? "gap-1 px-1.5 py-1 text-[11px]" : `gap-2 text-sm ${EN_WIDGET ? "px-4 py-1" : "px-3 py-2 lg:px-4 lg:py-1"}`} font-semibold`}
+        className={`flex w-full items-center ${estrecha ? "gap-1 px-1.5 py-1 text-[11px]" : `gap-2 text-sm ${EN_WIDGET ? "px-4 py-1" : "px-4 py-2 lg:py-1"}`} font-semibold`}
       >
-        <Flame size={estrecha ? 12 : 16} className={EN_WIDGET ? "text-texto" : "text-acento lg:text-texto"} />
+        <Flame size={estrecha ? 12 : 16} className="text-texto" />
         <span className="flex-1 text-left">Hábitos</span>
         <span className={`ml-auto flex items-center justify-center rounded-full bg-suave ${estrecha ? "h-4 w-4" : "h-6 w-6"}`}>{abierto ? <ChevronDown size={estrecha ? 11 : 16} /> : <ChevronUp size={estrecha ? 11 : 16} />}</span>
       </button>
