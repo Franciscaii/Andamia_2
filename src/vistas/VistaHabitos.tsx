@@ -9,7 +9,6 @@ import { recordatoriosActivos } from "../config";
 import { claseBoton, claseBotonPrincipal, claseCampo, Confirmar, Modal } from "../componentes/Modal";
 import { useTienda } from "../datos/tienda";
 import { claveDia, diasDeMes } from "../logica/calendario";
-import { confetiActivo, guardarConfetiActivo } from "../logica/confeti";
 import { calcularRachas, describirFrecuencia, esEditable, estadoPorValor, indexarRegistros, siguienteEstado, tasaCumplimiento } from "../logica/habitos";
 import { INICIALES_DIA, NOMBRES_DIA } from "../logica/repeticion";
 import { irA, type Seccion } from "../logica/ruta";
@@ -64,6 +63,7 @@ export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: 
   const [inicio, setInicio] = useState(habito?.inicio ?? inicioSugerido ?? format(new Date(), "yyyy-MM-dd"));
   const [fin, setFin] = useState(habito?.fin ?? "");
   const [hora, setHora] = useState(habito?.recordatorioHora ?? "");
+  const [confeti, setConfeti] = useState(habito?.confeti !== false);
 
   const diasVacios = frecuencia.tipo === "dias" && frecuencia.dias.length === 0;
   const finAntes = Boolean(fin) && fin < inicio;
@@ -73,7 +73,7 @@ export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: 
     e.preventDefault();
     if (!valido) return;
     // Con los recordatorios apagados se conserva lo que ya tuviera el hábito.
-    const datos = { nombre: nombre.trim(), icono, color, frecuencia, metaDiaria: meta, unidad, inicio, fin: fin || null, recordatorioHora: recordatoriosActivos ? hora || null : (habito?.recordatorioHora ?? null) };
+    const datos = { nombre: nombre.trim(), icono, color, frecuencia, metaDiaria: meta, unidad, inicio, fin: fin || null, confeti, recordatorioHora: recordatoriosActivos ? hora || null : (habito?.recordatorioHora ?? null) };
     if (habito) await actualizarHabito(habito.id, datos);
     else await crearHabito(datos);
     alCerrar();
@@ -160,6 +160,12 @@ export function DialogoHabito({ habito, alCerrar, alEliminar, inicioSugerido }: 
               <input type="time" aria-label="Hora del recordatorio" className={claseCampo} value={hora} onChange={(e) => setHora(e.target.value)} />
             </label>
           )}
+        </div>
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span id="etiqueta-confeti" className="text-tenue">Confeti al completarlo</span>
+          <button type="button" role="switch" aria-checked={confeti} aria-labelledby="etiqueta-confeti" onClick={() => setConfeti(!confeti)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${confeti ? "bg-acento" : "bg-gray-300"}`}>
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${confeti ? "left-[22px]" : "left-0.5"}`} />
+          </button>
         </div>
     </>
   );
@@ -389,7 +395,6 @@ export function VistaHabitos() {
   // Tabla del computador: una semana (lunes a domingo) o un mes completo, con flechas para moverse.
   const [alcanceTabla, setAlcanceTabla] = useState<"semana" | "mes">("semana");
   const [baseTabla, setBaseTabla] = useState(() => startOfDay(new Date()));
-  const [confeti, setConfeti] = useState(confetiActivo);
 
   const hoy = startOfDay(new Date());
   const diasTabla = alcanceTabla === "semana" ? Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(baseTabla, { weekStartsOn: 1 }), i)) : eachDayOfInterval({ start: startOfMonth(baseTabla), end: endOfMonth(baseTabla) });
@@ -496,23 +501,6 @@ export function VistaHabitos() {
             <Plus size={18} />
           </button>
         </header>
-
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-borde bg-panel px-4 py-2.5">
-          <span id="etiqueta-confeti" className="text-sm">Confeti al completar un hábito</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={confeti}
-            aria-labelledby="etiqueta-confeti"
-            onClick={() => {
-              guardarConfetiActivo(!confeti);
-              setConfeti(!confeti);
-            }}
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${confeti ? "bg-acento" : "bg-gray-300"}`}
-          >
-            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${confeti ? "left-[22px]" : "left-0.5"}`} />
-          </button>
-        </div>
 
         {/* Solo en el computador: los hábitos activos contra los días, para marcarlos de un vistazo. */}
         {activos.length > 0 && (

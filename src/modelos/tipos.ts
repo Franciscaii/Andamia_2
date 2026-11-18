@@ -132,6 +132,8 @@ export interface Habito {
   avisosEnviados: string[];
   archivado: boolean;
   orden: number;
+  /** Confeti al completarlo; sin valor, está activado. */
+  confeti?: boolean;
 }
 
 export type EstadoHabito = "hecho" | "parcial" | "no-hecho";

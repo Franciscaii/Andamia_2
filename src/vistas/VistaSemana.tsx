@@ -485,7 +485,7 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
               pequeno={estrecha}
               clase={estrecha ? "w-full shrink-0" : celular ? "min-w-0 flex-1" : "max-w-64 min-w-0 flex-1"}
               alCambiar={(v, origen) => {
-                if (v) lanzarConfeti(origen);
+                if (v && h.confeti !== false) lanzarConfeti(origen);
                 void registrarHabito(h.id, fecha, v ? { estado: "hecho", valor: h.metaDiaria } : null);
               }}
             />

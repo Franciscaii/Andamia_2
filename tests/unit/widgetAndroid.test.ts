@@ -244,7 +244,7 @@ describe("ventana de edición del widget Semana", () => {
   it("manda la definición de los hábitos activos", () => {
     const h = { id: "h1", nombre: "Leer", icono: "libro", color: "#3f74b5", frecuencia: { tipo: "diaria" }, metaDiaria: 2, unidad: "", inicio: "2026-11-10", fin: null, archivado: false, orden: 0 } as Habito;
     expect(definicionesDeHabitos([h, { ...h, id: "h2", archivado: true }])).toEqual([
-      { id: "h1", nombre: "Leer", icono: "libro", color: "#3f74b5", frecuencia: { tipo: "diaria" }, inicio: "2026-11-10", fin: "", meta: 2 },
+      { id: "h1", nombre: "Leer", icono: "libro", color: "#3f74b5", frecuencia: { tipo: "diaria" }, inicio: "2026-11-10", fin: "", meta: 2, confeti: true },
     ]);
   });
 

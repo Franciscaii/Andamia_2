@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fila que se ve mientras el widget carga una fila de la lista: vacía y transparente (si no, Android pinta un cuadro gris). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="1dp"
+    android:background="@android:color/transparent"></FrameLayout>
