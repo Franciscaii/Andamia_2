@@ -5,6 +5,7 @@ import { es } from "date-fns/locale";
 import { useTienda } from "../datos/tienda";
 import { COLORES_ETIQUETA, COLORES_LISTA, type Etiqueta, type FrecuenciaHabito, type Habito, type Lista, type Prioridad, type RegistroHabito, type Tarea } from "../modelos/tipos";
 import { gruposDeEtiquetas, gruposDeHabitos, hechosDeHabitos, hechosDeTareas, resumir, SIN_ETIQUETA, tituloPeriodo, type Grupo, type Hecho, type Resumen } from "./estadisticas";
+import { confetiActivo } from "./confeti";
 import { habitosDelDia } from "./habitos";
 import { CUADRANTES, repartirEnCuadrantes } from "./matriz";
 import { leerEleccion, presetDe, TEMA_INICIAL, TEMAS, temaEfectivo, textoSobre, type Tema } from "./temas";
@@ -285,6 +286,8 @@ export function datosDeWidgets(e: Estado, ahora: Date = new Date()) {
     estadisticas: estadisticasDelWidget(e, ahora),
     formulario: formularioDelWidget(e),
     habitosDef: definicionesDeHabitos(e.habitos),
+    // Si el confeti al completar un hábito (también desde el widget) está activado.
+    confeti: confetiActivo(),
   };
 }
 
@@ -725,6 +728,11 @@ export async function iniciarWidgetAndroid(): Promise<void> {
       estado.cargando !== previo.cargando
     )
       programarEnvio();
+  });
+  // Activar o desactivar el confeti en Hábitos: se avisa al widget.
+  window.addEventListener("andamia-confeti", () => {
+    ultimoEnviado = "";
+    programarEnvio();
   });
   await App.addListener("appUrlOpen", ({ url }) => abrirEnlace(url));
   // Con la app viva, lo escrito en el "+" de un widget se crea al instante.

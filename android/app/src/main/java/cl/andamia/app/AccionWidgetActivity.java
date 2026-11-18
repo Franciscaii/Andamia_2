@@ -31,7 +31,7 @@ public class AccionWidgetActivity extends Activity {
                 Widgets.redibujarTodo(this);
                 WidgetPlugin.avisarRapida();
                 // Al completar un hábito, confeti sobre la pantalla de inicio.
-                if (hecho) {
+                if (hecho && DatosWidget.confetiActivo(this)) {
                     Intent confeti = new Intent(this, ConfetiActivity.class);
                     confeti.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
                     // El confeti sale del círculo del interruptor (a la derecha del cuadro tocado), si la pantalla de inicio dice dónde fue el toque.

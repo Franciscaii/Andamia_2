@@ -994,6 +994,7 @@ test.describe("celular", () => {
     await expect(page.getByTestId("habito")).toHaveCount(1);
 
     await page.goto("/#/semana");
+    await abrirHabitos(page);
     const interruptor = page.getByRole("switch", { name: "Hábito Estirar" });
     const perilla = interruptor.getByTestId("perilla-habito");
     const arrastrar = (hasta: number) => deslizarHabito(page, interruptor, hasta);
@@ -1017,6 +1018,7 @@ test.describe("celular", () => {
     await perilla.click();
     await expect(interruptor).toHaveAttribute("aria-checked", "true");
     await page.reload();
+    await abrirHabitos(page);
     await expect(interruptor).toHaveAttribute("aria-checked", "true");
     // Un toque a la izquierda quita la marca.
     await arrastrar(0.1);

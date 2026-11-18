@@ -449,7 +449,7 @@ function colorOscuro(color: string): boolean {
 }
 
 /** Los hábitos que tocan un día: el nombre y su interruptor. Se completa arrastrando el círculo, en el celular y en el computador. */
-function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: Date; estrecha?: boolean; desplegable?: boolean }) {
+function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha?: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const habitos = useTienda((s) => s.habitos);
   const registros = useTienda((s) => s.registros);
@@ -460,9 +460,8 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
   const delDia = habitosDelDia(habitos, registros, dia, ahora);
   if (!delDia.length) return null;
   const fecha = claveDia(dia);
-  // Con muchos hábitos (más de dos filas) junto a varios eventos, van en un desplegable.
-  // En el computador, con al menos un hábito, siempre van en el desplegable (salvo en las columnas angostas de los otros días).
-  const conDesplegable = esEscritorio || (!estrecha && Boolean(desplegable) && delDia.length > 4);
+  // Todos los días con al menos un hábito (en el celular y en el computador) los muestran dentro del desplegable.
+  const conDesplegable = true;
   const lista = (
     // En la vista de un día van de a dos por fila, para aprovechar el ancho.
     <ul aria-label="Hábitos" className={estrecha ? "space-y-1" : conDesplegable ? "mt-1 grid grid-cols-2 gap-1" : "mb-3 grid grid-cols-2 gap-1"}>
@@ -538,7 +537,7 @@ function ContenidoDia({ dia, ahora, verEventos, verTareas, verHabitos, tareaAbie
           ))}
         </ul>
       )}
-      {verHabitos && <HabitosDia dia={dia} ahora={ahora} desplegable={verEventos && verTareas && contenido.eventos.length >= 2} />}
+      {verHabitos && <HabitosDia dia={dia} ahora={ahora} />}
       {!compacto && !verTareas && verEventos && !hayHabitos && contenido.eventos.length === 0 && <p className="mt-8 text-center text-sm text-tenue">No hay eventos este día. Toca + para añadir.</p>}
       {!compacto && !verTareas && !verEventos && !hayHabitos && <p className="mt-8 text-center text-sm text-tenue">No hay hábitos para este día. Toca + para añadir.</p>}
 
@@ -850,11 +849,11 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
       <ArrastreSemana ahora={ahora}>
       <header data-widget-cabecera className={`px-4 sm:px-6 ${EN_WIDGET ? "pt-1 pb-1 pr-16 sm:pr-16" : "pt-4 pb-2"}`}>
         <div className={`flex items-center ${esEscritorio ? "gap-2" : "gap-1 min-[450px]:gap-2"}`}>
-          <div className={`flex shrink-0 items-center ${esEscritorio && !EN_WIDGET ? "-my-1 rounded-lg border border-borde bg-panel p-0.5" : ""}`}>
+          <div className={`flex shrink-0 items-center ${esEscritorio ? "-my-1 rounded-lg border border-borde bg-panel p-0.5" : ""}`}>
             <button type="button" aria-label={verMes ? "Mes anterior" : "Semana anterior"} className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(-1)}>
               <ChevronLeft size={18} />
             </button>
-            <h1 className={`text-center text-sm font-semibold min-[450px]:text-lg ${esEscritorio && !EN_WIDGET ? "px-5" : esEscritorio ? "px-1.5" : "px-0 sm:px-1.5"}`} title={format(elegido, "MMMM yyyy", { locale: es })}>
+            <h1 className={`text-center text-sm font-semibold min-[450px]:text-lg ${esEscritorio && !EN_WIDGET ? "px-5" : esEscritorio ? "px-3" : "px-0 sm:px-1.5"}`} title={format(elegido, "MMMM yyyy", { locale: es })}>
               {mes} {anio}
             </h1>
             <button type="button" aria-label={verMes ? "Mes siguiente" : "Semana siguiente"} className="rounded-md border border-borde bg-panel p-0.5 text-texto hover:bg-suave min-[450px]:p-1" onClick={() => mover(1)}>

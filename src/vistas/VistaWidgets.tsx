@@ -54,7 +54,7 @@ function Deslizador({ etiqueta, valor, min = 0, max, porcentaje, alCambiar }: { 
         <span>{etiqueta}</span>
         <span className="text-tenue tabular-nums">{porcentaje}%</span>
       </span>
-      <input type="range" min={min} max={max} step={min ? 5 : 1} value={valor} aria-label={etiqueta} onChange={(e) => alCambiar(Number(e.target.value))} className="mt-0 w-full accent-[var(--acento)] lg:mt-2" />
+      <input type="range" min={min} max={max} step={min ? 5 : 1} value={valor} aria-label={etiqueta} onChange={(e) => alCambiar(Number(e.target.value))} className="mt-0 w-3/5 accent-[var(--acento)] lg:mt-2 lg:w-full" />
     </label>
   );
 }
