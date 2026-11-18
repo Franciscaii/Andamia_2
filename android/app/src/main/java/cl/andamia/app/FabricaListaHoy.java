@@ -319,10 +319,10 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
     /** Dos hábitos del día: su nombre y la píldora que lo marca hecho (o lo desmarca) sin abrir la app. */
     private RemoteViews filaHabitos(Fila f) {
         RemoteViews fila = new RemoteViews(contexto.getPackageName(), R.layout.widget_habitos_par);
-        celdaHabito(fila, f, R.id.a_fila, R.id.a_titulo, R.id.a_marca, R.id.a_perilla_izq, R.id.a_perilla_der);
+        celdaHabito(fila, f, R.id.a_fila, R.id.a_fondo, R.id.a_titulo, R.id.a_marca, R.id.a_perilla_izq, R.id.a_perilla_der);
         if (f.par != null) {
             fila.setViewVisibility(R.id.b_fila, View.VISIBLE);
-            celdaHabito(fila, f.par, R.id.b_fila, R.id.b_titulo, R.id.b_marca, R.id.b_perilla_izq, R.id.b_perilla_der);
+            celdaHabito(fila, f.par, R.id.b_fila, R.id.b_fondo, R.id.b_titulo, R.id.b_marca, R.id.b_perilla_izq, R.id.b_perilla_der);
         } else {
             // Un hábito solo en la fila ocupa todo el ancho.
             fila.setViewVisibility(R.id.b_fila, View.GONE);
@@ -330,8 +330,14 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         return fila;
     }
 
+    /** pct% de un color y el resto de otro (como color-mix de la app). */
+    static int mezcla(int a, int pct, int b) {
+        float p = pct / 100f;
+        return Color.rgb(Math.round(Color.red(a) * p + Color.red(b) * (1 - p)), Math.round(Color.green(a) * p + Color.green(b) * (1 - p)), Math.round(Color.blue(a) * p + Color.blue(b) * (1 - p)));
+    }
+
     /** Una mitad de la fila de hábitos: un hábito con su interruptor. */
-    private void celdaHabito(RemoteViews vista, Fila f, int idFila, int idTitulo, int idMarca, int idIzq, int idDer) {
+    private void celdaHabito(RemoteViews vista, Fila f, int idFila, int idFondo, int idTitulo, int idMarca, int idIzq, int idDer) {
         TemaWidget.letra(vista, idTitulo, 14);
         int propio = color(contexto, R.color.widget_acento);
         try {
@@ -339,10 +345,13 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         } catch (IllegalArgumentException e) {
             // Color desconocido: queda el acento.
         }
-        int tenue = color(contexto, R.color.widget_texto_tenue);
         vista.setTextViewText(idTitulo, f.titulo);
-        vista.setTextColor(idTitulo, color(contexto, R.color.widget_texto));
-        TemaWidget.tenirFondo(vista, idFila, color(contexto, R.color.widget_evento_suave));
+        // Como en la app: el óvalo toma el color del hábito (borde más fuerte, relleno suave); si el color es oscuro, el relleno va fuerte y la letra clara.
+        int base = color(contexto, R.color.widget_fondo) | 0xFF000000;
+        boolean oscuro = (0.299 * Color.red(propio) + 0.587 * Color.green(propio) + 0.114 * Color.blue(propio)) < 110;
+        vista.setTextColor(idTitulo, oscuro ? Color.WHITE : color(contexto, R.color.widget_texto));
+        TemaWidget.tenirFondo(vista, idFila, mezcla(propio, 55, base));
+        TemaWidget.tenirFondo(vista, idFondo, mezcla(propio, oscuro ? 78 : 16, base));
         // Interruptor: hecho = riel del color del hábito y la perilla con su ✓ a la derecha; sin marcar = riel apagado y perilla a la izquierda.
         float densidad = contexto.getResources().getDisplayMetrics().density;
         int perilla = f.hecha ? idDer : idIzq;
@@ -350,7 +359,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setViewVisibility(idDer, f.hecha ? View.VISIBLE : View.GONE);
         vista.setImageViewBitmap(perilla, Dibujos.perilla(densidad, f.hecha, propio));
         if (!f.marcable) vista.setInt(perilla, "setImageAlpha", 120);
-        TemaWidget.tenirFondo(vista, idMarca, f.hecha ? propio : Color.argb(f.marcable ? 60 : 30, Color.red(tenue), Color.green(tenue), Color.blue(tenue)));
+        TemaWidget.tenirFondo(vista, idMarca, f.hecha ? propio : mezcla(propio, f.marcable ? 42 : 25, Color.WHITE));
         if (f.marcable) {
             Intent marcar = new Intent();
             marcar.setData(Uri.parse("andamia://habito/" + Uri.encode(f.id) + "/" + f.fecha + "/" + (f.hecha ? "0" : "1")));
@@ -381,6 +390,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setProgressBar(R.id.progreso_barra, 100, porcentaje, false);
         TemaWidget.barra(contexto, vista, R.id.progreso_barra);
         vista.setTextColor(R.id.progreso_titulo, color(contexto, R.color.widget_texto));
+        vista.setInt(R.id.progreso_icono, "setColorFilter", color(contexto, R.color.widget_texto));
         vista.setTextColor(R.id.progreso_texto, color(contexto, R.color.widget_texto_tenue));
         vista.setTextViewText(R.id.progreso_texto, hechas + "/" + total + " (" + porcentaje + "%)");
         vista.setTextViewText(R.id.progreso_titulo, !semana || diaEsHoy ? "Tareas hoy" : "Tareas del día");

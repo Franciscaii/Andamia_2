@@ -34,6 +34,13 @@ public class AccionWidgetActivity extends Activity {
                 if (hecho) {
                     Intent confeti = new Intent(this, ConfetiActivity.class);
                     confeti.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    // El confeti sale del círculo del interruptor (a la derecha del cuadro tocado), si la pantalla de inicio dice dónde fue el toque.
+                    android.graphics.Rect zona = getIntent().getSourceBounds();
+                    if (zona != null && zona.width() > 0) {
+                        float d = getResources().getDisplayMetrics().density;
+                        confeti.putExtra("x", zona.right - 15 * d);
+                        confeti.putExtra("y", zona.exactCenterY());
+                    }
                     startActivity(confeti);
                 }
             }
