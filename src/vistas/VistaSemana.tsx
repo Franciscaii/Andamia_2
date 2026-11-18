@@ -455,12 +455,14 @@ function HabitosDia({ dia, ahora, estrecha, desplegable }: { dia: Date; ahora: D
   const registros = useTienda((s) => s.registros);
   const registrarHabito = useTienda((s) => s.registrarHabito);
   // En el celular el interruptor va a lo ancho de la fila; en el computador tiene un largo fijo y en las columnas de 7 días ocupa la columna.
-  const celular = !useEsEscritorio() && !estrecha;
+  const esEscritorio = useEsEscritorio();
+  const celular = !esEscritorio && !estrecha;
   const delDia = habitosDelDia(habitos, registros, dia, ahora);
   if (!delDia.length) return null;
   const fecha = claveDia(dia);
   // Con muchos hábitos (más de dos filas) junto a varios eventos, van en un desplegable.
-  const conDesplegable = Boolean(desplegable) && delDia.length > 4;
+  // En el computador, con al menos un hábito, siempre van en el desplegable (salvo en las columnas angostas de los otros días).
+  const conDesplegable = !estrecha && (esEscritorio || (Boolean(desplegable) && delDia.length > 4));
   const lista = (
     // En la vista de un día van de a dos por fila, para aprovechar el ancho.
     <ul aria-label="Hábitos" className={estrecha ? "space-y-1" : conDesplegable ? "mt-1 grid grid-cols-2 gap-1" : "mb-3 grid grid-cols-2 gap-1"}>

@@ -304,7 +304,7 @@ export function VistaEstadisticas({ tipo }: { tipo: TipoEstadistica }) {
         <header className="shrink-0 rounded-2xl border border-borde bg-panel px-6 py-3 shadow-sm">
           <div role="group" aria-label="Período" className="mx-auto flex w-fit gap-2 rounded-full border border-[color-mix(in_srgb,var(--texto)_70%,transparent)] p-1.5">
             {PERIODOS.map((p) => (
-              <button key={p.id} type="button" aria-pressed={periodo === p.id} onClick={() => setPeriodo(p.id)} className={`w-36 rounded-full border border-[color-mix(in_srgb,var(--texto)_70%,transparent)] px-3 py-1 text-sm transition-colors ${periodo === p.id ? "bg-acento font-medium text-sobre-acento" : "bg-gray-200 text-texto hover:bg-gray-300"}`}>
+              <button key={p.id} type="button" aria-pressed={periodo === p.id} onClick={() => setPeriodo(p.id)} className={`w-36 rounded-full px-3 py-1.5 text-sm transition-colors ${periodo === p.id ? "bg-acento font-medium text-sobre-acento" : "bg-gray-300 text-texto hover:bg-gray-400/70"}`}>
                 {p.nombre}
               </button>
             ))}
