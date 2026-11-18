@@ -121,6 +121,15 @@ test("semana: eventos arriba, progreso del día y tareas con dificultad e import
 });
 
 /** Pincha el interruptor de un hábito en una fracción de su largo (0 = izquierda, 1 = derecha). */
+/** En el computador los hábitos de la Semana van en un desplegable: lo abre si está cerrado. */
+async function abrirHabitos(page: Page) {
+  const boton = page.locator("button[aria-expanded][aria-label='Hábitos']").first();
+  await expect(async () => {
+    if ((await boton.getAttribute("aria-expanded", { timeout: 500 })) === "false") await boton.click();
+    await expect(boton).toHaveAttribute("aria-expanded", "true", { timeout: 500 });
+  }).toPass({ timeout: 5000 });
+}
+
 async function deslizarHabito(page: Page, interruptor: import("@playwright/test").Locator, hasta: number) {
   // El círculo termina de moverse antes del siguiente toque.
   await page.waitForTimeout(250);
@@ -136,6 +145,7 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   await expect(page.getByTestId("habito")).toHaveCount(1);
 
   await page.goto("/#/semana");
+  await abrirHabitos(page);
   const marca = page.getByRole("switch", { name: "Hábito Estirar" }).first();
   await expect(marca).toHaveAttribute("aria-checked", "false");
   // Pinchar la parte vacía de la izquierda no lo marca; pinchar a la derecha sí.
@@ -154,10 +164,12 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   expect(cajaBarra.x + cajaBarra.width).toBeLessThanOrEqual(cajaFila.x + cajaFila.width);
   expect(cajaNombre.width).toBeGreaterThan(40);
   await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
+  await abrirHabitos(page);
 
   // Con "Hábitos" solo quedan los hábitos; con "Tareas" no se ven.
   const mostrar = page.getByRole("group", { name: "Mostrar" });
   await mostrar.getByRole("button", { name: "Hábitos" }).click();
+  await abrirHabitos(page);
   await expect(page.getByTestId("habito-semana").first()).toBeVisible();
   await expect(page.getByTestId("tarjeta-tareas")).toHaveCount(0);
   await mostrar.getByRole("button", { name: "Tareas" }).click();
@@ -166,6 +178,7 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
   // La marca queda guardada.
   await page.reload();
   await mostrar.getByRole("button", { name: "Todos" }).click();
+  await abrirHabitos(page);
   await expect(marca).toHaveAttribute("aria-checked", "true");
 
   // En el Calendario, "Hábitos" muestra solo los hábitos cumplidos, como barritas de su color.
@@ -179,6 +192,7 @@ test("semana: los hábitos del día se marcan con su interruptor y tienen su pro
 
   // Al quitar la marca en Semana, deja de salir en el mes.
   await page.getByRole("navigation").getByRole("link", { name: "Semana" }).click();
+  await abrirHabitos(page);
   await deslizarHabito(page, marca, 0.03);
   await expect(marca).toHaveAttribute("aria-checked", "false");
   await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
@@ -1059,6 +1073,7 @@ test("detalle: ventana al medio con Eliminar y Guardar; el hábito de la Semana 
 
   // Hábito: tocar su nombre abre su detalle; Guardar aplica el cambio; tocar de nuevo lo cierra.
   const habito = page.getByRole("complementary", { name: "Detalle del hábito" });
+  await abrirHabitos(page);
   await page.getByRole("button", { name: "Ver Leer", exact: true }).first().click();
   await expect(habito).toBeVisible();
   await page.mouse.click(5, 5);
@@ -1155,6 +1170,7 @@ test("hábitos: de a dos en la Semana y tabla por día en el computador", async 
 
   // En la Semana (vista de un día) los hábitos van de a dos por fila; el marcado en la tabla se ve aquí.
   await page.goto("/#/tareas/semana");
+  await abrirHabitos(page);
   const filas = page.getByTestId("habito-semana");
   await expect(filas).toHaveCount(2);
   const a = (await filas.nth(0).boundingBox())!;
@@ -1179,8 +1195,8 @@ test("semana: con 2 eventos y más de 2 filas de hábitos, los hábitos van en u
     await expect(page.getByTestId("habito").filter({ hasText: nombre })).toHaveCount(1);
   }
   await page.goto("/#/semana");
-  // Sin eventos, los hábitos se ven directo.
-  await expect(page.getByRole("switch", { name: "Hábito Uno" })).toBeVisible();
+  // En el computador los hábitos van siempre en el desplegable (cerrado al principio).
+  await expect(page.locator("button[aria-expanded][aria-label='Hábitos']")).toHaveAttribute("aria-expanded", "false");
   await crearEnSemana(page, "Evento", "Primer evento");
   await crearEnSemana(page, "Evento", "Segundo evento");
   const desplegable = page.locator("button[aria-expanded][aria-label='Hábitos']");
