@@ -148,7 +148,7 @@ function TarjetaWidget({
             alCambiar={(v) => cambiar({ ...config, esquinas: v })}
           />
           <Deslizador etiqueta="Tamaño de letra" valor={config.letra} min={LETRA_MIN} max={LETRA_MAX} porcentaje={config.letra} alCambiar={(v) => cambiar({ ...config, letra: v })} />
-          <MiniaturaWidget id={w.tipo} nombre={w.nombre} maxAncho={Math.min(320, window.innerWidth - 72)} />
+          <MiniaturaWidget celular id={w.tipo} nombre={w.nombre} maxAncho={Math.min(320, window.innerWidth - 72)} />
         </div>
       )}
     </li>
@@ -279,8 +279,17 @@ function AjustesWidgetEscritorio({ id, nombre }: { id: string; nombre: string })
 }
 
 /** El widget en chiquito, dentro de su tarjeta: se actualiza solo con cada cambio de tema, transparencia, esquinas o letra. */
-function MiniaturaWidget({ id, nombre, maxAncho = 560 }: { id: string; nombre: string; maxAncho?: number }) {
-  const base = WIDGETS.find((x) => x.id === id)!;
+/** Tamaño (en píxeles de pantalla) con que se dibuja cada widget del celular: angosto y alto, como en la pantalla de inicio. */
+const TAMANO_CELULAR: Record<string, { ancho: number; alto: number }> = {
+  semana: { ancho: 340, alto: 400 },
+  calendario: { ancho: 340, alto: 380 },
+  matriz: { ancho: 340, alto: 400 },
+  "estadistica-tareas": { ancho: 340, alto: 440 },
+  "estadistica-habitos": { ancho: 340, alto: 440 },
+};
+
+function MiniaturaWidget({ id, nombre, maxAncho = 560, celular = false }: { id: string; nombre: string; maxAncho?: number; celular?: boolean }) {
+  const base = celular ? { ...WIDGETS.find((x) => x.id === id)!, ...TAMANO_CELULAR[id] } : WIDGETS.find((x) => x.id === id)!;
   // Se achica para que el widget entre COMPLETO en la caja (a lo ancho y a lo alto).
   const escala = Math.min(maxAncho / base.ancho, 440 / base.alto);
   const ancho = Math.round(base.ancho * escala);
