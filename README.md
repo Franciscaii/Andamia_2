@@ -20,7 +20,7 @@
 
 ## Video
 
-Mira la app funcionando en el celular y en el PC: **▶️ Ver el video en YouTube**
+Mira la app funcionando en el celular y en el PC: [▶️ Ver el video en YouTube](https://www.youtube.com/watch?v=FyS5dAywkEo&list=RD-5ZXrO_lYSA&index=2)
 <!-- Pendiente: pegar aquí el enlace de YouTube -->
 
 ---
