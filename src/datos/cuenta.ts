@@ -2,7 +2,6 @@ import Dexie from "dexie";
 import { create } from "zustand";
 import { anotarBaseActiva } from "../logica/pwa";
 import { BaseAndamia, baseDeCuenta, BASE_LOCAL, bd, usarBase } from "./bd";
-import { useEnfoque } from "./enfoque";
 import { contarDatos, copiarDatos, iniciarEspejo, type ConteoLocal } from "./espejo";
 import { hayFirebase } from "./firebase/config";
 import type { UsuarioCuenta } from "./firebase/servicio";
@@ -165,17 +164,10 @@ function sincronizarAjustes(s: Servicio, uid: string, datosListos: Promise<void>
       aplicando = true;
       const t = useTienda.getState();
       if ((a.tema === "claro" || a.tema === "oscuro") && a.tema !== t.tema) t.fijarTema(a.tema as Tema);
-      if (a.enfoque) {
-        const e = useEnfoque.getState();
-        if (JSON.stringify(a.enfoque) !== JSON.stringify(e.config)) e.guardarConfig(a.enfoque as never);
-      }
       aplicando = false;
     }),
     useTienda.subscribe((estado, previo) => {
       if (!aplicando && estado.tema !== previo.tema) void s.guardarAjustes(uid, { tema: estado.tema }).catch(console.error);
-    }),
-    useEnfoque.subscribe((estado, previo) => {
-      if (!aplicando && estado.config !== previo.config) void s.guardarAjustes(uid, { enfoque: { ...estado.config } }).catch(console.error);
     }),
   );
 }

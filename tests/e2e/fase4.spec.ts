@@ -76,114 +76,6 @@ test.describe("matriz", () => {
   });
 });
 
-test.describe("enfoque", () => {
-  test("completar un pomodoro con tiempo acelerado, descanso y estadísticas", async ({ page }) => {
-    await page.clock.install({ time: AHORA });
-    await page.addInitScript(() => {
-      const w = window as unknown as { avisos: string[]; Notification: unknown; sonidos: number; AudioContext: unknown };
-      w.avisos = [];
-      w.sonidos = 0;
-      class Falsa {
-        static permission = "granted";
-        static requestPermission = async () => "granted";
-        onclick = null;
-        constructor(t: string) {
-          w.avisos.push(t);
-        }
-        close() {}
-      }
-      w.Notification = Falsa;
-      const Original = window.AudioContext;
-      w.AudioContext = class extends Original {
-        constructor() {
-          super();
-          w.sonidos += 1;
-        }
-      };
-    });
-    await page.goto("/#/tareas/bandeja");
-    await agregar(page, "Escribir capítulo");
-    await page.goto("/#/enfoque");
-
-    await expect(page.getByTestId("tiempo")).toHaveText("25:00");
-    await page.getByRole("combobox", { name: "Tarea de esta sesión" }).selectOption({ label: "Escribir capítulo" });
-    await page.getByRole("button", { name: "Empezar" }).click();
-
-    // Diez minutos después sigue contando desde la marca de tiempo.
-    await page.clock.fastForward("10:00");
-    await expect(page.getByTestId("tiempo")).toHaveText(/^1[45]:\d\d$/);
-
-    // Sobrevive a recargar la página.
-    await page.reload();
-    await expect(page.getByTestId("tiempo")).toHaveText(/^1[45]:\d\d$/);
-    await expect(page.getByRole("button", { name: "Pausar" })).toBeVisible();
-
-    await page.clock.fastForward("15:01");
-    await expect(page.getByTestId("fase")).toHaveText("Descanso");
-    await expect(page.getByTestId("aviso-enfoque")).toContainText("Enfoque terminado");
-    await expect.poll(() => page.evaluate(() => (window as unknown as { avisos: string[] }).avisos)).toEqual(["¡Enfoque terminado!"]);
-    expect(await page.evaluate(() => (window as unknown as { sonidos: number }).sonidos)).toBe(1);
-
-    const estadisticas = page.getByRole("region", { name: "Estadísticas de enfoque" });
-    await expect(page.getByTestId("sesion")).toHaveCount(1);
-    await expect(page.getByTestId("sesion")).toContainText("Escribir capítulo");
-    await expect(page.getByTestId("sesion")).toContainText("25 min");
-    await expect(estadisticas).toContainText("1 pomodoro");
-    await expect(estadisticas).not.toContainText("1 pomodoros");
-    await expect(estadisticas).toContainText("1 día");
-
-    // Saltar el descanso deja listo el siguiente.
-    await page.getByRole("button", { name: "Saltar" }).click();
-    await expect(page.getByTestId("fase")).toHaveText("Enfoque");
-    await expect(page.getByTestId("tiempo")).toHaveText("25:00");
-  });
-
-  test("con la página cerrada, la sesión termina a su hora", async ({ page }) => {
-    await page.clock.install({ time: AHORA });
-    await page.goto("/#/enfoque");
-    await page.getByRole("button", { name: "Empezar" }).click();
-    await page.goto("about:blank");
-    await page.clock.fastForward("03:00:00");
-    await page.goto("/#/enfoque");
-    await expect(page.getByTestId("sesion")).toHaveCount(1);
-    await expect(page.getByTestId("sesion")).toContainText("25 min");
-    await expect(page.getByRole("button", { name: "Empezar" })).toBeVisible();
-  });
-
-  test("pausar, reanudar, ajustes y cronómetro", async ({ page }) => {
-    await page.clock.install({ time: AHORA });
-    await page.goto("/#/enfoque");
-
-    await page.getByRole("button", { name: "Ajustes del temporizador" }).click();
-    await page.getByRole("dialog").getByLabel("Enfoque (minutos)").fill("10");
-    await page.getByRole("dialog").getByRole("button", { name: "Guardar" }).click();
-    await expect(page.getByTestId("tiempo")).toHaveText("10:00");
-
-    await page.getByRole("button", { name: "Empezar" }).click();
-    await page.clock.fastForward("02:00");
-    await page.getByRole("button", { name: "Pausar" }).click();
-    const pausado = await page.getByTestId("tiempo").innerText();
-    await page.clock.fastForward("05:00");
-    await expect(page.getByTestId("tiempo")).toHaveText(pausado);
-    await page.reload();
-    await expect(page.getByTestId("tiempo")).toHaveText(pausado);
-    await page.getByRole("button", { name: "Reanudar" }).click();
-    await page.clock.fastForward("01:00");
-    await expect(page.getByTestId("tiempo")).not.toHaveText(pausado);
-
-    await page.getByRole("button", { name: "Abandonar" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Abandonar" }).click();
-    await expect(page.getByTestId("sesion")).toHaveCount(0);
-
-    await page.getByRole("button", { name: "Cronómetro" }).click();
-    await page.getByRole("button", { name: "Empezar" }).click();
-    await page.clock.fastForward("12:00");
-    await page.getByRole("button", { name: "Detener y guardar" }).click();
-    await expect(page.getByTestId("sesion")).toHaveCount(1);
-    await expect(page.getByTestId("sesion")).toContainText("12 min");
-  });
-});
-
 test.describe("hábitos", () => {
   async function crear(page: Page, nombre: string, ajustes?: () => Promise<void>) {
     await page.getByRole("button", { name: "Nuevo hábito" }).click();
@@ -360,7 +252,7 @@ test.describe("móvil", () => {
     await page.getByTestId("habito").getByRole("button", { name: /^Leer, miércoles/ }).click();
     await expect(page.getByTestId("racha-fila")).toContainText("1 día");
 
-    for (const ruta of ["/#/habitos", "/#/matriz", "/#/enfoque"]) {
+    for (const ruta of ["/#/habitos", "/#/matriz"]) {
       await page.goto(ruta);
       await page.waitForTimeout(100);
       const desborde = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

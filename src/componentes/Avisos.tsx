@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BellOff, X } from "lucide-react";
 import { recordatoriosActivos } from "../config";
-import { useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
 import { etiquetaFecha } from "../logica/fechas";
 import { avisosDeHabitos } from "../logica/habitos";
@@ -31,15 +30,12 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
   const habitos = useTienda((s) => s.habitos);
   const marcarAviso = useTienda((s) => s.marcarAviso);
   const marcarAvisoHabito = useTienda((s) => s.marcarAvisoHabito);
-  const mensajes = useEnfoque((s) => s.mensajes);
-  const cerrarMensaje = useEnfoque((s) => s.cerrarMensaje);
   const [avisos, setAvisos] = useState<AvisoVisible[]>([]);
   const comprobando = useRef(false);
   const seccionActual = useRef(seccion);
   seccionActual.current = seccion;
 
   const comprobar = useCallback(async () => {
-    // Sin recordatorios el panel solo muestra los avisos del temporizador de enfoque.
     if (comprobando.current || !recordatoriosActivos) return;
     comprobando.current = true;
     try {
@@ -83,7 +79,7 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
     if (recordatoriosActivos) void programarAvisos(tareas);
   }, [tareas, habitos, comprobar]);
 
-  if (!avisos.length && !mensajes.length) return null;
+  if (!avisos.length) return null;
   const cerrar = (clave: string) => setAvisos((a) => a.filter((x) => x.clave !== clave));
   const abrir = (a: AvisoVisible) => {
     if (a.tareaId === null) irA({ tipo: "habitos" });
@@ -93,18 +89,6 @@ export function PanelAvisos({ seccion }: { seccion: Seccion }) {
 
   return (
     <div role="status" aria-label="Recordatorios" className="fixed right-4 bottom-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2">
-      {mensajes.map((m) => (
-        <div key={m.id} data-testid="aviso-enfoque" className="flex items-start gap-2 rounded-lg border border-borde bg-panel p-3 shadow-lg">
-          <Bell size={16} className="mt-0.5 shrink-0 text-acento" />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">{m.titulo}</p>
-            <p className="text-xs text-tenue">{m.detalle}</p>
-          </div>
-          <button type="button" aria-label={`Cerrar aviso: ${m.titulo}`} className="text-tenue hover:text-texto" onClick={() => cerrarMensaje(m.id)}>
-            <X size={15} />
-          </button>
-        </div>
-      ))}
       {avisos.map((a) => (
         <div key={a.clave} data-testid="aviso" className="rounded-lg border border-borde bg-panel p-3 shadow-lg">
           <div className="flex items-start gap-2">

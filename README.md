@@ -29,7 +29,7 @@ Mira la app funcionando en el celular y en el PC: **▶️ Ver el video en YouTu
 
 | Qué es | Dónde se guarda | Cuenta |
 |---|---|---|
-| Una app de tareas, listas, calendario, hábitos y enfoque | En tu navegador (sin cuenta) o en Firebase (con cuenta) | Opcional |
+| Una app de tareas, listas, calendario y hábitos | En tu navegador (sin cuenta) o en Firebase (con cuenta) | Opcional |
 
 ## Características principales
 
@@ -43,7 +43,6 @@ Mira la app funcionando en el celular y en el PC: **▶️ Ver el video en YouTu
 | **Kanban** | Columnas propias por lista, con tareas que se arrastran entre ellas |
 | **Calendario** | Vista de mes y de semana, arrastrar para cambiar la fecha, y panel de tareas sin fecha |
 | **Matriz de Eisenhower** | Cuatro cuadrantes; arrastrar entre ellos cambia la prioridad |
-| **Enfoque** | Pomodoro, cronómetro, registro de sesiones y estadísticas |
 | **Hábitos** | Frecuencias, objetivo por día, rachas, historial, cumplimiento y confeti por hábito |
 | **Búsqueda** | En títulos, notas y subtareas, sin distinguir mayúsculas ni acentos, con filtros |
 | **Entrada rápida** | Una línea con fecha, hora, prioridad, etiqueta y lista |
@@ -224,15 +223,6 @@ Enviar informe mañana 9am !alta #trabajo ~Oficina
 
 Solo muestra tareas pendientes, primero las que vencen antes.
 
-### Enfoque
-
-| Modo | Detalle |
-|---|---|
-| Pomodoro | 25 min de enfoque, 5 de descanso y 15 de descanso largo cada 4 |
-| Cronómetro | Corre hasta que lo detienes y lo guardas |
-| Tarea | Cada sesión puede sumarse a una tarea |
-| Recarga | Sobrevive a recargar o cerrar la página, porque usa marcas de tiempo |
-
 ### Hábitos
 
 | Concepto | Regla |
@@ -299,7 +289,7 @@ Después abre <http://localhost:4173>. Ese puerto tiene su propia base de datos:
 |---|---|
 | `src/modelos` | Tipos de datos |
 | `src/datos` | Base de datos, repositorio, estado, espejo y conexión con Firebase |
-| `src/logica` | Entrada rápida, vistas, búsqueda, fechas, repeticiones, recordatorios, calendario, matriz, enfoque, hábitos y widgets |
+| `src/logica` | Entrada rápida, vistas, búsqueda, fechas, repeticiones, recordatorios, calendario, matriz, hábitos y widgets |
 | `src/vistas` | Pantallas |
 | `src/componentes` | Piezas de la interfaz |
 | `src/sw.ts` | Service worker |
