@@ -240,14 +240,15 @@ export default function App() {
       <main className="flex min-w-0 flex-1 flex-col">
         {/* App de PC: franja para mover la ventana; a la derecha quedan los botones de Windows. */}
         {altoBarra > 0 && (
-          <div data-testid="barra-ventana" className="flex shrink-0 items-start px-6 pt-[12px] [-webkit-app-region:drag]" style={{ height: altoBarra }}>
-            <button type="button" aria-label="Abrir menú" className="mr-2 mt-0.5 rounded-md p-1.5 hover:bg-white/20 lg:hidden [-webkit-app-region:no-drag]" onClick={() => setLateralAbierta(true)}>
-              <Menu size={22} />
-            </button>
+          <div data-testid="barra-ventana" className="barra-ventana-angosta flex shrink-0 items-start px-6 pt-[12px] [-webkit-app-region:drag] max-lg:flex-col max-lg:gap-1 max-lg:!h-auto max-lg:pb-2" style={{ height: altoBarra }}>
             <span className="flex items-center gap-2.5">
               <Marca clase="h-8 w-8" />
               <span className="contorno-blanco text-xl font-semibold">Andamia</span>
             </span>
+            {/* Con la ventana angosta: la banda oscura llega hasta arriba y solo queda el botón del menú. */}
+            <button type="button" aria-label="Abrir menú" className="-ml-1.5 rounded-md p-1.5 hover:bg-white/20 lg:hidden [-webkit-app-region:no-drag]" onClick={() => setLateralAbierta(true)}>
+              <Menu size={22} />
+            </button>
           </div>
         )}
         {!menuAbajo && altoBarra === 0 && (
