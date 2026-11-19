@@ -89,6 +89,14 @@
 
 /* Temas (src/logica/temas.ts): el tema elegido escribe estas variables en <html>; lo de arriba es solo el respaldo. */
 
+/* App de PC con la ventana angosta: la franja de arriba toma el color del menú. */
+@media (max-width: 1023px) {
+  .barra-ventana-angosta {
+    background: var(--lateral);
+    color: var(--lat-texto, inherit);
+  }
+}
+
 /* El menú lateral es la "cabecera" de color del tema: dentro de él, textos y resaltes salen de su color. */
 .barra-lateral {
   background: var(--lateral);
