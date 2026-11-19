@@ -1,12 +1,127 @@
-# Andamia
+<p align="center">
+  <img src="assets/icon-only.png" alt="Ícono de Andamia" width="120">
+</p>
 
-Gestor de tareas personal, con interfaz en español, que guarda los datos en tu navegador. No necesita cuenta ni servidor.
+<h1 align="center">Andamia</h1>
 
-La especificación está en [docs/investigacion/](docs/investigacion/README.md).
+<p align="center">
+  Gestor de tareas, hábitos y calendario en español.<br>
+  Funciona en la web, en tu PC con Windows y en tu celular Android.
+</p>
 
-## Instalar y ejecutar
+<p align="center">
+  <img src="https://img.shields.io/badge/App%20PC-1.4.2-7c3aed" alt="App PC 1.4.2">
+  <img src="https://img.shields.io/badge/App%20Android-1.68-7c3aed" alt="App Android 1.68">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d6" alt="Windows 10 y 11">
+  <img src="https://img.shields.io/badge/Android-7.0%2B-3ddc84" alt="Android 7.0 o superior">
+</p>
 
-Requiere Node.js 22 o superior.
+---
+
+## Video
+
+Mira la app funcionando en el celular y en el PC: **▶️ Ver el video en YouTube**
+<!-- Pendiente: pegar aquí el enlace de YouTube -->
+
+---
+
+## Descripción
+
+| Qué es | Dónde se guarda | Cuenta |
+|---|---|---|
+| Una app de tareas, listas, calendario, hábitos y enfoque | En tu navegador (sin cuenta) o en Firebase (con cuenta) | Opcional |
+
+## Características principales
+
+| Área | Qué incluye |
+|---|---|
+| **Organización** | Bandeja de entrada, listas con color, carpetas y etiquetas |
+| **Vistas** | Todas, Hoy, Mañana, Próximos 7 días, Completadas y Papelera |
+| **Tareas** | Título, notas, fecha y hora, cuatro prioridades, etiquetas y subtareas |
+| **Repetición** | Diaria, semanal por días, mensual, anual, cada N o personalizada |
+| **Recordatorios** | Uno o varios por tarea; apagados por defecto (ver [Consideraciones](#consideraciones-importantes)) |
+| **Kanban** | Columnas propias por lista, con tareas que se arrastran entre ellas |
+| **Calendario** | Vista de mes y de semana, arrastrar para cambiar la fecha, y panel de tareas sin fecha |
+| **Matriz de Eisenhower** | Cuatro cuadrantes; arrastrar entre ellos cambia la prioridad |
+| **Enfoque** | Pomodoro, cronómetro, registro de sesiones y estadísticas |
+| **Hábitos** | Frecuencias, objetivo por día, rachas, historial, cumplimiento y confeti por hábito |
+| **Búsqueda** | En títulos, notas y subtareas, sin distinguir mayúsculas ni acentos, con filtros |
+| **Entrada rápida** | Una línea con fecha, hora, prioridad, etiqueta y lista |
+| **Apariencia** | Temas, tema claro y oscuro, y se adapta a móviles |
+
+## Apps y dónde descargarlas
+
+| App | Qué es | Dónde está | Cómo se actualiza |
+|---|---|---|---|
+| **Web** | La versión en el navegador | [andamia-85eab.web.app](https://andamia-85eab.web.app) | Se publica con `npm run deploy` |
+| **PC (Windows)** | La web en su propia ventana, con bandeja, atajo y modo widget | Instalador `Andamia-Instalador-<versión>.exe` en la sección **Releases** del repositorio (etiqueta `escritorio`) | Se actualiza sola al cambiar la web; el instalador solo cambia si cambia `escritorio/` |
+| **Android** | La web dentro de la app, con widgets para la pantalla de inicio | Archivo `Andamia-Android.apk` en la rama `apk-descargas` o en *Artifacts* de la acción **App de Android** | Instalar el `.apk` nuevo encima del anterior; los datos no se pierden |
+
+> **Nota:** la app de Android no usa el service worker ni el botón "Instalar"; el resto de la web es igual.
+
+### App de PC (Windows)
+
+| Función | Detalle |
+|---|---|
+| Bandeja | Cerrar la ventana la esconde junto al reloj; "Salir" la cierra |
+| Atajo global | **Ctrl + Alt + N** abre "Hoy" con el cursor en "Añadir tarea" |
+| Modo escritorio | Ventana chica con "Hoy", detrás de las demás; vuelve tras Windows + D |
+| Modo mini | Ventana chica, siempre encima, en la esquina inferior derecha |
+| Inicio con Windows | Opción para arrancar escondida en la bandeja |
+| Ventana angosta | Menú colapsado con ☰ y la barra superior con el color del tema |
+
+### App de Android
+
+| Función | Detalle |
+|---|---|
+| Widgets | Hoy, Semana, Matriz, Calendario, Estadística de tareas y Estadística de hábitos |
+| Widget Hoy | Tareas de hoy y atrasadas (hasta 30); el círculo la marca como hecha |
+| Widget Semana | Hábitos que se marcan desde el widget, con confeti por hábito |
+| "+" de los widgets | Crea una tarea, un evento o un hábito sin abrir la app |
+| Botón atrás | Vuelve atrás dentro de la app o la deja en segundo plano |
+| Sin Google | Inicia sesión con correo y contraseña |
+
+Si la app no se abre en todo el día, el widget Hoy muestra la lista del día anterior y lo indica en el título.
+
+## Arquitectura
+
+```mermaid
+flowchart LR
+    subgraph Clientes
+        W[Web / PWA]
+        P[App PC<br/>Electron]
+        A[App Android<br/>Capacitor + widgets]
+    end
+    P -->|ventana| W
+    A -->|WebView| W
+    W --> D[(Dexie<br/>IndexedDB local)]
+    D <-->|espejo, con cuenta| F[(Firestore)]
+    F --- AU[Firebase Auth]
+```
+
+| Capa | Responsabilidad |
+|---|---|
+| Interfaz | Siempre trabaja sobre Dexie, con o sin cuenta |
+| Dexie | Base local; una por cuenta (`andamia-u-{uid}`) y otra sin cuenta (`andamia`) |
+| Espejo | Con sesión, mantiene Dexie igual a Firestore en ambos sentidos |
+| Firestore | Fuente de verdad; lo que confirma el servidor siempre se aplica |
+
+## Tecnologías
+
+| Área | Tecnología |
+|---|---|
+| Interfaz | React 18, Tailwind CSS 4, lucide-react |
+| Estado y datos | Zustand, Dexie (IndexedDB), Firebase (Auth y Firestore) |
+| Fechas y lógica | date-fns, chrono-node (entrada rápida), rrule (repeticiones) |
+| Arrastrar | dnd-kit |
+| Compilación | Vite 8, TypeScript, vite-plugin-pwa y Workbox |
+| Pruebas | Vitest, Playwright, emuladores de Firebase |
+| PC | Electron 44, electron-builder (instalador NSIS) |
+| Android | Capacitor 8, widgets con RemoteViews, minSdk 24 |
+
+## Instalación y configuración
+
+Requisitos: **Node.js 22 o superior**.
 
 ```bash
 npm install
@@ -18,41 +133,48 @@ npm run dev
 
 Después abre <http://localhost:5173>.
 
+Sin ningún archivo de configuración, la app funciona sin cuentas y sin sincronización.
+
+Para activar las cuentas, copia `.env.example` como `.env.local` y completa los valores de tu proyecto Firebase. La guía paso a paso está en [docs/firebase-paso-a-paso.md](docs/firebase-paso-a-paso.md).
+
+### Variables de entorno
+
+| Variable | Obligatoria | Qué hace |
+|---|---|---|
+| `VITE_FIREBASE_API_KEY` | Sí, para cuentas | Clave de la app web de Firebase |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Sí, para cuentas | Dominio de inicio de sesión |
+| `VITE_FIREBASE_PROJECT_ID` | Sí, para cuentas | ID del proyecto |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Sí, para cuentas | Bucket de Storage |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Sí, para cuentas | ID del remitente |
+| `VITE_FIREBASE_APP_ID` | Sí, para cuentas | ID de la app web |
+| `VITE_FIREBASE_VAPID_KEY` | No | Clave pública de Cloud Messaging; solo sirve si hay un servidor que envíe avisos |
+| `VITE_RECORDATORIOS` | No | Con `si`, muestra los recordatorios de tareas y hábitos |
+| `VITE_FIREBASE_EMULADORES` | No | Usa los emuladores locales en vez del proyecto real |
+| `VITE_LISTAS` | No | Muestra el botón para crear listas y carpetas en el menú |
+
+La app de Android usa `.env.android` (configuración pública de Firebase). La llave de firma va en dos secretos del repositorio: `ANDAMIA_LLAVE_BASE64` y `ANDAMIA_LLAVE_CLAVE`.
+
 ## Comandos
 
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | Inicia la app en modo desarrollo |
-| `npm run build` | Revisa los tipos y genera la versión final en `dist/` |
+| `npm run build` | Revisa tipos y genera la versión final en `dist/` |
 | `npm run preview` | Sirve la versión de `dist/` |
-| `npm test` | Ejecuta las pruebas de lógica |
-| `npm run test:e2e` | Ejecuta los flujos de punta a punta; requiere Google Chrome instalado, y Java para los de Firebase |
-| `npm run test:reglas` | Prueba las reglas de seguridad en el emulador de Firestore; requiere Java |
-| `npm run emuladores` | Inicia los emuladores de Firebase |
-| `npm run deploy` | Publica en Firebase Hosting; requiere tu proyecto configurado |
+| `npm test` | Pruebas de lógica |
+| `npm run test:e2e` | Flujos de punta a punta; requiere Google Chrome y, para los de Firebase, Java |
+| `npm run test:reglas` | Pruebas de las reglas de Firestore en el emulador; requiere Java |
+| `npm run emuladores` | Inicia los emuladores de Firebase (Auth y Firestore) |
+| `npm run deploy` | Compila y publica en Firebase Hosting, reglas e índices |
+| `npm run android` | Compila la web para Android y la sincroniza con el proyecto Capacitor |
+| `npm run pc` | Abre la app de PC en modo de prueba |
+| `npm run pc:instalador` | Crea el instalador `.exe` en `escritorio/instaladores/` |
 
-## Funciones
+## Uso
 
-| Área | Incluye |
-|---|---|
-| Organización | Bandeja de entrada, listas con color, carpetas y etiquetas |
-| Vistas | Todas, Hoy, Mañana, Próximos 7 días, Completadas, Papelera |
-| Tareas | Título, notas, fecha y hora, cuatro prioridades, etiquetas y subtareas |
-| Repetición | Diaria, semanal por días, mensual, anual, cada N o personalizada |
-| Recordatorios | Uno o varios por tarea, con aviso del navegador y dentro de la app |
-| Kanban | Columnas propias por lista, y arrastrar tareas entre ellas |
-| Calendario | Vista de mes y de semana, arrastrar para cambiar la fecha, y panel de tareas sin fecha |
-| Matriz de Eisenhower | Cuatro cuadrantes; arrastrar entre ellos cambia la prioridad |
-| Enfoque | Pomodoro, cronómetro, registro de sesiones y estadísticas |
-| Hábitos | Frecuencias, objetivo por día, rachas, historial, cumplimiento y recordatorio |
-| Papelera | Las tareas borradas se pueden restaurar o eliminar para siempre |
-| Búsqueda | En títulos, notas y subtareas, sin distinguir mayúsculas ni acentos, con filtros |
-| Orden | Arrastrar con el ratón o con el teclado |
-| Apariencia | Tema claro y oscuro; se adapta a móviles |
+### Entrada rápida
 
-## Entrada rápida
-
-Escribe la tarea y los datos en una sola línea. Antes de crearla verás lo que se reconoció.
+Escribe la tarea y sus datos en una línea. Antes de crearla verás lo que se reconoció.
 
 ```text
 Enviar informe mañana 9am !alta #trabajo ~Oficina
@@ -63,63 +185,35 @@ Enviar informe mañana 9am !alta #trabajo ~Oficina
 | Día | `hoy`, `mañana`, `pasado mañana`, `ayer`, `el viernes`, `en 3 días`, `en 2 semanas` |
 | Fecha | `20 de diciembre`, `25/12` |
 | Hora | `9am`, `9:30 pm`, `18:30`, `a las 10`, `a las 6 de la tarde` |
-| Repetición | `cada día`, `cada lunes`, `todos los lunes`, `cada lunes y jueves`, `cada 2 semanas`, `cada mes`, `cada año`, `de lunes a viernes` |
+| Repetición | `cada día`, `cada lunes`, `todos los lunes`, `cada 2 semanas`, `cada mes`, `de lunes a viernes` |
 | Prioridad | `!alta`, `!media`, `!baja`, `!ninguna` |
 | Etiqueta | `#trabajo`; se crea si no existe |
-| Lista | `~Oficina`; debe existir, y admite nombres con espacios |
+| Lista | `~Oficina`; debe existir y admite nombres con espacios |
 
-Reglas:
-
-- Un día de la semana es siempre su próxima ocurrencia: `lunes` dicho un lunes es dentro de 7 días.
+- Un día de la semana es siempre su próxima ocurrencia.
 - Una hora sin día es para hoy, o para mañana si ya pasó.
-- La tarea se crea en la lista o vista abierta, salvo que el texto indique otra cosa.
-- Una tarea con hora recibe un recordatorio a esa hora; puedes quitarlo en el detalle.
 - Palabras sueltas como "mensual" no activan una repetición: hace falta "cada" o "todos los".
 
-## Repetición
+### Repetición
 
-Al completar una tarea repetida ocurre lo siguiente:
-
-- Queda una copia en Completadas, con la fecha y las subtareas de ese momento.
-- La tarea sigue pendiente en su próxima fecha, con todas sus subtareas sin marcar.
-- Si estaba atrasada, salta a la primera fecha desde hoy, manteniendo su ritmo.
-
-En el detalle puedes elegir si la siguiente fecha se calcula desde la fecha de la tarea o desde el día en que la completas. Una repetición mensual del día 31 se salta los meses que no tienen ese día.
-
-## Recordatorios
-
-**Están apagados por defecto.** El código sigue en la app: para mostrarlos, agrega `VITE_RECORDATORIOS=si` a `.env.local` y reinicia la app. El aviso de fin del temporizador de enfoque no depende de esta opción.
-
-**Los avisos solo son fiables con la app abierta en una pestaña o ventana.** Con la app cerrada no están garantizados:
-
-| Mecanismo | Cuándo funciona |
+| Caso | Qué pasa |
 |---|---|
-| Revisión periódica en segundo plano | Solo con la app instalada en Chrome o Edge. El navegador decide cuándo revisa, y puede tardar horas o no hacerlo |
-| Avisos programados en el navegador | Solo en navegadores con esa función experimental, hoy casi ninguno |
-| Al volver a abrir | Muestra lo vencido en las últimas 24 horas |
-| Push con Cloud Messaging | El código está listo, pero el envío programado requiere Cloud Functions, que no están en el plan gratuito |
+| Al completar | Queda una copia en Completadas, con la fecha y las subtareas de ese momento |
+| Siguiente fecha | La tarea vuelve a pendiente con sus subtareas sin marcar |
+| Atrasada | Salta a la primera fecha desde hoy, manteniendo su ritmo |
+| Base del cálculo | En el detalle eliges: desde la fecha de la tarea o desde el día en que la completas |
+| Día 31 | En los meses sin ese día se salta |
 
-- La app revisa los recordatorios cada 20 segundos y al volver a su pestaña.
-- El aviso siempre aparece dentro de la app. Para recibirlo también como notificación del navegador, pulsa **Activar avisos del navegador** en la barra lateral. El permiso solo se pide al pulsar ese botón.
-- Si un aviso venció con la app cerrada, se muestra al abrirla, siempre que tenga menos de 24 horas.
-- En tareas de todo el día, el aviso se calcula desde las 09:00.
+### Kanban y calendario
 
-## Kanban
+| Vista | Comportamiento |
+|---|---|
+| Kanban | Cada lista puede verse como Lista o Kanban; las columnas se crean, renombran y reordenan |
+| Calendario | La semana empieza en lunes; arrastrar cambia la fecha y conserva la hora |
+| Semana | Arrastrar a una hora fija la fija; a la fila superior la deja para todo el día |
+| Sin fecha | Arrastrar una tarea a este panel le quita la fecha y la repetición |
 
-Cada lista puede verse como **Lista** o **Kanban**, y recuerda su modo. Las columnas se crean, renombran y reordenan, y al borrar una eliges adónde pasan sus tareas. Las tareas se mueven con su asa, que aparece al pasar el ratón.
-
-## Calendario
-
-- La semana empieza en lunes.
-- Arrastrar una tarea a otro día cambia su fecha y conserva su hora.
-- En la vista de semana, arrastrar a una hora fija esa hora, y arrastrar a la fila superior la deja para todo el día.
-- Un clic en un espacio libre crea una tarea con esa fecha.
-- Arrastrar una tarea al panel **Sin fecha** le quita la fecha y la repetición.
-- Las próximas fechas de una tarea repetida se ven atenuadas y no se pueden mover. Mueve la que está activa.
-
-## Matriz de Eisenhower
-
-Cada cuadrante corresponde a una prioridad:
+### Matriz de Eisenhower
 
 | Cuadrante | Prioridad |
 |---|---|
@@ -128,60 +222,53 @@ Cada cuadrante corresponde a una prioridad:
 | Urgente, no importante | Baja |
 | Ni urgente ni importante | Ninguna |
 
-- Solo muestra tareas pendientes, primero las que vencen antes.
-- Arrastrar una tarea a otro cuadrante cambia su prioridad.
-- Una tarea añadida en un cuadrante toma su prioridad y los filtros activos.
+Solo muestra tareas pendientes, primero las que vencen antes.
 
-## Enfoque
+### Enfoque
 
-- **Pomodoro:** 25 minutos de enfoque, 5 de descanso y 15 de descanso largo cada 4. Se configura con el botón de ajustes.
-- **Cronómetro:** corre libremente hasta que lo detienes y lo guardas.
-- **Tarea:** cada sesión puede sumarse a una tarea. También puedes empezar con **Enfocar** en el detalle de la tarea.
-- **Recargar:** el temporizador se calcula con marcas de tiempo, así que sobrevive a recargar o cerrar la página. Una sesión que venció con la app cerrada se registra a su hora prevista.
-- **Saltar:** registra lo trabajado si llega a un minuto. **Abandonar** no registra nada.
-- **Aviso de fin:** suena un tono generado en el navegador y aparece un aviso. Solo llega con la app abierta; si estaba cerrada, verás la sesión registrada al volver.
+| Modo | Detalle |
+|---|---|
+| Pomodoro | 25 min de enfoque, 5 de descanso y 15 de descanso largo cada 4 |
+| Cronómetro | Corre hasta que lo detienes y lo guardas |
+| Tarea | Cada sesión puede sumarse a una tarea |
+| Recarga | Sobrevive a recargar o cerrar la página, porque usa marcas de tiempo |
 
-## Hábitos
+### Hábitos
 
-- **Frecuencia:** cada día, días de la semana o N veces por semana.
-- **Marcar:** un clic en un día recorre hecho, parcial, no hecho y sin marcar. Con un objetivo por día, como 8 vasos, se escribe la cantidad.
-- **Racha:** un parcial no suma ni la rompe, y hoy sin marcar tampoco la rompe. Con N veces por semana se cuenta en semanas.
-- **Cumplimiento:** un parcial vale la mitad.
-- **Archivar:** oculta el hábito y conserva su historial. **Borrar** elimina también el historial.
-- **Recordatorio:** avisa a la hora elegida si el hábito sigue pendiente ese día, solo con la app abierta.
+| Concepto | Regla |
+|---|---|
+| Frecuencia | Cada día, días de la semana, o N veces por semana |
+| Marcar | Un clic recorre hecho, parcial, no hecho y sin marcar |
+| Objetivo por día | Con un objetivo, como 8 vasos, se escribe la cantidad |
+| Racha | Un parcial no suma ni la rompe; hoy sin marcar tampoco la rompe |
+| Cumplimiento | Un parcial vale la mitad |
+| Archivar / Borrar | Archivar oculta el hábito y conserva su historial; borrar elimina también el historial |
 
-## Atajos
+### Atajos
 
 | Tecla | Acción |
 |---|---|
 | `N` | Ir al campo de nueva tarea |
 | `/` | Abrir la búsqueda |
 | `Esc` | Cerrar el detalle o un diálogo |
-| `Espacio` y flechas, sobre el asa de una tarea | Reordenar |
+| `Espacio` y flechas, sobre el asa | Reordenar una tarea |
 
-## Tus datos
+## Datos y cuentas
 
-**Sin cuenta:**
+| Modo | Dónde están los datos | Detalle |
+|---|---|---|
+| Sin cuenta | IndexedDB, solo en este navegador | Borrar los datos del sitio también borra las tareas |
+| Con cuenta | Firestore, bajo `users/{uid}` | Solo tu cuenta puede leerlos o escribirlos |
 
-- Se guardan en IndexedDB, solo en este navegador y en este equipo.
-- Borrar los datos del sitio en el navegador también borra tus tareas.
-- Otro navegador u otra dirección, incluido otro puerto, ven una base de datos distinta.
+- Con cuenta, la app sigue funcionando sin conexión y envía los cambios al reconectar.
+- Si dos dispositivos cambian la misma tarea, gana la última escritura que recibe el servidor, para la tarea completa.
+- La primera vez que entras, la app ofrece copiar a la cuenta los datos que tenías sin cuenta.
+- El tema y los ajustes del temporizador se sincronizan; el temporizador en curso no.
+- **Copia de seguridad:** en **Cuenta y ajustes** puedes descargar todo en JSON y restaurarlo. Restaurar reemplaza todos los datos, previa confirmación.
 
-**Con cuenta** (requiere configurar Firebase; la guía está en [docs/firebase-paso-a-paso.md](docs/firebase-paso-a-paso.md)):
+## Instalar la web como app
 
-- Firestore guarda tus datos bajo `users/{uid}`, y solo tu cuenta puede leerlos o escribirlos.
-- La app sigue funcionando sin conexión y envía los cambios al reconectar.
-- Si dos dispositivos cambian la misma tarea, **gana la última escritura que recibe el servidor, para la tarea completa**. No se combinan los campos.
-- Los cambios se envían agrupados, 1,5 segundos después de dejar de editar.
-- La primera vez que entras, la app ofrece copiar a la cuenta los datos que tenías sin cuenta. La copia original sigue en el navegador.
-- Cerrar sesión deja de mostrar los datos de la cuenta. Puedes pedir que también se borre su copia en ese navegador.
-- El tema y los ajustes del temporizador se sincronizan. El temporizador en curso no: es de cada dispositivo.
-
-**Copia de seguridad:** en **Cuenta y ajustes** puedes descargar todo en un archivo JSON y restaurarlo. Restaurar reemplaza todos los datos, después de validar el archivo y pedir confirmación.
-
-## Instalar como app
-
-Andamia es una PWA: funciona sin conexión y se puede instalar. El service worker solo se activa en la versión final, no con `npm run dev`:
+Andamia es una PWA: funciona sin conexión y se puede instalar. El service worker solo se activa en la versión final:
 
 ```bash
 npm run build
@@ -191,40 +278,36 @@ npm run build
 npm run preview
 ```
 
-Después abre <http://localhost:4173>. Esa dirección tiene su propia base de datos: para llevar tus datos de `localhost:5173`, usa la copia de seguridad.
+Después abre <http://localhost:4173>. Ese puerto tiene su propia base de datos: para llevar tus datos desde `localhost:5173`, usa la copia de seguridad.
 
-## Arquitectura de datos
+## Consideraciones importantes
 
-```mermaid
-flowchart LR
-    UI[Interfaz] --> R[Repositorio]
-    R --> D[(Dexie)]
-    D <-->|Espejo, solo con sesión| F[(Firestore)]
-```
+> [!WARNING]
+> **Los recordatorios están apagados por defecto.** Para mostrarlos, agrega `VITE_RECORDATORIOS=si` a `.env.local`.
 
-- La interfaz y el repositorio siempre trabajan sobre Dexie, con o sin cuenta.
-- Cada cuenta tiene su propia base (`andamia-u-{uid}`), separada de la base sin cuenta (`andamia`).
-- Con sesión, `src/datos/espejo.ts` mantiene esa base igual a Firestore en ambos sentidos. **Firestore manda**: lo que confirma el servidor siempre se aplica.
-- Sin Firebase configurado, ese código ni siquiera se descarga.
+| Tema | Detalle |
+|---|---|
+| Avisos con la app cerrada | No están garantizados. El aviso solo es fiable con la app abierta |
+| Notificaciones del navegador | Solo se piden al pulsar **Activar avisos del navegador** |
+| Envío programado | Requiere Cloud Functions, que no están en el plan gratuito de Firebase |
+| Llave de firma Android | `andamia-android.jks` y su contraseña no van en el repositorio; sin ellas no se puede actualizar la app instalada |
+| Widgets de Android | Se alimentan desde la app cada vez que cambian las tareas |
 
-## Estructura
+## Estructura del proyecto
 
-| Carpeta | Contenido |
+| Carpeta / archivo | Contenido |
 |---|---|
 | `src/modelos` | Tipos de datos |
-| `src/datos` | Base de datos, repositorio, estado de la app, espejo y conexión con Firebase |
-| `src/sw.ts` | Service worker |
-| `tests/reglas` | Pruebas de las reglas de seguridad |
-| `firestore.rules` | Reglas de seguridad de Firestore |
-| `src/logica` | Entrada rápida, vistas, búsqueda, fechas, repeticiones, recordatorios, columnas, calendario, matriz, enfoque, hábitos y rutas |
+| `src/datos` | Base de datos, repositorio, estado, espejo y conexión con Firebase |
+| `src/logica` | Entrada rápida, vistas, búsqueda, fechas, repeticiones, recordatorios, calendario, matriz, enfoque, hábitos y widgets |
 | `src/vistas` | Pantallas |
 | `src/componentes` | Piezas de la interfaz |
+| `src/sw.ts` | Service worker |
+| `android/` | Proyecto Android de Capacitor, con widgets |
+| `escritorio/` | App de PC (Electron) |
 | `tests/unit` | Pruebas de lógica |
 | `tests/e2e` | Flujos de punta a punta |
-
-## Pendiente
-
-| Fase | Contenido |
-|---|---|
-| Requiere el plan de pago de Firebase | Avisos garantizados con la app cerrada, mediante Cloud Functions |
-| Sin fase asignada | Resumen, filtros guardados, renombrar etiquetas, reordenar listas y subtareas, posponer avisos, vistas de día, año y agenda, cronograma, exportar datos, secciones y días objetivo de hábitos, y criterios personalizados en la matriz |
+| `tests/reglas` | Pruebas de las reglas de seguridad |
+| `firestore.rules` | Reglas de seguridad de Firestore |
+| `docs/` | Guías: [apps nativas](docs/apps-nativas.md) y [Firebase paso a paso](docs/firebase-paso-a-paso.md) |
+| `.github/workflows/` | `android.yml` (APK) y `windows.yml` (instalador de PC) |
