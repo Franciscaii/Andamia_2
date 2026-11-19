@@ -14,7 +14,6 @@ import { iniciarCuenta, useCuenta } from "./datos/cuenta";
 const MARCA_ETIQUETAS = "andamia-etiquetas-iniciales";
 const ANCHO_MENU_MIN = 170;
 const ANCHO_MENU_MAX = 420;
-import { useMotorEnfoque } from "./datos/enfoque";
 import { VistaAjustes, VistaTema } from "./vistas/VistaAjustes";
 import { VistaWidgets } from "./vistas/VistaWidgets";
 import { VistaEtiquetas } from "./vistas/VistaEtiquetas";
@@ -25,7 +24,6 @@ import { EnlaceAjustesWidget } from "./componentes/EnlaceAjustesWidget";
 import { esAppNativa } from "./logica/plataforma";
 import { VistaBusqueda } from "./vistas/VistaBusqueda";
 import { VistaCalendario } from "./vistas/VistaCalendario";
-import { VistaEnfoque } from "./vistas/VistaEnfoque";
 import { DetalleHabito, VistaHabitos } from "./vistas/VistaHabitos";
 import { VistaMatriz } from "./vistas/VistaMatriz";
 import { VistaEstadisticas } from "./vistas/VistaEstadisticas";
@@ -33,11 +31,6 @@ import { VistaSemana } from "./vistas/VistaSemana";
 import { VistaTareas } from "./vistas/VistaTareas";
 import { sincronizarVentanas } from "./datos/entreVentanas";
 
-function MotorEnfoque() {
-  // Espera a que los datos carguen para no perder la sesión al registrarla.
-  useMotorEnfoque();
-  return null;
-}
 
 /** El widget que muestra lo mismo que esta sección. La Semana pone su enlace ella misma, pegado a su contenido. */
 function widgetDeSeccion(seccion: Seccion): string | null {
@@ -58,8 +51,6 @@ function Vista({ ruta }: { ruta: ReturnType<typeof useRuta> }) {
         <VistaCalendario modo={ruta.seccion.modo} tareaAbierta={ruta.tareaId} />
       ) : ruta.seccion.tipo === "matriz" ? (
         <VistaMatriz tareaAbierta={ruta.tareaId} />
-      ) : ruta.seccion.tipo === "enfoque" ? (
-        <VistaEnfoque />
       ) : ruta.seccion.tipo === "habitos" ? (
         <VistaHabitos />
       ) : ruta.seccion.tipo === "estadisticas" ? (
@@ -276,7 +267,6 @@ export default function App() {
       {ruta.tareaId && <DetalleTarea key={ruta.tareaId} tareaId={ruta.tareaId} seccion={ruta.seccion} />}
       {ruta.habitoId && <DetalleHabito key={ruta.habitoId} habitoId={ruta.habitoId} seccion={ruta.seccion} />}
       <PanelAvisos seccion={ruta.seccion} />
-      <MotorEnfoque />
       <DialogoMigracion />
     </div>
   );

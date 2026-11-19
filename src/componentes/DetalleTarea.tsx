@@ -1,9 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { RotateCcw, Timer, Trash2, X } from "lucide-react";
+import { RotateCcw, Trash2, X } from "lucide-react";
 import { listasActivas, opcionesAvanzadas, recordatoriosActivos } from "../config";
-import { useEnfoque } from "../datos/enfoque";
 import { useTienda } from "../datos/tienda";
-import { formatoMinutos, minutosDeTarea } from "../logica/enfoque";
 import { aFechaInput, aHoraInput, componerVence } from "../logica/fechas";
 import { describirRecordatorio, OPCIONES_RECORDATORIO } from "../logica/recordatorios";
 import { construirRegla, describirRegla, INICIALES_DIA, leerRegla, NOMBRES_DIA, venceParaRegla, type Frecuencia, type OpcionesRepeticion } from "../logica/repeticion";
@@ -193,29 +191,6 @@ function EditorRecordatorios({ tarea }: { tarea: Tarea }) {
   );
 }
 
-function EnfoqueDeTarea({ tarea }: { tarea: Tarea }) {
-  const sesiones = useTienda((s) => s.sesiones);
-  const enfocarEnTarea = useEnfoque((s) => s.enfocarEnTarea);
-  const minutos = minutosDeTarea(sesiones, tarea.id);
-  return (
-    <section className="flex items-center justify-between gap-2">
-      <span className="text-xs text-tenue">{minutos > 0 ? `Enfoque acumulado: ${formatoMinutos(minutos)}` : "Sin tiempo de enfoque"}</span>
-      {tarea.estado === "pendiente" && (
-        <button
-          type="button"
-          className={`${claseBoton} flex shrink-0 items-center gap-1.5`}
-          onClick={() => {
-            enfocarEnTarea(tarea.id);
-            irA({ tipo: "enfoque" });
-          }}
-        >
-          <Timer size={14} /> Enfocar
-        </button>
-      )}
-    </section>
-  );
-}
-
 /** Botón rojo de eliminar, abajo a la izquierda del detalle. */
 export const claseBotonEliminar = "flex items-center gap-1.5 rounded-md bg-peligro px-3 py-1.5 text-sm font-medium text-white hover:opacity-90";
 
@@ -350,7 +325,6 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
 
           <CampoNotas valor={tarea.descripcion} alCambiar={(descripcion) => actualizarTarea(tarea.id, { descripcion })} />
           <EditorSubtareas subtareas={tarea.subtareas} alCambiar={(subtareas) => actualizarTarea(tarea.id, { subtareas })} />
-          {opcionesAvanzadas && <EnfoqueDeTarea tarea={tarea} />}
         </fieldset>
       </div>
 
