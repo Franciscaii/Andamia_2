@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon-only.png" alt="Ícono de Andamia" width="120">
+  <img src="assets/logo-andamia.png" alt="Ícono de Andamia" width="120">
 </p>
 
 <h1 align="center">Andamia</h1>
