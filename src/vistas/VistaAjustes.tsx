@@ -62,7 +62,7 @@ function Deslizador({ etiqueta, valor, min, max, unidad, alCambiar }: { etiqueta
           {unidad}
         </span>
       </span>
-      <input type="range" aria-label={etiqueta} min={min} max={max} value={valor} onChange={(e) => alCambiar(Number(e.target.value))} className="w-full accent-[var(--app-acento)]" />
+      <input type="range" aria-label={etiqueta} min={min} max={max} value={valor} onChange={(e) => alCambiar(Number(e.target.value))} className="w-[68%] accent-[var(--app-acento)] lg:w-full" />
     </label>
   );
 }
