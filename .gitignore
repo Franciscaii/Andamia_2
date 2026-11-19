@@ -12,3 +12,6 @@ Desktop.ini
 .firebaserc
 .firebase/
 dist-pruebas/
+
+# Caché de TypeScript (tsc -b), se regenera sola
+tsconfig.tsbuildinfo
