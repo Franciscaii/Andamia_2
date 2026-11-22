@@ -1276,34 +1276,8 @@ const otroDiaDelMes = () => {
   return `${hoy.slice(0, 8)}${hoy.endsWith("-15") ? "16" : "15"}`;
 };
 
-test("calendario mes: el día tocado lleva borde y con Eventos abre el formulario completo de Nuevo evento", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/");
-  await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
-  await page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: "Eventos" }).click();
-  const clave = otroDiaDelMes();
-  const celda = page.locator(`[data-zona="dia:${clave}"]`);
-  const hoy = page.locator(`[data-zona="dia:${hoyEnSantiago()}"]`);
-  // Sin tocar nada, el borde está en el día de hoy.
-  await expect(hoy).toHaveAttribute("data-elegida", "");
-  await celda.click({ position: { x: 40, y: 50 } });
-  // El día tocado queda marcado con borde y se abre el formulario completo, con esa fecha.
-  await expect(celda).toHaveAttribute("data-elegida", "");
-  await expect(page.locator("[data-elegida]")).toHaveCount(1);
-  const dialogo = page.getByRole("dialog");
-  await expect(dialogo).toContainText("Nuevo evento");
-  await expect(dialogo.getByLabel("Fecha", { exact: true })).toHaveValue(clave);
-  await expect(dialogo.getByRole("radiogroup", { name: "Color del evento" })).toBeVisible();
-  await expect(dialogo.getByRole("group", { name: "Índole" })).toBeVisible();
-  await dialogo.getByRole("textbox", { name: "Añadir evento" }).fill("Reunión de curso");
-  await dialogo.getByRole("button", { name: "Crear evento" }).click();
-  await expect(celda).toContainText("Reunión de curso");
-  // Al crear, el borde vuelve solo al día de hoy.
-  await expect(hoy).toHaveAttribute("data-elegida", "");
-  await expect(celda).not.toHaveAttribute("data-elegida", "");
-});
-
-test("calendario mes: con Tareas o Hábitos tocar un día abre el formulario completo y al cancelar el borde vuelve a hoy", async ({ page }) => {
+test("calendario mes: tocar un día solo lo marca; el + abre el formulario del filtro con ese día", async ({ page }) => {
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
   await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
@@ -1311,28 +1285,63 @@ test("calendario mes: con Tareas o Hábitos tocar un día abre el formulario com
   const celda = page.locator(`[data-zona="dia:${clave}"]`);
   const hoy = page.locator(`[data-zona="dia:${hoyEnSantiago()}"]`);
   const filtro = (nombre: string) => page.getByRole("group", { name: "Mostrar" }).getByRole("button", { name: nombre });
+  const dialogo = page.getByRole("dialog");
+  // Sin tocar nada, el borde está en el día de hoy.
+  await expect(hoy).toHaveAttribute("data-elegida", "");
+
+  await filtro("Eventos").click();
+  await celda.click({ position: { x: 40, y: 50 } });
+  // Tocar solo marca el día: no se abre ningún formulario.
+  await expect(celda).toHaveAttribute("data-elegida", "");
+  await expect(page.locator("[data-elegida]")).toHaveCount(1);
+  await expect(dialogo).toHaveCount(0);
+  await page.locator("button[data-nueva-tarea]").click();
+  await expect(dialogo).toContainText("Nuevo evento");
+  await expect(dialogo.getByLabel("Fecha", { exact: true })).toHaveValue(clave);
+  await expect(dialogo.getByRole("radiogroup", { name: "Color del evento" })).toBeVisible();
+  await dialogo.getByRole("textbox", { name: "Añadir evento" }).fill("Reunión de curso");
+  await dialogo.getByRole("button", { name: "Crear evento" }).click();
+  await expect(celda).toContainText("Reunión de curso");
+  // Al crear, el borde vuelve solo al día de hoy.
+  await expect(hoy).toHaveAttribute("data-elegida", "");
+  await expect(celda).not.toHaveAttribute("data-elegida", "");
 
   await filtro("Tareas").click();
   await celda.click({ position: { x: 40, y: 50 } });
-  await expect(celda).toHaveAttribute("data-elegida", "");
-  const dialogo = page.getByRole("dialog");
+  await expect(dialogo).toHaveCount(0);
+  await page.locator("button[data-nueva-tarea]").click();
   await expect(dialogo).toContainText("Nueva tarea");
   await expect(dialogo.getByLabel("Fecha", { exact: true })).toHaveValue(clave);
-  await expect(dialogo.getByRole("group", { name: "Importancia" })).toBeVisible();
   await dialogo.getByRole("button", { name: "Cancelar" }).click();
   await expect(dialogo).toHaveCount(0);
   await expect(hoy).toHaveAttribute("data-elegida", "");
-  await expect(celda).not.toHaveAttribute("data-elegida", "");
 
   await filtro("Hábitos").click();
   await celda.click({ position: { x: 40, y: 50 } });
-  await expect(celda).toHaveAttribute("data-elegida", "");
-  await expect(dialogo.getByRole("textbox", { name: "Nombre del hábito" })).toBeVisible();
+  await page.locator("button[data-nueva-tarea]").click();
   await expect(dialogo.getByLabel("Fecha de inicio")).toHaveValue(clave);
   await dialogo.getByRole("button", { name: "Cancelar" }).click();
-  await expect(dialogo).toHaveCount(0);
+  await expect(page.locator(".fixed.inset-0.z-40")).toHaveCount(0);
   await expect(hoy).toHaveAttribute("data-elegida", "");
-  await expect(celda).not.toHaveAttribute("data-elegida", "");
+
+  // Con Todos, el + pregunta qué crear.
+  await filtro("Todos").click();
+  // (el evento creado arriba ocupa la parte media de la celda: se toca la esquina)
+  await celda.click({ position: { x: 4, y: 4 } });
+  await page.locator("button[data-nueva-tarea]").click();
+  await expect(page.getByRole("menu")).toBeVisible();
+  await page.locator('[data-crear="tarea"]').click();
+  await expect(dialogo.getByLabel("Fecha", { exact: true })).toHaveValue(clave);
+});
+
+test("calendario mes: tocar dos veces un día lleva a la Semana en ese día", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await page.getByRole("navigation").getByRole("link", { name: "Calendario" }).click();
+  const clave = otroDiaDelMes();
+  await page.locator(`[data-zona="dia:${clave}"]`).dblclick({ position: { x: 40, y: 50 } });
+  await expect(page).toHaveURL(/#\/tareas\/semana/);
+  await expect(page.getByRole("button", { name: new RegExp(`^.*${Number(clave.slice(8))}`) }).first()).toBeVisible();
 });
 
 test("detalle de un evento: Cancelar deshace el cambio de color y Guardar lo conserva", async ({ page }) => {

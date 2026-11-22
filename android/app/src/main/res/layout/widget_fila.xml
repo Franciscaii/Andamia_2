@@ -8,15 +8,16 @@
     android:minHeight="48dp"
     android:orientation="horizontal">
 
-    <TextView
+    <ImageView
         android:id="@+id/fila_circulo"
         android:layout_width="32dp"
         android:layout_height="48dp"
         android:contentDescription="Marcar como hecha"
-        android:gravity="center_vertical|start"
-        android:text="☐"
-        android:textColor="@color/widget_texto_tenue"
-        android:textSize="22sp" />
+        android:paddingTop="15dp"
+        android:paddingBottom="15dp"
+        android:paddingEnd="10dp"
+        android:scaleType="fitStart"
+        android:src="@drawable/casilla_vacia" />
 
     <LinearLayout
         android:id="@+id/fila_texto"

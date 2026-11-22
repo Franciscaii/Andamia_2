@@ -205,9 +205,16 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const [activa, setActiva] = useState<Tarea | null>(null);
   const [filtro, setFiltro] = useState<FiltroSemana>("eventos");
   const [nuevo, setNuevo] = useState<TipoNuevo | "habito" | null>(null);
-  // Día del mes elegido (lleva borde) y, si se tocó un día con el filtro Eventos, la fecha del formulario de evento.
-  const [diaElegido, setDiaElegido] = useState(() => new Date());
+  // Día del mes elegido (lleva borde): mientras no se toque otro, es hoy y se va actualizando solo cada día.
+  const [elegido, setElegido] = useState<Date | null>(null);
   const [diaNuevo, setDiaNuevo] = useState<Date | null>(null);
+  const ultimoToque = useRef<{ clave: string; en: number } | null>(null);
+  const [, setClaveHoy] = useState(() => claveDia(new Date()));
+  useEffect(() => {
+    // Pasada la medianoche, el día de hoy cambia y la página se vuelve a dibujar.
+    const reloj = setInterval(() => setClaveHoy(claveDia(new Date())), 30_000);
+    return () => clearInterval(reloj);
+  }, []);
   const rejilla = useRef<HTMLDivElement>(null);
   // Alto real de una celda del mes, para mostrar tantas entradas como quepan.
   const rejillaMes = useRef<HTMLDivElement>(null);
@@ -226,6 +233,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     return () => observador.disconnect();
   }, [modo, fecha]);
   const hoy = new Date();
+  const diaElegido = elegido ?? hoy;
 
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor));
   const seccion = { tipo: "calendario", modo } as const;
@@ -272,20 +280,26 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     ? format(fecha, "MMMM yyyy", { locale: es })
     : `${format(dias[0], "d MMM", { locale: es })} – ${format(dias[6], "d MMM yyyy", { locale: es })}`;
   const crearEnDia = (dia: Date) => setCreacion({ vence: claveDia(dia), todoElDia: true, etiqueta: format(dia, "EEEE d 'de' MMMM", { locale: es }) });
-  // En el mes, tocar un día lo marca con borde. Con el filtro Eventos, Tareas o Hábitos abre el formulario completo de ese tipo con esa fecha; con Todos, la ventana corta de tarea.
+  // En el mes, tocar un día solo lo marca con borde; tocarlo dos veces lleva a la Semana en ese día. El formulario sale con el +.
   const alPulsarDia = (dia: Date) => {
-    setDiaElegido(dia);
-    const tipo = tipoDelFiltro(filtro);
-    if (tipo) {
-      setDiaNuevo(dia);
-      setNuevo(tipo);
-    } else crearEnDia(dia);
+    const clave = claveDia(dia);
+    const antes = ultimoToque.current;
+    const ahora = Date.now();
+    if (antes && antes.clave === clave && ahora - antes.en < 450) {
+      ultimoToque.current = null;
+      setElegido(null);
+      verDiaEnSemana(dia);
+      return;
+    }
+    ultimoToque.current = { clave, en: ahora };
+    setElegido(dia);
   };
   // Al crear o cancelar, el borde vuelve al día de hoy.
   const cerrarNuevo = () => {
+    ultimoToque.current = null;
     setNuevo(null);
     setDiaNuevo(null);
-    setDiaElegido(new Date());
+    setElegido(null);
   };
   const mesCorto = format(fecha, "MMM", { locale: es }).replace(".", "");
   const tituloMes = mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1);
@@ -325,7 +339,9 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
             ))}
           </div>
           <MenuNuevo directo={tipoDelFiltro(filtro)} alElegir={(tipo) => {
-            setDiaNuevo(null);
+            // El formulario sale con el día marcado (si se ve en este mes).
+            ultimoToque.current = null;
+            setDiaNuevo(isSameMonth(diaElegido, fecha) ? diaElegido : null);
             setNuevo(tipo);
           }} />
         </header>
@@ -471,7 +487,7 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
 
       {creacion && <DialogoNuevaTarea creacion={creacion} alCerrar={() => {
         setCreacion(null);
-        setDiaElegido(new Date());
+        setElegido(null);
       }} />}
       {(nuevo === "tarea" || nuevo === "evento") && <DialogoNuevo tipo={nuevo} dia={diaNuevo ?? diaParaNuevo} alCerrar={cerrarNuevo} />}
       {nuevo === "habito" && <DialogoHabito habito={null} inicioSugerido={diaNuevo ? claveDia(diaNuevo) : undefined} alCerrar={cerrarNuevo} />}
