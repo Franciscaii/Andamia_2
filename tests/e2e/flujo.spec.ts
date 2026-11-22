@@ -1390,3 +1390,18 @@ test("semana, vista Día en el computador: arrastrar la tira abre el mes y arras
   await page.mouse.up();
   await expect(page.getByRole("group", { name: "Días del mes" })).toHaveCount(0);
 });
+
+test("semana, vista Día: el mes se abre apenas se arrastra, con los nombres de los días legibles", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/#/tareas/semana");
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
+  const caja = (await page.getByTestId("zona-dias").boundingBox())!;
+  const x = caja.x + caja.width / 2;
+  await page.mouse.move(x, caja.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(x, caja.y + 30, { steps: 4 });
+  // Sin soltar todavía, el mes ya está abierto.
+  await expect(page.getByRole("group", { name: "Días del mes" })).toBeVisible();
+  await page.mouse.up();
+  await expect(page.getByRole("group", { name: "Días del mes" })).toBeVisible();
+});

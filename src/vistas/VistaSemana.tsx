@@ -683,23 +683,32 @@ function DiaDelMes({ dia, activo, delMes, ahora, alElegir }: { dia: Date; activo
  * Reconoce un deslizamiento con el dedo que empieza en la zona: al soltar (aunque sea fuera de ella)
  * entrega lo que se movió en horizontal y en vertical.
  */
-function useDeslizar(alSoltar: (dx: number, dy: number) => void) {
+function useDeslizar(alSoltar: (dx: number, dy: number) => void, alMover?: (dx: number, dy: number) => boolean) {
   const alSoltarRef = useRef(alSoltar);
   alSoltarRef.current = alSoltar;
+  const alMoverRef = useRef(alMover);
+  alMoverRef.current = alMover;
   return {
     onPointerDown: (e: EventoPuntero) => {
       const desde = { x: e.clientX, y: e.clientY };
-      const fin = (ev: PointerEvent) => {
+      let resuelto = false;
+      const quitar = () => {
         window.removeEventListener("pointerup", fin);
-        window.removeEventListener("pointercancel", cancelar);
-        alSoltarRef.current(ev.clientX - desde.x, ev.clientY - desde.y);
+        window.removeEventListener("pointercancel", quitar);
+        window.removeEventListener("pointermove", mover);
       };
-      const cancelar = () => {
-        window.removeEventListener("pointerup", fin);
-        window.removeEventListener("pointercancel", cancelar);
+      // Mientras el dedo se mueve: si `alMover` reconoce el gesto (devuelve true), actúa ya, sin esperar a soltar.
+      const mover = (ev: PointerEvent) => {
+        if (resuelto || !alMoverRef.current) return;
+        if (alMoverRef.current(ev.clientX - desde.x, ev.clientY - desde.y)) resuelto = true;
+      };
+      const fin = (ev: PointerEvent) => {
+        quitar();
+        if (!resuelto) alSoltarRef.current(ev.clientX - desde.x, ev.clientY - desde.y);
       };
       window.addEventListener("pointerup", fin);
-      window.addEventListener("pointercancel", cancelar);
+      window.addEventListener("pointercancel", quitar);
+      window.addEventListener("pointermove", mover);
     },
   };
 }
@@ -847,6 +856,13 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
     const ay = Math.abs(dy);
     if (ay > 40 && ay > ax) setMesAbierto(dy > 0);
     else if (!esEscritorio && ax > 50 && ax > ay) mover(dx < 0 ? 1 : -1);
+  }, (dx, dy) => {
+    // El mes se abre o se cierra en cuanto el dedo se arrastra un poco en vertical (sin esperar a soltar).
+    if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+      setMesAbierto(dy > 0);
+      return true;
+    }
+    return false;
   });
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -905,10 +921,10 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
         {alcance === "dia" && (
           <div {...gestos} data-testid="zona-dias" className="touch-none select-none">
             {verMes ? (
-              <div className="mt-2" role="group" aria-label="Días del mes">
+              <div className="mt-2 rounded-xl bg-panel p-2 shadow-sm" role="group" aria-label="Días del mes">
                 <div className="grid grid-cols-7 gap-1">
                   {dias.map((d) => (
-                    <span key={d.toISOString()} className="text-center text-xs text-tenue">
+                    <span key={d.toISOString()} className="text-center text-xs font-medium text-texto">
                       {nombreCortoDia(d)}
                     </span>
                   ))}
