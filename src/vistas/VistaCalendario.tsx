@@ -272,13 +272,20 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
     ? format(fecha, "MMMM yyyy", { locale: es })
     : `${format(dias[0], "d MMM", { locale: es })} – ${format(dias[6], "d MMM yyyy", { locale: es })}`;
   const crearEnDia = (dia: Date) => setCreacion({ vence: claveDia(dia), todoElDia: true, etiqueta: format(dia, "EEEE d 'de' MMMM", { locale: es }) });
-  // En el mes, tocar un día lo elige (borde); con el filtro Eventos abre el formulario completo de "Nuevo evento" con esa fecha.
+  // En el mes, tocar un día lo marca con borde. Con el filtro Eventos, Tareas o Hábitos abre el formulario completo de ese tipo con esa fecha; con Todos, la ventana corta de tarea.
   const alPulsarDia = (dia: Date) => {
     setDiaElegido(dia);
-    if (filtro === "eventos") {
+    const tipo = tipoDelFiltro(filtro);
+    if (tipo) {
       setDiaNuevo(dia);
-      setNuevo("evento");
+      setNuevo(tipo);
     } else crearEnDia(dia);
+  };
+  // Al crear o cancelar, el borde vuelve al día de hoy.
+  const cerrarNuevo = () => {
+    setNuevo(null);
+    setDiaNuevo(null);
+    setDiaElegido(new Date());
   };
   const mesCorto = format(fecha, "MMM", { locale: es }).replace(".", "");
   const tituloMes = mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1);
@@ -462,12 +469,12 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
       </DndContext>
       {!EN_WIDGET && <EnlaceAjustesWidget id="calendario" clase="hidden lg:block px-5 pt-1 pb-2" />}
 
-      {creacion && <DialogoNuevaTarea creacion={creacion} alCerrar={() => setCreacion(null)} />}
-      {(nuevo === "tarea" || nuevo === "evento") && <DialogoNuevo tipo={nuevo} dia={diaNuevo ?? diaParaNuevo} alCerrar={() => {
-        setNuevo(null);
-        setDiaNuevo(null);
+      {creacion && <DialogoNuevaTarea creacion={creacion} alCerrar={() => {
+        setCreacion(null);
+        setDiaElegido(new Date());
       }} />}
-      {nuevo === "habito" && <DialogoHabito habito={null} alCerrar={() => setNuevo(null)} />}
+      {(nuevo === "tarea" || nuevo === "evento") && <DialogoNuevo tipo={nuevo} dia={diaNuevo ?? diaParaNuevo} alCerrar={cerrarNuevo} />}
+      {nuevo === "habito" && <DialogoHabito habito={null} inicioSugerido={diaNuevo ? claveDia(diaNuevo) : undefined} alCerrar={cerrarNuevo} />}
       {tareaAbierta && <span className="sr-only">Tarea abierta en el panel de detalle</span>}
     </div>
   );
