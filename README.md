@@ -5,13 +5,14 @@
 <h1 align="center">Andamia</h1>
 
 <p align="center">
-  Gestor de tareas, hábitos y calendario en español.<br>
+  Gestor de tareas, hábitos y calendario en español e inglés.<br>
   Funciona en la web, en tu PC con Windows y en tu celular Android.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/App%20PC-1.4.2-7c3aed" alt="App PC 1.4.2">
-  <img src="https://img.shields.io/badge/App%20Android-1.70-7c3aed" alt="App Android 1.70">
+  <img src="https://img.shields.io/badge/App%20Android-1.71-7c3aed" alt="App Android 1.71">
+  <img src="https://img.shields.io/badge/Idiomas-Espa%C3%B1ol%20%7C%20English-0ea5e9" alt="Idiomas: español e inglés">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d6" alt="Windows 10 y 11">
   <img src="https://img.shields.io/badge/Android-7.0%2B-3ddc84" alt="Android 7.0 o superior">
 </p>
@@ -47,7 +48,7 @@ Mira la app funcionando en el celular y en el PC: [▶️ Ver el video en YouTub
 | **Búsqueda** | En títulos, notas y subtareas, sin distinguir mayúsculas ni acentos, con filtros |
 | **Entrada rápida** | Una línea con fecha, hora, prioridad, etiqueta y lista |
 | **Apariencia** | Temas, tema claro y oscuro, y se adapta a móviles |
-| **Idioma** | Español o inglés (Cuenta y ajustes → Idioma); se guarda en cada dispositivo y cambia toda la app, sus fechas y los widgets del celular |
+| **Idioma (2)** | **Español** o **English** (Cuenta y ajustes → Idioma); se guarda en cada dispositivo y cambia toda la app, sus fechas y los widgets del celular |
 
 ## Apps y dónde descargarlas
 
