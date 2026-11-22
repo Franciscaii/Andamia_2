@@ -144,14 +144,14 @@ function Chip({ tarea, fecha, esOcurrencia = false, idArrastre, alAbrir }: Props
   );
 }
 
-function Zona({ id, clase, alCrear, children, etiqueta }: { id: string; clase: string; alCrear?: () => void; children: ReactNode; etiqueta?: string }) {
+function Zona({ id, clase, alCrear, children, etiqueta, elegida = false }: { id: string; clase: string; alCrear?: () => void; children: ReactNode; etiqueta?: string; /** Día elegido del mes: lleva un borde, como en el widget Calendario. */ elegida?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const alPulsar = (e: MouseEvent) => {
     // Un clic sobre una tarea abre la tarea; solo el espacio libre crea una nueva.
     if (alCrear && !(e.target as HTMLElement).closest("[data-entrada]")) alCrear();
   };
   return (
-    <div ref={setNodeRef} data-zona={id} aria-label={etiqueta} onClick={alPulsar} className={`${clase} ${isOver ? "bg-acento-suave" : ""} ${alCrear ? "cursor-pointer" : ""}`}>
+    <div ref={setNodeRef} data-zona={id} data-elegida={elegida ? "" : undefined} aria-label={etiqueta} onClick={alPulsar} className={`${clase} ${isOver ? "bg-acento-suave" : ""} ${elegida ? "rounded-xl ring-2 ring-inset ring-acento" : ""} ${alCrear ? "cursor-pointer" : ""}`}>
       {children}
     </div>
   );
@@ -161,7 +161,6 @@ interface Creacion {
   vence: string;
   todoElDia: boolean;
   etiqueta: string;
-  esEvento?: boolean;
 }
 
 function DialogoNuevaTarea({ creacion, alCerrar }: { creacion: Creacion; alCerrar: () => void }) {
@@ -173,12 +172,12 @@ function DialogoNuevaTarea({ creacion, alCerrar }: { creacion: Creacion; alCerra
     e.preventDefault();
     const lectura = interpretarEntrada(texto, new Date(), listas);
     if (!lectura.titulo) return;
-    await crearTarea(datosDesdeEntrada(lectura, { vence: creacion.vence, todoElDia: creacion.todoElDia, esEvento: creacion.esEvento }));
+    await crearTarea(datosDesdeEntrada(lectura, { vence: creacion.vence, todoElDia: creacion.todoElDia }));
     alCerrar();
   };
 
   return (
-    <Modal titulo={`${creacion.esEvento ? "Nuevo evento" : "Nueva tarea"}: ${creacion.etiqueta}`} alCerrar={alCerrar}>
+    <Modal titulo={`Nueva tarea: ${creacion.etiqueta}`} alCerrar={alCerrar}>
       <form onSubmit={enviar} className="space-y-4">
         <input autoFocus aria-label="Título de la nueva tarea" className={claseCampo} placeholder="¿Qué hay que hacer?" value={texto} onChange={(e) => setTexto(e.target.value)} />
         <div className="flex justify-end gap-2">
@@ -186,7 +185,7 @@ function DialogoNuevaTarea({ creacion, alCerrar }: { creacion: Creacion; alCerra
             Cancelar
           </button>
           <button type="submit" className={claseBotonPrincipal} disabled={!texto.trim()}>
-            {creacion.esEvento ? "Crear evento" : "Crear tarea"}
+            Crear tarea
           </button>
         </div>
       </form>
@@ -206,6 +205,9 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const [activa, setActiva] = useState<Tarea | null>(null);
   const [filtro, setFiltro] = useState<FiltroSemana>("eventos");
   const [nuevo, setNuevo] = useState<TipoNuevo | "habito" | null>(null);
+  // Día del mes elegido (lleva borde) y, si se tocó un día con el filtro Eventos, la fecha del formulario de evento.
+  const [diaElegido, setDiaElegido] = useState(() => new Date());
+  const [diaNuevo, setDiaNuevo] = useState<Date | null>(null);
   const rejilla = useRef<HTMLDivElement>(null);
   // Alto real de una celda del mes, para mostrar tantas entradas como quepan.
   const rejillaMes = useRef<HTMLDivElement>(null);
@@ -269,7 +271,15 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
   const titulo = modo === "mes"
     ? format(fecha, "MMMM yyyy", { locale: es })
     : `${format(dias[0], "d MMM", { locale: es })} – ${format(dias[6], "d MMM yyyy", { locale: es })}`;
-  const crearEnDia = (dia: Date) => setCreacion({ vence: claveDia(dia), todoElDia: true, etiqueta: format(dia, "EEEE d 'de' MMMM", { locale: es }), esEvento: modo === "mes" && filtro === "eventos" });
+  const crearEnDia = (dia: Date) => setCreacion({ vence: claveDia(dia), todoElDia: true, etiqueta: format(dia, "EEEE d 'de' MMMM", { locale: es }) });
+  // En el mes, tocar un día lo elige (borde); con el filtro Eventos abre el formulario completo de "Nuevo evento" con esa fecha.
+  const alPulsarDia = (dia: Date) => {
+    setDiaElegido(dia);
+    if (filtro === "eventos") {
+      setDiaNuevo(dia);
+      setNuevo("evento");
+    } else crearEnDia(dia);
+  };
   const mesCorto = format(fecha, "MMM", { locale: es }).replace(".", "");
   const tituloMes = mesCorto.charAt(0).toUpperCase() + mesCorto.slice(1);
   const anioMes = fecha.getFullYear();
@@ -307,7 +317,10 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
               </button>
             ))}
           </div>
-          <MenuNuevo directo={tipoDelFiltro(filtro)} alElegir={setNuevo} />
+          <MenuNuevo directo={tipoDelFiltro(filtro)} alElegir={(tipo) => {
+            setDiaNuevo(null);
+            setNuevo(tipo);
+          }} />
         </header>
       ) : (
         <header className="flex flex-wrap items-center gap-2 px-5 pt-5 pb-3">
@@ -376,7 +389,8 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
                       id={`dia:${claveDia(dia)}`}
                       etiqueta={format(dia, "d 'de' MMMM", { locale: es })}
                       clase={`flex ${EN_WIDGET ? "min-h-0" : "min-h-24"} min-w-0 flex-col overflow-hidden px-0.5 pt-1 pb-1.5 ${ultimaFila ? "" : "border-b border-borde"}`}
-                      alCrear={delMes ? () => crearEnDia(dia) : undefined}
+                      alCrear={delMes ? () => alPulsarDia(dia) : undefined}
+                      elegida={delMes && isSameDay(dia, diaElegido)}
                     >
                       {delMes && (
                         <>
@@ -449,7 +463,10 @@ export function VistaCalendario({ modo, tareaAbierta }: { modo: ModoCalendario; 
       {!EN_WIDGET && <EnlaceAjustesWidget id="calendario" clase="hidden lg:block px-5 pt-1 pb-2" />}
 
       {creacion && <DialogoNuevaTarea creacion={creacion} alCerrar={() => setCreacion(null)} />}
-      {(nuevo === "tarea" || nuevo === "evento") && <DialogoNuevo tipo={nuevo} dia={diaParaNuevo} alCerrar={() => setNuevo(null)} />}
+      {(nuevo === "tarea" || nuevo === "evento") && <DialogoNuevo tipo={nuevo} dia={diaNuevo ?? diaParaNuevo} alCerrar={() => {
+        setNuevo(null);
+        setDiaNuevo(null);
+      }} />}
       {nuevo === "habito" && <DialogoHabito habito={null} alCerrar={() => setNuevo(null)} />}
       {tareaAbierta && <span className="sr-only">Tarea abierta en el panel de detalle</span>}
     </div>
