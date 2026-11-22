@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { RotateCcw, Trash2, X } from "lucide-react";
 import { listasActivas, opcionesAvanzadas, recordatoriosActivos } from "../config";
 import { useTienda } from "../datos/tienda";
@@ -205,14 +205,30 @@ export function FondoDetalle({ alCerrar, children }: { alCerrar: () => void; chi
   );
 }
 
+/** Lo que se edita en el detalle y que Cancelar devuelve a como estaba. */
+const CAMPOS_EDITABLES = ["titulo", "descripcion", "prioridad", "dificultad", "esEvento", "colorEvento", "vence", "todoElDia", "etiquetas", "subtareas", "repeticion", "repetirDesde", "recordatorios", "listaId", "columnaId"] as const;
+
 export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: Seccion }) {
   const tarea = useTienda((s) => s.tareas.find((t) => t.id === tareaId));
+  // Cómo estaba la tarea al abrir el detalle: Cancelar vuelve a eso.
+  const original = useRef<Tarea | undefined>(undefined);
+  if (!original.current && tarea) original.current = tarea;
   const listas = useTienda((s) => s.listas);
   const actualizarTarea = useTienda((s) => s.actualizarTarea);
   const enviarAPapelera = useTienda((s) => s.enviarAPapelera);
   const restaurarTarea = useTienda((s) => s.restaurarTarea);
 
   const cerrar = () => irA(seccion);
+  // Los cambios se guardan al escribir; Cancelar deja la tarea como estaba al abrir el detalle.
+  const cancelar = () => {
+    const antes = original.current;
+    if (antes && tarea) {
+      const cambios: Record<string, unknown> = {};
+      for (const campo of CAMPOS_EDITABLES) if (JSON.stringify(antes[campo]) !== JSON.stringify(tarea[campo])) cambios[campo] = antes[campo];
+      if (Object.keys(cambios).length > 0) actualizarTarea(tarea.id, cambios as Partial<Tarea>);
+    }
+    cerrar();
+  };
   const clasePanel = clasePanelDetalle;
   // Función (no componente) para no volver a montar el formulario en cada tecla.
   const envolver = (children: ReactNode) => <FondoDetalle alCerrar={cerrar}>{children}</FondoDetalle>;
@@ -348,9 +364,9 @@ export function DetalleTarea({ tareaId, seccion }: { tareaId: string; seccion: S
             <Trash2 size={14} /> Eliminar
           </button>
         )}
-        {/* Los cambios se van guardando al escribir; Guardar los confirma y cierra el panel. */}
+        {/* Los cambios se van guardando al escribir; Guardar los confirma y cierra el panel, y Cancelar los deshace. */}
         <div className="flex items-center gap-2">
-          <button type="button" className={claseBoton} onClick={cerrar}>
+          <button type="button" className={claseBoton} onClick={cancelar}>
             Cancelar
           </button>
           <button type="button" className={claseBotonPrincipal} onClick={cerrar}>
