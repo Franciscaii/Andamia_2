@@ -833,9 +833,9 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
   const elegirDia = (d: Date) => setElegido(d);
   // Con 7 días, tocar la tarjeta de un día lo marca: ahí añade el único + de arriba.
   const elegirColumna = (d: Date) => ({ elegida: isSameDay(d, elegido), alElegir: () => setElegido(d) });
-  // En el celular, arrastrar hacia abajo la tira de días despliega el mes completo.
+  // Arrastrar hacia abajo la tira de días despliega el mes completo (con el dedo o con el ratón); hacia arriba, la vuelve a la semana.
   const [mesAbierto, setMesAbierto] = useState(false);
-  const verMes = mesAbierto && !esEscritorio;
+  const verMes = mesAbierto;
   const moverMes = (meses: number) =>
     setElegido((d) => {
       const primero = startOfMonth(addMonths(d, meses));
@@ -843,11 +843,10 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
     });
   const mover = (n: number) => (verMes ? moverMes(n) : moverSemana(n));
   const gestos = useDeslizar((dx, dy) => {
-    if (esEscritorio) return;
     const ax = Math.abs(dx);
     const ay = Math.abs(dy);
     if (ay > 40 && ay > ax) setMesAbierto(dy > 0);
-    else if (ax > 50 && ax > ay) mover(dx < 0 ? 1 : -1);
+    else if (!esEscritorio && ax > 50 && ax > ay) mover(dx < 0 ? 1 : -1);
   });
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -904,7 +903,7 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
 
 
         {alcance === "dia" && (
-          <div {...gestos} data-testid="zona-dias" className={esEscritorio ? "" : "touch-none select-none"}>
+          <div {...gestos} data-testid="zona-dias" className="touch-none select-none">
             {verMes ? (
               <div className="mt-2" role="group" aria-label="Días del mes">
                 <div className="grid grid-cols-7 gap-1">
@@ -929,17 +928,10 @@ export function VistaSemana({ tareaAbierta }: { tareaAbierta: string | null }) {
                 ))}
               </div>
             )}
-            {!esEscritorio && (
-              <button
-                type="button"
-                aria-label={verMes ? "Ver solo la semana" : "Ver el mes completo"}
-                aria-expanded={verMes}
-                className="mx-auto flex h-4 w-16 items-center justify-center"
-                onClick={() => setMesAbierto(!verMes)}
-              >
-                <span className="h-1 w-8 rounded-full bg-acento" />
-              </button>
-            )}
+            {/* Solo un agarre visual: el mes se despliega arrastrando, no tocándolo. */}
+            <div aria-hidden="true" data-testid="agarre-mes" className="mx-auto flex h-4 w-16 cursor-grab items-center justify-center">
+              <span className="h-1 w-8 rounded-full bg-acento" />
+            </div>
           </div>
         )}
       </header>

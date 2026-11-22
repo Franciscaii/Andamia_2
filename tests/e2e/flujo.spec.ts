@@ -1365,3 +1365,28 @@ test("detalle de un evento: Cancelar deshace el cambio de color y Guardar lo con
   await detalle.getByRole("button", { name: "Guardar" }).click();
   await expect(chip).toHaveAttribute("style", /border-color: rgb\(224, 36, 94\)/);
 });
+
+test("semana, vista Día en el computador: arrastrar la tira abre el mes y arrastrar hacia arriba lo cierra", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/#/tareas/semana");
+  await page.getByRole("group", { name: "Ver" }).getByRole("button", { name: "Día", exact: true }).click();
+  const zona = page.getByTestId("zona-dias");
+  await expect(page.getByRole("group", { name: "Días del mes" })).toHaveCount(0);
+  const caja = (await zona.boundingBox())!;
+  const x = caja.x + caja.width / 2;
+  const y = caja.y + 10;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 80, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByRole("group", { name: "Días del mes" })).toBeVisible();
+  // Tocar la barrita no hace nada: solo se arrastra.
+  await page.getByTestId("agarre-mes").click();
+  await expect(page.getByRole("group", { name: "Días del mes" })).toBeVisible();
+  const caja2 = (await zona.boundingBox())!;
+  await page.mouse.move(x, caja2.y + caja2.height - 4);
+  await page.mouse.down();
+  await page.mouse.move(x, caja2.y + caja2.height - 100, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.getByRole("group", { name: "Días del mes" })).toHaveCount(0);
+});
