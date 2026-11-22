@@ -11,7 +11,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/App%20PC-1.4.2-7c3aed" alt="App PC 1.4.2">
-  <img src="https://img.shields.io/badge/App%20Android-1.71-7c3aed" alt="App Android 1.71">
+  <img src="https://img.shields.io/badge/App%20Android-1.72-7c3aed" alt="App Android 1.72">
   <img src="https://img.shields.io/badge/Idiomas-Espa%C3%B1ol%20%7C%20English-0ea5e9" alt="Idiomas: español e inglés">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078d6" alt="Windows 10 y 11">
   <img src="https://img.shields.io/badge/Android-7.0%2B-3ddc84" alt="Android 7.0 o superior">
