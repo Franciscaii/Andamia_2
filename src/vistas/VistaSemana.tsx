@@ -502,7 +502,7 @@ function HabitosDia({ dia, ahora, estrecha }: { dia: Date; ahora: Date; estrecha
   if (!conDesplegable) return lista;
   // Como en su dibujo: cerrado es una barra "Hábitos" con ▵; abierto es un marco con "Hábitos" y ▿ y los hábitos dentro.
   return (
-    <div className="mb-1 overflow-hidden rounded-xl border border-borde bg-[color-mix(in_srgb,var(--panel)_60%,transparent)] shadow-sm backdrop-blur-sm">
+    <div className="mb-1 overflow-hidden rounded-xl border border-borde bg-panel shadow-sm">
       <button
         type="button"
         aria-expanded={abierto}
