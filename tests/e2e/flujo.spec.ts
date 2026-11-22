@@ -564,6 +564,46 @@ test("tareas hoy: subir o bajar una tarea arrastrando su asa", async ({ page }) 
   await expect.poll(titulos).toEqual(["Tercera", "Segunda", "Primera"]);
 });
 
+test("tareas hoy: con el ratón se arrastra desde cualquier parte de la fila y el clic sigue abriendo", async ({ page }) => {
+  await page.goto("/");
+  for (const t of ["Tercera", "Segunda", "Primera"]) await crearEnSemana(page, "Tarea", t);
+  const lista = page.getByRole("list", { name: "Tareas" });
+  const titulos = async () => (await lista.getByTestId("fila-tarea").allInnerTexts()).map((x) => x.trim().split("\n")[0].trim());
+  await expect.poll(titulos).toEqual(["Primera", "Segunda", "Tercera"]);
+
+  // Se toma por el texto de la tarea (no por los seis puntos) y sube arriba de todo.
+  const texto = lista.getByTestId("fila-tarea").nth(2).getByText("Tercera", { exact: true });
+  const a = (await texto.boundingBox())!;
+  const d = (await lista.getByTestId("fila-tarea").first().boundingBox())!;
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2, a.y - 10, { steps: 5 });
+  await page.mouse.move(a.x + a.width / 2, d.y + 4, { steps: 10 });
+  await page.waitForTimeout(200);
+  await page.mouse.up();
+  await expect.poll(titulos).toEqual(["Tercera", "Primera", "Segunda"]);
+  // Soltar no abre el detalle, pero un clic sin mover sí.
+  await expect(page.getByRole("button", { name: "Cancelar" })).toHaveCount(0);
+  await lista.getByTestId("fila-tarea").first().getByText("Tercera", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Cancelar" })).toBeVisible();
+});
+
+test("idioma: Cuenta y ajustes cambia toda la app a inglés y vuelve a español", async ({ page }) => {
+  await page.goto("/#/ajustes");
+  await expect(page.getByRole("heading", { name: "Cuenta y ajustes" })).toBeVisible();
+  await page.getByRole("radio", { name: "English" }).click();
+  await expect(page.getByRole("heading", { name: "Account and settings" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "English" })).toHaveAttribute("aria-checked", "true");
+  // Se recuerda al recargar y llega al resto de la app.
+  await page.goto("/#/calendario");
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Week" }).or(page.getByRole("button", { name: "Week" })).first()).toBeVisible();
+  await page.goto("/#/ajustes");
+  await page.getByRole("radio", { name: "Español" }).click();
+  await expect(page.getByRole("heading", { name: "Cuenta y ajustes" })).toBeVisible();
+});
+
 test("semana: ver un día o los 7 días de una vez", async ({ page }) => {
   await page.goto("/");
   await crearEnSemana(page, "Tarea", "Tarea de hoy");

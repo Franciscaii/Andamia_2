@@ -2,7 +2,7 @@ import { EnlaceAjustesWidget } from "../componentes/EnlaceAjustesWidget";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { addMonths, addWeeks, format, isSameDay, isSameMonth, parseISO, startOfDay, startOfMonth } from "date-fns";
-import { es } from "date-fns/locale";
+import { es } from "../logica/idioma";
 import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { estiloEvento } from "../componentes/CamposTarea";
 import { colisionPunteroOTeclado } from "../componentes/colision";

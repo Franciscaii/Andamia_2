@@ -45,7 +45,7 @@ import org.json.JSONObject;
  * Se guarda sin abrir Andamia (ver TareaRapida).
  */
 public class NuevaRapidaActivity extends Activity {
-    private static final Locale ES = new Locale("es", "CL");
+    
     /** Valor, nombre y nivel (para el color) de importancia y dificultad, como en la app. */
     private static final String[] NIVELES = { "alta", "media", "baja", "ninguna" };
     private static final String[] NOMBRES_NIVEL = { "Alta", "Media", "Baja", "Ninguna" };
@@ -109,7 +109,7 @@ public class NuevaRapidaActivity extends Activity {
         circulo.setColor(Color.WHITE);
         bola.setBackground(circulo);
         pista.addView(bola);
-        pista.setContentDescription("Confeti al completarlo");
+        pista.setContentDescription(Tr.t("Confeti al completarlo"));
         final Runnable pintar = () -> {
             android.graphics.drawable.GradientDrawable fondo = new android.graphics.drawable.GradientDrawable();
             fondo.setCornerRadius(alto / 2f);
@@ -130,6 +130,7 @@ public class NuevaRapidaActivity extends Activity {
     @Override
     protected void onCreate(Bundle estado) {
         super.onCreate(estado);
+        Tr.iniciar(this);
         // La barra de navegación se veía blanca bajo la ventana: transparente y sin aviso de contraste.
         getWindow().setNavigationBarColor(Color.TRANSPARENT);
         if (android.os.Build.VERSION.SDK_INT >= 29) getWindow().setNavigationBarContrastEnforced(false);
@@ -150,7 +151,7 @@ public class NuevaRapidaActivity extends Activity {
         if (editarId != null) {
             JSONObject info = EdicionRapida.buscar(this, tipoEditar, editarId);
             if (info == null) {
-                Toast.makeText(getApplicationContext(), "Abre Andamia una vez para poder editar esto desde el widget", Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), Tr.t("Abre Andamia una vez para poder editar esto desde el widget"), Toast.LENGTH_LONG).show();
                 finish();
                 return;
             }
@@ -229,10 +230,10 @@ public class NuevaRapidaActivity extends Activity {
 
     private void mostrarMenu() {
         tarjeta.removeAllViews();
-        tarjeta.addView(titulo("¿Qué quieres añadir?"));
-        tarjeta.addView(opcion("✅", "Tarea", () -> mostrarFormulario("tarea")));
-        tarjeta.addView(opcion("📅", "Evento", () -> mostrarFormulario("evento")));
-        tarjeta.addView(opcion("🔥", "Hábito", () -> mostrarFormulario("habito")));
+        tarjeta.addView(titulo(Tr.t("¿Qué quieres añadir?")));
+        tarjeta.addView(opcion("✅", Tr.t("Tarea"), () -> mostrarFormulario("tarea")));
+        tarjeta.addView(opcion("📅", Tr.t("Evento"), () -> mostrarFormulario("evento")));
+        tarjeta.addView(opcion("🔥", Tr.t("Hábito"), () -> mostrarFormulario("habito")));
     }
 
     private View opcion(String emoji, String nombre, Runnable alTocar) {
@@ -256,8 +257,8 @@ public class NuevaRapidaActivity extends Activity {
         tipo = elegido;
         tarjeta.removeAllViews();
         boolean esTarea = "tarea".equals(tipo), esEvento = "evento".equals(tipo), esHabito = "habito".equals(tipo);
-        if (editarId != null) tarjeta.addView(titulo(esTarea ? "Editar tarea" : esEvento ? "Editar evento" : "Editar hábito"));
-        else tarjeta.addView(titulo(esTarea ? "Nueva tarea" : esEvento ? "Nuevo evento" : "Nuevo hábito"));
+        if (editarId != null) tarjeta.addView(titulo(esTarea ? Tr.t("Editar tarea") : esEvento ? Tr.t("Editar evento") : Tr.t("Editar hábito")));
+        else tarjeta.addView(titulo(esTarea ? Tr.t("Nueva tarea") : esEvento ? Tr.t("Nuevo evento") : Tr.t("Nuevo hábito")));
 
         // El formulario se desplaza si el teclado deja poco espacio; los botones quedan a la vista.
         ScrollView desplazable = new ScrollView(this);
@@ -267,7 +268,7 @@ public class NuevaRapidaActivity extends Activity {
         tarjeta.addView(desplazable, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         campo = new EditText(this);
-        campo.setHint(esTarea ? "Leer paper" : esEvento ? "Entrevista de trabajo" : "Tomar agua");
+        campo.setHint(esTarea ? Tr.t("Leer paper") : esEvento ? Tr.t("Entrevista de trabajo") : Tr.t("Tomar agua"));
         campo.setHintTextColor(tenue);
         campo.setTextColor(texto);
         campo.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
@@ -283,41 +284,41 @@ public class NuevaRapidaActivity extends Activity {
             ocultarTeclado();
             return true;
         });
-        campos.addView(seccion(esHabito ? "Nombre" : esEvento ? "Evento" : "Tarea"));
+        campos.addView(seccion(esHabito ? Tr.t("Nombre") : esEvento ? Tr.t("Evento") : Tr.t("Tarea")));
         campos.addView(campo, ancho());
 
         if (!esHabito) {
-            campos.addView(seccion("Fecha"));
+            campos.addView(seccion(Tr.t("Fecha")));
             TextView chipFecha = chip("");
             pintarFecha(chipFecha);
             chipFecha.setOnClickListener(v -> elegirFecha(chipFecha));
             campos.addView(fila(chipFecha));
         }
         if (esTarea) {
-            campos.addView(seccion("Importancia · urgencia y valor"));
+            campos.addView(seccion(Tr.t("Importancia · urgencia y valor")));
             campos.addView(niveles(true));
-            campos.addView(seccion("Dificultad · tiempo y esfuerzo"));
+            campos.addView(seccion(Tr.t("Dificultad · tiempo y esfuerzo")));
             campos.addView(niveles(false));
         }
         if (esEvento) {
-            campos.addView(seccion("Color"));
+            campos.addView(seccion(Tr.t("Color")));
             campos.addView(coloresEvento());
         }
         if (!esHabito) {
-            campos.addView(seccion("Índole"));
+            campos.addView(seccion(Tr.t("Índole")));
             campos.addView(indoles());
         }
         if (esHabito) {
             // Igual que en la app: bajo el nombre, la fecha de inicio y la de fin (opcional).
-            campos.addView(seccion("Fecha de inicio · Fecha de fin (opcional)"));
+            campos.addView(seccion(Tr.t("Fecha de inicio · Fecha de fin (opcional)")));
             LinearLayout zonaFechas = new LinearLayout(this);
             campos.addView(zonaFechas);
             pintarFechasHabito(zonaFechas);
-            campos.addView(seccion("Ícono"));
+            campos.addView(seccion(Tr.t("Ícono")));
             campos.addView(iconos());
-            campos.addView(seccion("Color"));
+            campos.addView(seccion(Tr.t("Color")));
             campos.addView(coloresHabito());
-            campos.addView(seccion("Frecuencia"));
+            campos.addView(seccion(Tr.t("Frecuencia")));
             LinearLayout zonaFrecuencia = new LinearLayout(this);
             zonaFrecuencia.setOrientation(LinearLayout.VERTICAL);
             campos.addView(zonaFrecuencia);
@@ -327,14 +328,14 @@ public class NuevaRapidaActivity extends Activity {
             filaMeta.setOrientation(LinearLayout.HORIZONTAL);
             LinearLayout colMeta = new LinearLayout(this);
             colMeta.setOrientation(LinearLayout.VERTICAL);
-            colMeta.addView(seccion("Objetivo por día"));
+            colMeta.addView(seccion(Tr.t("Objetivo por día")));
             LinearLayout zonaMeta = new LinearLayout(this);
             zonaMeta.setGravity(Gravity.CENTER_VERTICAL);
             colMeta.addView(zonaMeta);
             pintarMeta(zonaMeta);
             LinearLayout colConfeti = new LinearLayout(this);
             colConfeti.setOrientation(LinearLayout.VERTICAL);
-            colConfeti.addView(seccion("Confeti al completarlo"));
+            colConfeti.addView(seccion(Tr.t("Confeti al completarlo")));
             colConfeti.addView(interruptorConfeti());
             filaMeta.addView(colMeta, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             LinearLayout.LayoutParams lpConfeti = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
@@ -348,7 +349,7 @@ public class NuevaRapidaActivity extends Activity {
         botones.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         if (editarId != null) {
             botonEliminar = new TextView(this);
-            botonEliminar.setText("Eliminar");
+            botonEliminar.setText(Tr.t("Eliminar"));
             botonEliminar.setTextColor(ROJO);
             botonEliminar.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
             botonEliminar.setTypeface(Typeface.DEFAULT_BOLD);
@@ -359,14 +360,14 @@ public class NuevaRapidaActivity extends Activity {
             botones.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
         }
         TextView cancelar = new TextView(this);
-        cancelar.setText("Cancelar");
+        cancelar.setText(Tr.t("Cancelar"));
         cancelar.setTextColor(texto);
         cancelar.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         cancelar.setPadding(px(14), px(8), px(14), px(8));
         cancelar.setOnClickListener(v -> cerrar());
         botones.addView(cancelar);
         boton = new TextView(this);
-        boton.setText(editarId != null ? "Guardar" : esTarea ? "Crear tarea" : esEvento ? "Crear evento" : "Crear hábito");
+        boton.setText(editarId != null ? Tr.t("Guardar") : esTarea ? Tr.t("Crear tarea") : esEvento ? Tr.t("Crear evento") : Tr.t("Crear hábito"));
         boton.setTextColor(sobreAcento);
         boton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         boton.setTypeface(Typeface.DEFAULT_BOLD);
@@ -390,11 +391,11 @@ public class NuevaRapidaActivity extends Activity {
     /** Chips de fecha de inicio y de fin del hábito; la de fin se puede quitar. */
     private void pintarFechasHabito(LinearLayout zona) {
         zona.removeAllViews();
-        SimpleDateFormat formato = new SimpleDateFormat("d MMM yyyy", ES);
+        SimpleDateFormat formato = new SimpleDateFormat("d MMM yyyy", Tr.locale());
         boolean oscuro = (Color.red(fondo) * 299 + Color.green(fondo) * 587 + Color.blue(fondo) * 114) / 1000 < 128;
         int tema = oscuro ? android.R.style.Theme_DeviceDefault_Dialog_Alert : android.R.style.Theme_DeviceDefault_Light_Dialog_Alert;
 
-        TextView inicio = chip("📅  " + (mismoDia(inicioHabito, Calendar.getInstance()) ? "Hoy" : formato.format(inicioHabito.getTime()).replace(".", "")));
+        TextView inicio = chip("📅  " + (mismoDia(inicioHabito, Calendar.getInstance()) ? Tr.t("Hoy") : formato.format(inicioHabito.getTime()).replace(".", "")));
         pintarChip(inicio, false);
         inicio.setOnClickListener(v -> new DatePickerDialog(this, tema, (x, a, m, dia) -> {
             inicioHabito.set(a, m, dia);
@@ -422,7 +423,7 @@ public class NuevaRapidaActivity extends Activity {
         if (finHabito != null) {
             TextView quitar = chip("✕");
             pintarChip(quitar, false);
-            quitar.setContentDescription("Quitar la fecha de fin");
+            quitar.setContentDescription(Tr.t("Quitar la fecha de fin"));
             quitar.setOnClickListener(v -> { finHabito = null; pintarFechasHabito(zona); });
             zona.addView(quitar);
         }
@@ -452,7 +453,7 @@ public class NuevaRapidaActivity extends Activity {
         List<TextView> chips = new ArrayList<>();
         for (int i = 0; i < NIVELES.length; i++) {
             final String valor = NIVELES[i];
-            TextView c = chip((importancia ? "⚑ " : "● ") + NOMBRES_NIVEL[i]);
+            TextView c = chip((importancia ? "⚑ " : "● ") + Tr.t(NOMBRES_NIVEL[i]));
             c.setTag(valor);
             chips.add(c);
             c.setOnClickListener(v -> {
@@ -483,7 +484,7 @@ public class NuevaRapidaActivity extends Activity {
         JSONArray lista = formulario == null ? null : formulario.optJSONArray("indoles");
         if (lista == null || lista.length() == 0) {
             TextView t = new TextView(this);
-            t.setText("Abre Andamia una vez para ver tus etiquetas.");
+            t.setText(Tr.t("Abre Andamia una vez para ver tus etiquetas."));
             t.setTextColor(tenue);
             t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             return t;
@@ -779,9 +780,9 @@ public class NuevaRapidaActivity extends Activity {
     /** Diaria, ciertos días o veces por semana, como en la app. */
     private void pintarFrecuencia(LinearLayout zona) {
         zona.removeAllViews();
-        TextView diaria = chip("Diaria");
-        TextView dias = chip("Algunos días");
-        TextView semanal = chip("Veces por semana");
+        TextView diaria = chip(Tr.t("Diaria"));
+        TextView dias = chip(Tr.t("Algunos días"));
+        TextView semanal = chip(Tr.t("Veces por semana"));
         pintarChip(diaria, "diaria".equals(frecuencia));
         pintarChip(dias, "dias".equals(frecuencia));
         pintarChip(semanal, "semanal".equals(frecuencia));
@@ -799,7 +800,7 @@ public class NuevaRapidaActivity extends Activity {
             for (int i = 0; i < 7; i++) {
                 final int dia = i;
                 TextView t = new TextView(this);
-                t.setText(DIAS[i]);
+                t.setText((Tr.en() ? "MTWTFSS".substring(i, i + 1) : DIAS[i]));
                 t.setGravity(Gravity.CENTER);
                 t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
                 t.setTextColor(diasHabito[i] ? sobreAcento : texto);
@@ -892,7 +893,7 @@ public class NuevaRapidaActivity extends Activity {
 
     private TextView seccion(String s) {
         TextView t = new TextView(this);
-        t.setText(s.toUpperCase(ES));
+        t.setText(s.toUpperCase(Tr.locale()));
         t.setTextColor(tenue);
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         t.setTypeface(Typeface.DEFAULT_BOLD);
@@ -938,9 +939,9 @@ public class NuevaRapidaActivity extends Activity {
         Calendar manana = Calendar.getInstance();
         manana.add(Calendar.DAY_OF_YEAR, 1);
         String s;
-        if (mismoDia(fecha, hoy)) s = "Hoy";
-        else if (mismoDia(fecha, manana)) s = "Mañana";
-        else s = new SimpleDateFormat("EEE d MMM", ES).format(fecha.getTime()).replace(".", "");
+        if (mismoDia(fecha, hoy)) s = Tr.t("Hoy");
+        else if (mismoDia(fecha, manana)) s = Tr.t("Mañana");
+        else s = new SimpleDateFormat("EEE d MMM", Tr.locale()).format(fecha.getTime()).replace(".", "");
         chip.setText("📅  " + s);
     }
 
@@ -1011,12 +1012,12 @@ public class NuevaRapidaActivity extends Activity {
                 return;
             }
             EdicionRapida.guardar(this, n);
-            Toast.makeText(getApplicationContext(), "Cambios guardados", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), Tr.t("Cambios guardados"), Toast.LENGTH_SHORT).show();
             cerrar();
             return;
         }
         TareaRapida.guardar(this, n);
-        String aviso = "tarea".equals(tipo) ? "Tarea añadida a Andamia" : "evento".equals(tipo) ? "Evento añadido a Andamia" : "Hábito añadido a Andamia";
+        String aviso = "tarea".equals(tipo) ? Tr.t("Tarea añadida a Andamia") : "evento".equals(tipo) ? Tr.t("Evento añadido a Andamia") : Tr.t("Hábito añadido a Andamia");
         Toast.makeText(getApplicationContext(), aviso, Toast.LENGTH_SHORT).show();
         cerrar();
     }
@@ -1025,10 +1026,10 @@ public class NuevaRapidaActivity extends Activity {
     private void eliminar() {
         if (!confirmandoEliminar) {
             confirmandoEliminar = true;
-            botonEliminar.setText("¿Seguro?");
+            botonEliminar.setText(Tr.t("¿Seguro?"));
             botonEliminar.setTextColor(Color.WHITE);
             botonEliminar.setBackground(redondo(ROJO, 0, 18));
-            if ("habito".equals(tipo)) Toast.makeText(getApplicationContext(), "Se borra también su historial. Toca Eliminar otra vez para confirmar.", Toast.LENGTH_LONG).show();
+            if ("habito".equals(tipo)) Toast.makeText(getApplicationContext(), Tr.t("Se borra también su historial. Toca Eliminar otra vez para confirmar."), Toast.LENGTH_LONG).show();
             return;
         }
         JSONObject e = new JSONObject();
@@ -1040,7 +1041,7 @@ public class NuevaRapidaActivity extends Activity {
             return;
         }
         EdicionRapida.guardar(this, e);
-        Toast.makeText(getApplicationContext(), "habito".equals(tipo) ? "Hábito eliminado" : "Enviado a la papelera de Andamia", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(), "habito".equals(tipo) ? Tr.t("Hábito eliminado") : Tr.t("Enviado a la papelera de Andamia"), Toast.LENGTH_SHORT).show();
         cerrar();
     }
 

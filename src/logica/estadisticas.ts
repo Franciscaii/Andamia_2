@@ -1,5 +1,5 @@
 import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, isSameYear, parseISO, startOfDay, startOfMonth, startOfWeek, startOfYear } from "date-fns";
-import { es } from "date-fns/locale";
+import { es } from "./idioma";
 import type { Etiqueta, Habito, RegistroHabito, Tarea } from "../modelos/tipos";
 
 export type Periodo = "dia" | "semana" | "mes" | "anio";

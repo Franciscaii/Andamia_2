@@ -1,7 +1,7 @@
 import { EnlaceAjustesWidget } from "../componentes/EnlaceAjustesWidget";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, startOfWeek, endOfWeek } from "date-fns";
-import { es } from "date-fns/locale";
+import { es } from "../logica/idioma";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTienda } from "../datos/tienda";
 import {

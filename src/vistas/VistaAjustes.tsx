@@ -1,3 +1,4 @@
+import { IDIOMA, IDIOMAS, elegirIdioma } from "../logica/idioma";
 import { FlechaVolver } from "../componentes/FlechaVolver";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Cloud, CloudOff, Download, MonitorDown, RefreshCw, Upload } from "lucide-react";
@@ -474,6 +475,29 @@ export function VistaTema() {
   );
 }
 
+function SelectorIdioma() {
+  return (
+    <div>
+      <p className="mb-2 text-sm text-tenue">Elige el idioma de la app. Se guarda en este dispositivo.</p>
+      <div role="radiogroup" aria-label="Idioma" data-no-traducir className="flex gap-2">
+        {IDIOMAS.map((i) => (
+          <button
+            key={i.id}
+            type="button"
+            role="radio"
+            aria-checked={IDIOMA === i.id}
+            lang={i.id}
+            onClick={() => IDIOMA !== i.id && elegirIdioma(i.id)}
+            className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${IDIOMA === i.id ? "border-acento bg-acento-suave text-acento" : "border-borde hover:bg-suave"}`}
+          >
+            {i.nombre}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function VistaAjustes() {
   const configurada = useCuenta((s) => s.configurada);
   const usuario = useCuenta((s) => s.usuario);
@@ -489,6 +513,9 @@ export function VistaAjustes() {
           ) : (
             <FormularioAcceso />
           )}
+        </Seccion>
+        <Seccion titulo="Idioma">
+          <SelectorIdioma />
         </Seccion>
         <Seccion titulo="Copia de seguridad">
           <CopiaSeguridad />

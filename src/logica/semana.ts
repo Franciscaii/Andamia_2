@@ -1,5 +1,5 @@
 import { addDays, format, isSameDay, startOfDay, startOfWeek } from "date-fns";
-import { es } from "date-fns/locale";
+import { IDIOMA, es } from "./idioma";
 import type { Lista, Prioridad, Tarea } from "../modelos/tipos";
 import { fechaDeTarea } from "./fechas";
 import { estaActiva } from "./vistas";
@@ -23,8 +23,8 @@ export function nombreCortoDia(dia: Date): string {
 
 /** "Hoy, lun 9 de noviembre" o "mié 11 de noviembre". */
 export function tituloDelDia(dia: Date, ahora: Date = new Date()): string {
-  const texto = format(dia, "EEE d 'de' MMMM", { locale: es }).replace(".", "");
-  return isSameDay(dia, ahora) ? `Hoy, ${texto}` : texto.charAt(0).toUpperCase() + texto.slice(1);
+  const texto = format(dia, IDIOMA === "en" ? "EEE, MMMM d" : "EEE d 'de' MMMM", { locale: es }).replace(".", "");
+  return isSameDay(dia, ahora) ? `${IDIOMA === "en" ? "Today" : "Hoy"}, ${texto}` : texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 export interface Progreso {

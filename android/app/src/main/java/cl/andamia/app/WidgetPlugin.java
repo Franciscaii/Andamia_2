@@ -98,6 +98,8 @@ public class WidgetPlugin extends Plugin {
             org.json.JSONObject tema = new org.json.JSONObject();
             tema.put("tema", todo.optJSONObject("tema"));
             DatosWidget.guardarTema(contexto, tema.toString());
+            DatosWidget.guardarIdioma(contexto, todo.optString("idioma", "es"));
+            Tr.olvidar();
         } catch (Exception e) {
             // Sin tema: los widgets usan sus colores de siempre.
         }

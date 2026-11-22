@@ -5,7 +5,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities";
 import { CampoNotas, claseTituloCampo, EditorSubtareas, estiloEvento, ICONO_DIFICULTAD, SelectorColorEvento, SelectorIndole, SelectorNivel } from "../componentes/CamposTarea";
 import { addDays, addMonths, format, isSameDay, isSameMonth, parseISO, startOfMonth } from "date-fns";
-import { es } from "date-fns/locale";
+import { es } from "../logica/idioma";
 import { lanzarConfeti } from "../logica/confeti";
 import { CalendarClock, Check, CheckSquare, ClipboardCheck, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, GripVertical, Plus } from "lucide-react";
 import { claseBoton, claseBotonPrincipal, claseCampo, Modal } from "../componentes/Modal";
@@ -100,7 +100,7 @@ function FilaTareaSemana({ tarea, abierta, hoy, arrastre, estrecha = false }: { 
       style={arrastre?.estilo}
       {...arrastre?.fila}
       data-testid="fila-tarea"
-      className={`flex items-start gap-2.5 rounded-lg py-2 ${arrastre ? "pr-2 pl-0.5 select-none [-webkit-touch-callout:none]" : "px-2"} ${abierta ? "bg-acento-suave" : "hover:bg-suave"} ${arrastre?.arrastrando ? "relative z-10 bg-panel shadow-lg" : ""}`}
+      className={`flex items-start gap-2.5 rounded-lg py-2 ${arrastre ? "cursor-grab pr-2 pl-0.5 select-none [-webkit-touch-callout:none]" : "px-2"} ${abierta ? "bg-acento-suave" : "hover:bg-suave"} ${arrastre?.arrastrando ? "relative z-10 bg-panel shadow-lg" : ""}`}
     >
       {arrastre && (
         <button type="button" aria-label={`Mover ${tarea.titulo}`} title="Arrastra para subir o bajar" className="-mr-1.5 shrink-0 cursor-grab touch-none rounded p-0.5 leading-none text-tenue opacity-60 hover:opacity-100" {...arrastre.asa}>
@@ -154,6 +154,11 @@ function FilaOrdenableSemana({ tarea, abierta, hoy, estrecha, dia }: { tarea: Ta
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tarea.id, data: { dia } });
   // El asa se toma al instante (ratón, teclado); con el dedo, también toda la fila tras mantenerla presionada.
   const { onTouchStart, ...resto } = listeners ?? {};
+  // Con el ratón también se toma desde cualquier parte de la fila (no solo desde los seis puntos); un clic sin mover sigue abriendo o completando.
+  const alPresionarFila = (e: EventoPuntero<HTMLLIElement>) => {
+    if (e.pointerType !== "mouse") return;
+    (listeners?.onPointerDown as ((ev: EventoPuntero<HTMLLIElement>) => void) | undefined)?.(e);
+  };
   return (
     <FilaTareaSemana
       tarea={tarea}
@@ -164,7 +169,7 @@ function FilaOrdenableSemana({ tarea, abierta, hoy, estrecha, dia }: { tarea: Ta
         ref: setNodeRef,
         estilo: { transform: CSS.Translate.toString(transform), transition },
         asa: { ...attributes, ...resto, onTouchStart: (e) => e.stopPropagation() },
-        fila: { onTouchStart: onTouchStart as HTMLAttributes<HTMLLIElement>["onTouchStart"] },
+        fila: { onTouchStart: onTouchStart as HTMLAttributes<HTMLLIElement>["onTouchStart"], onPointerDown: alPresionarFila },
         arrastrando: isDragging,
       }}
     />

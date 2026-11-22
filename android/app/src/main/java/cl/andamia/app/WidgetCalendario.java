@@ -96,8 +96,13 @@ public class WidgetCalendario extends AppWidgetProvider {
     }
 
     static void dibujar(Context contexto, AppWidgetManager gestor, int idWidget) {
+        Tr.iniciar(contexto);
         TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_calendario);
+        Tr.texto(vista, R.id.cal_f_habitos, "Hábitos");
+        Tr.texto(vista, R.id.cal_f_tareas, "Tareas");
+        Tr.texto(vista, R.id.cal_f_eventos, "Eventos");
+        Tr.texto(vista, R.id.cal_f_todos, "Todos");
         TemaWidget.letraEncabezado(vista, R.id.cal_mes, 19);
         TemaWidget.letraEncabezado(vista, R.id.cal_f_habitos, 12);
         TemaWidget.letraEncabezado(vista, R.id.cal_f_tareas, 12);

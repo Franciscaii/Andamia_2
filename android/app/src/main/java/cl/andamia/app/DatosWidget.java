@@ -25,6 +25,14 @@ final class DatosWidget {
         prefs(c).edit().putString("tema", json).apply();
     }
 
+    static void guardarIdioma(Context c, String idioma) {
+        prefs(c).edit().putString("idioma", idioma).apply();
+    }
+
+    static String leerIdioma(Context c) {
+        return prefs(c).getString("idioma", "es");
+    }
+
     static String leerTema(Context c) {
         return prefs(c).getString("tema", null);
     }

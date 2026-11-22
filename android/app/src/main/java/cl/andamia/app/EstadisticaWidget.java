@@ -36,9 +36,7 @@ final class EstadisticaWidget {
     private static final String[] PERIODOS = { "dia", "semana", "mes", "anio" };
     private static final int[] BOTONES = { R.id.est_p_dia, R.id.est_p_semana, R.id.est_p_mes, R.id.est_p_anio };
     private static final int[] ZONAS = { R.id.est_zona_0, R.id.est_zona_1, R.id.est_zona_2, R.id.est_zona_3, R.id.est_zona_4, R.id.est_zona_5, R.id.est_zona_6, R.id.est_zona_7 };
-    private static final String[] DIAS = { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" };
-    private static final String[] MESES = { "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic" };
-    private static final String[] MESES_LARGOS = { "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" };
+        private static final String[] MESES_LARGOS = { "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" };
     private static final int MAX_FILAS = 8;
 
     private static Class<?> clase(String tipo) {
@@ -149,7 +147,7 @@ final class EstadisticaWidget {
             case "dia":
                 return String.format(Locale.ROOT, "%02d/%02d/%d", inicio.get(Calendar.DAY_OF_MONTH), inicio.get(Calendar.MONTH) + 1, inicio.get(Calendar.YEAR));
             case "mes":
-                return MESES[inicio.get(Calendar.MONTH)] + " " + inicio.get(Calendar.YEAR);
+                return Tr.meses()[inicio.get(Calendar.MONTH)] + " " + inicio.get(Calendar.YEAR);
             case "anio":
                 return String.valueOf(inicio.get(Calendar.YEAR));
             default: {
@@ -225,7 +223,7 @@ final class EstadisticaWidget {
         JSONArray serie = new JSONArray();
         for (int t = 0; t < tramos; t++) {
             JSONObject s = new JSONObject();
-            String etiqueta = "dia".equals(periodo) ? (t * 2 < 10 ? "0" : "") + (t * 2) + "h" : "anio".equals(periodo) ? MESES[t] : "mes".equals(periodo) ? String.valueOf(t + 1) : DIAS[t];
+            String etiqueta = "dia".equals(periodo) ? (t * 2 < 10 ? "0" : "") + (t * 2) + "h" : "anio".equals(periodo) ? Tr.meses()[t] : "mes".equals(periodo) ? String.valueOf(t + 1) : Tr.dias()[t];
             s.put("etiqueta", etiqueta);
             JSONArray valores = new JSONArray();
             for (int i : orden) valores.put(porTramo[t][i]);
@@ -242,9 +240,14 @@ final class EstadisticaWidget {
     // ---------- Dibujo ----------
 
     static void dibujar(Context contexto, AppWidgetManager gestor, int idWidget, String tipo) {
+        Tr.iniciar(contexto);
         TemaWidget.usar(contexto, idWidget);
         boolean habitos = "habitos".equals(tipo);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_estadistica);
+        Tr.texto(vista, R.id.est_p_dia, "Día");
+        Tr.texto(vista, R.id.est_p_semana, "Semana");
+        Tr.texto(vista, R.id.est_p_mes, "Mes");
+        Tr.texto(vista, R.id.est_p_anio, "Año");
         int texto = FabricaListaHoy.color(contexto, R.color.widget_texto);
         int tenue = FabricaListaHoy.color(contexto, R.color.widget_texto_tenue);
         int acento = FabricaListaHoy.color(contexto, R.color.widget_acento);
@@ -256,7 +259,7 @@ final class EstadisticaWidget {
         // En un widget bajo se saca el título para dejarle el espacio a la tarjeta.
         boolean conTitulo = altoDp <= 0 || altoDp >= 230;
         vista.setViewVisibility(R.id.est_titulo, conTitulo ? View.VISIBLE : View.GONE);
-        vista.setTextViewText(R.id.est_titulo, habitos ? "Mis hábitos cumplidos" : "Mis tareas completadas");
+        vista.setTextViewText(R.id.est_titulo, Tr.t(contexto, habitos ? "Mis hábitos cumplidos" : "Mis tareas completadas"));
         vista.setTextColor(R.id.est_titulo, texto);
         TemaWidget.letra(vista, R.id.est_titulo, 16);
         TemaWidget.letra(vista, R.id.est_periodo, 13);
@@ -306,7 +309,7 @@ final class EstadisticaWidget {
         int[] t = Widgets.tamano(contexto, gestor, idWidget, 22 + (conTitulo ? 24 : 0) + 36 + 30);
         float escala = t[2] / 100f;
         float[] zonas = new float[1 + 4 * ZONAS.length];
-        String vacio = crudo == null ? "Abre Andamia para ver tus estadísticas" : habitos ? "Sin hábitos cumplidos en este período." : "Sin tareas completadas en este período.";
+        String vacio = Tr.t(contexto, crudo == null ? "Abre Andamia para ver tus estadísticas" : habitos ? "Sin hábitos cumplidos en este período." : "Sin tareas completadas en este período.");
         Bitmap imagen = Dibujos.estadisticas(contexto, resumen, habitos, t[0], t[1], escala, acento, DatosWidget.etiquetaElegida(contexto, idWidget), zonas, vacio);
         vista.setImageViewBitmap(R.id.est_imagen, imagen);
         PendingIntent abrir = Widgets.abrirApp(contexto, habitos ? "andamia://estadisticas/habitos" : "andamia://estadisticas/tareas", habitos ? 60 : 50);

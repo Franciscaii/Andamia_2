@@ -23,6 +23,12 @@ function FilaOrdenable({ tarea, abierta, alAbrir, mostrarLista }: PropsFila) {
       refFila={setNodeRef}
       estilo={{ transform: CSS.Translate.toString(transform), transition }}
       asaProps={{ ...attributes, ...listeners }}
+      filaProps={{
+        // Con el ratón también se toma desde cualquier parte de la fila.
+        onPointerDown: (e) => {
+          if (e.pointerType === "mouse") (listeners?.onPointerDown as ((ev: typeof e) => void) | undefined)?.(e);
+        },
+      }}
       arrastrando={isDragging}
     />
   );

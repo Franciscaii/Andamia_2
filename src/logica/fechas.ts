@@ -1,5 +1,5 @@
 import { addDays, differenceInCalendarDays, format, isSameYear, parseISO, startOfDay } from "date-fns";
-import { es } from "date-fns/locale";
+import { es } from "./idioma";
 import type { Tarea } from "../modelos/tipos";
 
 /** Fecha local de la tarea. Las de todo el día se leen como medianoche local, sin desfase. */

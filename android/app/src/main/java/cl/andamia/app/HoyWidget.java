@@ -43,20 +43,22 @@ public class HoyWidget extends AppWidgetProvider {
     private static String titulo(Context contexto) {
         String hoy = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
         String json = DatosWidget.leerTareas(contexto);
-        if (json == null) return "Hoy";
+        if (json == null) return Tr.t(contexto, "Hoy");
         try {
             JSONObject datos = new JSONObject(json);
-            if (!hoy.equals(datos.optString("fecha"))) return "Hoy · abre Andamia";
+            if (!hoy.equals(datos.optString("fecha"))) return Tr.t(contexto, "Hoy · abre Andamia");
             String titulo = datos.optString("titulo");
-            return titulo.isEmpty() ? "Hoy" : titulo;
+            return titulo.isEmpty() ? Tr.t(contexto, "Hoy") : titulo;
         } catch (Exception e) {
-            return "Hoy";
+            return Tr.t(contexto, "Hoy");
         }
     }
 
     static void dibujar(Context contexto, AppWidgetManager gestor, int idWidget) {
         TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_hoy);
+        Tr.iniciar(contexto);
+        Tr.texto(vista, R.id.widget_vacio, "Nada para hoy.\nToca aquí para abrir Andamia.");
         vista.setTextViewText(R.id.widget_titulo, titulo(contexto));
 
         // La lista se llena desde ServicioListaHoy.

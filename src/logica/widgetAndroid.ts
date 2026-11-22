@@ -1,7 +1,8 @@
 import { registerPlugin, type PluginListenerHandle } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { addDays, addMonths, endOfMonth, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from "date-fns";
-import { es } from "date-fns/locale";
+import { IDIOMA, es } from "./idioma";
+import { aIngles } from "./traducciones";
 import { useTienda } from "../datos/tienda";
 import { COLORES_ETIQUETA, COLORES_LISTA, type Etiqueta, type FrecuenciaHabito, type Habito, type Lista, type Prioridad, type RegistroHabito, type Tarea } from "../modelos/tipos";
 import { gruposDeEtiquetas, gruposDeHabitos, hechosDeHabitos, hechosDeTareas, resumir, SIN_ETIQUETA, tituloPeriodo, type Grupo, type Hecho, type Resumen } from "./estadisticas";
@@ -143,7 +144,7 @@ export function filasDeMatriz(e: Estado, ahora: Date) {
   const { tarea } = filasDe(e.listas, e.etiquetas, ahora);
   const reparto = repartirEnCuadrantes(e.tareas, e.listas, { listaId: null, etiqueta: null });
   return CUADRANTES.flatMap((c, i) => [
-    { tipo: "seccion", titulo: `${i + 1}  ${c.nombre}  ${reparto[c.id].length}`, nivel: NIVEL[c.prioridad] },
+    { tipo: "seccion", titulo: `${i + 1}  ${aIngles(c.nombre)}  ${reparto[c.id].length}`, nivel: NIVEL[c.prioridad] },
     ...reparto[c.id].filter((t) => !t.esEvento).slice(0, MAX_POR_SECCION).map((t) => ({ tipo: "tarea", ...tarea(t) })),
   ]);
 }
@@ -210,7 +211,7 @@ function crudoParaWidget(hechos: Hecho[], grupos: Grupo[], ahora: Date) {
     let i = posicion.get(h.grupo);
     if (i === undefined) {
       i = lista.length;
-      lista.push(h.grupo === "" ? SIN_ETIQUETA : { clave: h.grupo, nombre: h.grupo, color: SIN_ETIQUETA.color });
+      lista.push(h.grupo === "" ? { ...SIN_ETIQUETA, nombre: aIngles(SIN_ETIQUETA.nombre) } : { clave: h.grupo, nombre: h.grupo, color: SIN_ETIQUETA.color });
       posicion.set(h.grupo, i);
     }
     sueltos.push(`${format(h.momento, "yyyy-MM-dd'T'HH")}|${i}`);
@@ -235,8 +236,8 @@ function resumenParaWidget(hechos: Hecho[], grupos: Grupo[], ahora: Date, titulo
 export function estadisticasDelWidget(e: Estado, ahora: Date) {
   const periodo = tituloPeriodo("semana", ahora, ahora);
   return {
-    tareas: resumenParaWidget(hechosDeTareas(e.tareas), gruposDeEtiquetas(e.etiquetas), ahora, "Tareas completadas", periodo),
-    habitos: resumenParaWidget(hechosDeHabitos(e.habitos, e.registros), gruposDeHabitos(e.habitos), ahora, "Hábitos cumplidos", periodo),
+    tareas: resumenParaWidget(hechosDeTareas(e.tareas), gruposDeEtiquetas(e.etiquetas), ahora, aIngles("Tareas completadas"), periodo),
+    habitos: resumenParaWidget(hechosDeHabitos(e.habitos, e.registros), gruposDeHabitos(e.habitos), ahora, aIngles("Hábitos cumplidos"), periodo),
   };
 }
 
@@ -285,6 +286,8 @@ export function datosDeWidgets(e: Estado, ahora: Date = new Date()) {
     estadisticas: estadisticasDelWidget(e, ahora),
     formulario: formularioDelWidget(e),
     habitosDef: definicionesDeHabitos(e.habitos),
+    // Los widgets nativos escriben sus textos fijos en este idioma.
+    idioma: IDIOMA,
   };
 }
 

@@ -53,12 +53,13 @@ interface Props {
   refFila?: (el: HTMLElement | null) => void;
   estilo?: CSSProperties;
   asaProps?: HTMLAttributes<HTMLButtonElement>;
+  filaProps?: HTMLAttributes<HTMLLIElement>;
   arrastrando?: boolean;
   /** Clases extra, por ejemplo para mostrarla como tarjeta. */
   clase?: string;
 }
 
-export function FilaTarea({ tarea, abierta, alAbrir, mostrarLista, consulta = "", acciones, refFila, estilo, asaProps, arrastrando, clase = "" }: Props) {
+export function FilaTarea({ tarea, abierta, alAbrir, mostrarLista, consulta = "", acciones, refFila, estilo, asaProps, filaProps, arrastrando, clase = "" }: Props) {
   const listas = useTienda((s) => s.listas);
   const etiquetas = useTienda((s) => s.etiquetas);
   const completarTarea = useTienda((s) => s.completarTarea);
@@ -72,7 +73,7 @@ export function FilaTarea({ tarea, abierta, alAbrir, mostrarLista, consulta = ""
   const coincideNotas = consulta && resaltar(tarea.descripcion, consulta).some((p) => p.coincide);
 
   return (
-    <li ref={refFila} style={estilo} data-testid="fila-tarea" className={`group flex items-start gap-1 rounded-lg px-1 py-1.5 ${abierta ? "bg-acento-suave" : "hover:bg-suave"} ${arrastrando ? "relative z-10 bg-panel shadow-lg" : ""} ${clase}`}>
+    <li ref={refFila} style={estilo} {...filaProps} data-testid="fila-tarea" className={`group flex items-start gap-1 ${asaProps ? "cursor-grab" : ""} rounded-lg px-1 py-1.5 ${abierta ? "bg-acento-suave" : "hover:bg-suave"} ${arrastrando ? "relative z-10 bg-panel shadow-lg" : ""} ${clase}`}>
       {asaProps ? (
         <button type="button" aria-label={`Mover ${tarea.titulo}`} className="mt-0.5 cursor-grab touch-none rounded p-0.5 text-tenue opacity-0 group-hover:opacity-100 focus-visible:opacity-100" {...asaProps}>
           <GripVertical size={15} />

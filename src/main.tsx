@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { prepararAppNativa } from "./logica/plataforma";
 import { registrarPwa } from "./logica/pwa";
+import { iniciarTraduccion } from "./logica/traduccionDom";
 import { aplicarTema, leerEleccion } from "./logica/temas";
 import { hashDe } from "./logica/ruta";
 import { PREVIA_CELULAR, WIDGET_ACTUAL } from "./logica/widgetEscritorio";
@@ -12,6 +13,7 @@ aplicarTema(leerEleccion());
 // Un widget del escritorio abre en su vista.
 const ventana = WIDGET_ACTUAL ?? PREVIA_CELULAR;
 if (ventana && !window.location.hash) window.location.hash = hashDe(ventana.seccion);
+iniciarTraduccion();
 registrarPwa();
 void prepararAppNativa();
 

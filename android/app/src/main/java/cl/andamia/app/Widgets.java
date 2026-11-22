@@ -60,8 +60,8 @@ final class Widgets {
     static void dibujarLista(Context contexto, AppWidgetManager gestor, int idWidget, String clave) {
         TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_lista);
-        vista.setTextViewText(R.id.lista_titulo, "Matriz");
-        vista.setTextViewText(R.id.lista_vacio, "Sin tareas pendientes.\nToca aquí para abrir Andamia.");
+        vista.setTextViewText(R.id.lista_titulo, Tr.t(contexto, "Matriz"));
+        vista.setTextViewText(R.id.lista_vacio, Tr.t(contexto, "Sin tareas pendientes.\nToca aquí para abrir Andamia."));
 
         Intent servicio = new Intent(contexto, ServicioFilas.class);
         servicio.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, idWidget);

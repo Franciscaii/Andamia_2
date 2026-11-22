@@ -145,6 +145,12 @@ public class WidgetSemana extends AppWidgetProvider {
     static void dibujar(Context contexto, AppWidgetManager gestor, int idWidget) {
         TemaWidget.usar(contexto, idWidget);
         RemoteViews vista = new RemoteViews(contexto.getPackageName(), R.layout.widget_semana);
+        Tr.iniciar(contexto);
+        Tr.texto(vista, R.id.semana_f_tareas, "Tareas");
+        Tr.texto(vista, R.id.semana_f_eventos, "Eventos");
+        Tr.texto(vista, R.id.semana_f_habitos, "Hábitos");
+        Tr.texto(vista, R.id.semana_f_todos, "Todos");
+        Tr.texto(vista, R.id.semana_vacio, "Nada este día.\nToca aquí para abrir Andamia.");
         TemaWidget.letraEncabezado(vista, R.id.semana_mes, 15);
         TemaWidget.letraEncabezado(vista, R.id.semana_f_tareas, 12);
         TemaWidget.letraEncabezado(vista, R.id.semana_f_eventos, 12);
@@ -218,7 +224,7 @@ public class WidgetSemana extends AppWidgetProvider {
             if (antes != null) vista.setOnClickPendingIntent(R.id.semana_atras, accion(contexto, idWidget, "dia", antes.optString("fecha"), 20));
             if (despues != null) vista.setOnClickPendingIntent(R.id.semana_adelante, accion(contexto, idWidget, "dia", despues.optString("fecha"), 21));
         } else {
-            vista.setTextViewText(R.id.semana_mes, "Abre Andamia");
+            vista.setTextViewText(R.id.semana_mes, Tr.t(contexto, "Abre Andamia"));
             vista.setViewVisibility(R.id.semana_atras, View.INVISIBLE);
             vista.setViewVisibility(R.id.semana_adelante, View.INVISIBLE);
         }

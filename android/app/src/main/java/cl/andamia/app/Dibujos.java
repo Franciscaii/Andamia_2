@@ -96,6 +96,7 @@ final class Dibujos {
     // ---------- Calendario ----------
 
     static Bitmap calendario(Context c, JSONObject mes, int ancho, int alto, float d, int acento, String filtro, boolean conTitulo) {
+        Tr.iniciar(c);
         Bitmap imagen = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888);
         Canvas lienzo = new Canvas(imagen);
         int colorTexto = color(c, R.color.widget_texto);
@@ -106,7 +107,7 @@ final class Dibujos {
 
         TextPaint titulo = texto(colorTexto, 16 * d, true);
         if (mes == null) {
-            mensaje(lienzo, "Abre Andamia para ver tu mes", ancho, alto, texto(colorTenue, 13 * d, false));
+            mensaje(lienzo, Tr.t(c, "Abre Andamia para ver tu mes"), ancho, alto, texto(colorTenue, 13 * d, false));
             return imagen;
         }
         // Con controles arriba (widget Calendario), el mes va sin márgenes y sin título propio.
@@ -120,7 +121,7 @@ final class Dibujos {
         JSONArray habitosMes = mes.optJSONArray("habitos");
 
         // Nombres de los días, en mayúsculas y grandes como el calendario del celular (sin domingo rojo).
-        String[] dias = { "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM" };
+        String[] dias = Tr.en() ? new String[] { "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN" } : new String[] { "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM" };
         float anchoCelda = (ancho - 2 * m) / 7f;
         JSONArray celdas = mes.optJSONArray("celdas");
         if (celdas == null || celdas.length() == 0) return imagen;

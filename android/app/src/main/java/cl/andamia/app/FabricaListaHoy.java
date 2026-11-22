@@ -73,6 +73,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         this.contexto = contexto;
         this.idWidget = idWidget;
         this.semana = semana;
+        Tr.iniciar(contexto);
     }
 
     private void cargar() {
@@ -139,7 +140,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
                 if (desplegable) {
                     Fila cab = new Fila();
                     cab.tipo = TIPO_DESPLEGABLE;
-                    cab.titulo = "Hábitos";
+                    cab.titulo = Tr.t(contexto, "Hábitos");
                     cab.detalle = String.valueOf(lista.size());
                     cab.hecha = abierto;
                     cab.grupo = 3;
@@ -287,9 +288,9 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
 
     static String nombreNivel(int nivel) {
         switch (nivel) {
-            case 3: return "Alta";
-            case 2: return "Media";
-            case 1: return "Baja";
+            case 3: return Tr.t("Alta");
+            case 2: return Tr.t("Media");
+            case 1: return Tr.t("Baja");
             default: return "";
         }
     }
@@ -396,7 +397,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setInt(R.id.progreso_icono, "setColorFilter", color(contexto, R.color.widget_texto));
         vista.setTextColor(R.id.progreso_texto, color(contexto, R.color.widget_texto_tenue));
         vista.setTextViewText(R.id.progreso_texto, hechas + "/" + total + " (" + porcentaje + "%)");
-        vista.setTextViewText(R.id.progreso_titulo, !semana || diaEsHoy ? "Tareas hoy" : "Tareas del día");
+        vista.setTextViewText(R.id.progreso_titulo, Tr.t(contexto, !semana || diaEsHoy ? "Tareas hoy" : "Tareas del día"));
         Intent abrir = new Intent();
         abrir.setData(Uri.parse(semana && !fechaDia.isEmpty() ? "andamia://dia/" + fechaDia : "andamia://hoy"));
         vista.setOnClickFillInIntent(R.id.progreso_fila, abrir);
@@ -431,7 +432,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
         vista.setViewVisibility(R.id.fila_importancia, dificultad.isEmpty() ? View.GONE : View.VISIBLE);
         TemaWidget.tenirFondo(vista, R.id.fila_importancia, colorNivel(contexto, f.dificultad));
 
-        String detalle = f.atrasada ? (f.detalle.isEmpty() ? "Atrasada" : "Atrasada · " + f.detalle) : f.detalle;
+        String detalle = f.atrasada ? (f.detalle.isEmpty() ? Tr.t(contexto, "Atrasada") : Tr.t(contexto, "Atrasada") + " · " + f.detalle) : f.detalle;
         vista.setTextViewText(R.id.fila_detalle, detalle);
         vista.setViewVisibility(R.id.fila_detalle, detalle.isEmpty() ? View.GONE : View.VISIBLE);
         vista.setTextColor(R.id.fila_detalle, color(contexto, f.atrasada ? R.color.widget_atrasada : R.color.widget_texto_tenue));
@@ -505,6 +506,7 @@ class FabricaListaHoy implements RemoteViewsService.RemoteViewsFactory {
             }
             case TIPO_SECCION: {
                 RemoteViews seccion = new RemoteViews(contexto.getPackageName(), R.layout.widget_seccion);
+                Tr.texto(seccion, R.id.seccion_titulo, "Completadas");
                 TemaWidget.letra(seccion, R.id.seccion_titulo, 13);
                 seccion.setTextColor(R.id.seccion_titulo, color(contexto, semana ? R.color.widget_texto : R.color.widget_texto_tenue));
                 enTarjeta(seccion, R.id.seccion_titulo, f);
