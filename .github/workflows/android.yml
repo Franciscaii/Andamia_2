@@ -73,6 +73,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         if: steps.llave.outputs.ok == 'true'
+        # Copia opcional: si el almacenamiento de artefactos de la cuenta está lleno, no debe impedir guardar el .apk en apk-descargas.
+        continue-on-error: true
         with:
           name: Andamia-Android
           path: Andamia-Android.apk
